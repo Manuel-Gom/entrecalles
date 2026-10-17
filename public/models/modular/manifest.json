@@ -1,0 +1,1224 @@
+{
+  "cuerpos": [
+    {
+      "id": "marcos",
+      "nombre": "Marcos",
+      "genero": "hombre",
+      "descripcion": "Camiseta blanca, pantalón cargo y zapatillas blancas",
+      "defecto": {
+        "pelo": "short01",
+        "torso": "elvs_crude_t-shirt_male",
+        "piernas": "cortu_cargo_pants",
+        "calzado": "shoes05"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "dani",
+      "nombre": "Dani",
+      "genero": "hombre",
+      "descripcion": "Camisa a rayas, vaqueros y zapatillas azules",
+      "defecto": {
+        "pelo": "short01",
+        "conjunto": "male_casualsuit03",
+        "calzado": "shoes06"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "kenji",
+      "nombre": "Kenji",
+      "genero": "hombre",
+      "descripcion": "Polo gris, pantalón de lana y zapatos negros",
+      "defecto": {
+        "pelo": "short02",
+        "torso": "namuhekam_male_polo_shirt",
+        "piernas": "toigo_wool_pants",
+        "calzado": "shoes04"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "ivan",
+      "nombre": "Iván",
+      "genero": "hombre",
+      "descripcion": "Jersey rojo, pantalón cargo y zapatos marrones",
+      "defecto": {
+        "pelo": "cortu_short_messy_hair",
+        "torso": "toigo_fisherman_sweater",
+        "piernas": "cortu_cargo_pants",
+        "calzado": "shoes01"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "malik",
+      "nombre": "Malik",
+      "genero": "hombre",
+      "descripcion": "Chaqueta verde sobre camisa, vaqueros y zapatillas blancas",
+      "defecto": {
+        "pelo": "afro01",
+        "conjunto": "male_casualsuit05",
+        "calzado": "shoes05"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "hiro",
+      "nombre": "Hiro",
+      "genero": "hombre",
+      "descripcion": "Camisa azul, vaqueros y zapatos negros",
+      "defecto": {
+        "pelo": "short04",
+        "conjunto": "male_casualsuit01",
+        "calzado": "shoes03"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "tomas",
+      "nombre": "Tomás",
+      "genero": "hombre",
+      "descripcion": "Camiseta gris, pantalón gris, gorra y zapatos de calle",
+      "defecto": {
+        "torso": "toigo_basic_tucked_t-shirt",
+        "piernas": "toigo_wool_pants",
+        "calzado": "shoes02",
+        "cabeza": "jujube_newsboy_cap"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "ramon",
+      "nombre": "Ramón",
+      "genero": "hombre",
+      "descripcion": "Pelo canoso, camiseta azul, vaqueros y zapatos marrones",
+      "defecto": {
+        "pelo": "short04",
+        "conjunto": "male_casualsuit04",
+        "calzado": "shoes01"
+      },
+      "colorPelo": "#9a9a9a",
+      "miniatura": true
+    },
+    {
+      "id": "nico",
+      "nombre": "Nico",
+      "genero": "hombre",
+      "descripcion": "Mono vaquero con camiseta blanca y zapatillas azules",
+      "defecto": {
+        "pelo": "culturalibre_hair_05",
+        "conjunto": "male_worksuit01",
+        "calzado": "shoes06"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "leo",
+      "nombre": "Leo",
+      "genero": "hombre",
+      "descripcion": "Traje gris con corbata y zapatos negros",
+      "defecto": {
+        "pelo": "short02",
+        "conjunto": "male_elegantsuit01",
+        "calzado": "shoes04"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "lucia",
+      "nombre": "Lucía",
+      "genero": "mujer",
+      "descripcion": "Larga melena, camiseta azul, vaqueros y zapatillas blancas",
+      "defecto": {
+        "pelo": "long01",
+        "conjunto": "female_casualsuit01",
+        "calzado": "shoes05"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "sofia",
+      "nombre": "Sofía",
+      "genero": "mujer",
+      "descripcion": "Coleta pelirroja, camiseta blanca, short vaquero y zapatillas azules",
+      "defecto": {
+        "pelo": "ponytail01",
+        "torso": "joepal_crude_t-shirt_female",
+        "piernas": "cortu_jeans_shorts",
+        "calzado": "shoes06"
+      },
+      "colorPelo": "#a8501f",
+      "miniatura": true
+    },
+    {
+      "id": "aisha",
+      "nombre": "Aisha",
+      "genero": "mujer",
+      "descripcion": "Trenza, top de tirantes, pantalón de lana y botines",
+      "defecto": {
+        "pelo": "braid01",
+        "torso": "toigo_camisole_top",
+        "piernas": "toigo_wool_pants",
+        "calzado": "toigo_ankle_boots_female"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "mei",
+      "nombre": "Mei",
+      "genero": "mujer",
+      "descripcion": "Media melena con flequillo, top ajustado, pantalón de lana y bailarinas",
+      "defecto": {
+        "pelo": "toigo_blunt_bob_with_bangs",
+        "torso": "toigo_bodice-style_top",
+        "piernas": "toigo_wool_pants",
+        "calzado": "toigo_ballet_flats"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "carmen",
+      "nombre": "Carmen",
+      "genero": "mujer",
+      "descripcion": "Traje de chaqueta elegante, pelo corto y bailarinas negras",
+      "defecto": {
+        "pelo": "toigo_curled_under_bob",
+        "conjunto": "female_elegantsuit01",
+        "calzado": "toigo_ballet_flats"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "noa",
+      "nombre": "Noa",
+      "genero": "mujer",
+      "descripcion": "Joven deportista con bob asimétrico y zapatillas",
+      "defecto": {
+        "pelo": "toigo_inverted_bob",
+        "conjunto": "female_sportsuit01",
+        "calzado": "shoes06"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "irene",
+      "nombre": "Irene",
+      "genero": "mujer",
+      "descripcion": "Camiseta, short vaquero, pelo corto y zapatillas",
+      "defecto": {
+        "pelo": "bob01",
+        "conjunto": "female_casualsuit02",
+        "calzado": "shoes02"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "zoe",
+      "nombre": "Zoe",
+      "genero": "mujer",
+      "descripcion": "Top rosa, pantalón cargo y botas",
+      "defecto": {
+        "pelo": "littleright_bobcut_hair",
+        "torso": "toigo_turtleneck_halter_top",
+        "piernas": "cortu_cargo_pants",
+        "calzado": "shoes03"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "elena",
+      "nombre": "Elena",
+      "genero": "mujer",
+      "descripcion": "Pelo rizado, camiseta, pantalón cargo y zapatillas",
+      "defecto": {
+        "pelo": "afro01",
+        "torso": "joepal_crude_t-shirt_female",
+        "piernas": "cortu_cargo_pants",
+        "calzado": "shoes05"
+      },
+      "miniatura": true
+    },
+    {
+      "id": "rosa",
+      "nombre": "Rosa",
+      "genero": "mujer",
+      "descripcion": "Pelo canoso, jersey rojo, pantalón de lana y zapatos marrones",
+      "defecto": {
+        "pelo": "toigo_curled_under_bob",
+        "torso": "toigo_fisherman_sweater",
+        "piernas": "toigo_wool_pants",
+        "calzado": "shoes01"
+      },
+      "colorPelo": "#b4b4b4",
+      "miniatura": true
+    }
+  ],
+  "huecos": {
+    "pelo": "Peinado",
+    "barba": "Barba y bigote",
+    "torso": "Camiseta o jersey",
+    "piernas": "Pantalón",
+    "conjunto": "Conjunto completo",
+    "calzado": "Calzado",
+    "cabeza": "Gorra o sombrero",
+    "gafas": "Gafas"
+  },
+  "piezas": [
+    {
+      "id": "short01",
+      "slot": "pelo",
+      "nombre": "Corto clásico",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "short02",
+      "slot": "pelo",
+      "nombre": "Corto de lado",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "short04",
+      "slot": "pelo",
+      "nombre": "Corto liso",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "afro01",
+      "slot": "pelo",
+      "nombre": "Rizado",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "cortu_short_messy_hair",
+      "slot": "pelo",
+      "nombre": "Despeinado",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "culturalibre_hair_05",
+      "slot": "pelo",
+      "nombre": "Mechones",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "bob01",
+      "slot": "pelo",
+      "nombre": "Bob de lado",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "bob02",
+      "slot": "pelo",
+      "nombre": "Bob liso",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "braid01",
+      "slot": "pelo",
+      "nombre": "Trenza",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "long01",
+      "slot": "pelo",
+      "nombre": "Melena larga",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "ponytail01",
+      "slot": "pelo",
+      "nombre": "Coleta",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_blunt_bob_with_bangs",
+      "slot": "pelo",
+      "nombre": "Bob con flequillo",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_curled_under_bob",
+      "slot": "pelo",
+      "nombre": "Bob rizado",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_inverted_bob",
+      "slot": "pelo",
+      "nombre": "Bob asimétrico",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "littleright_bobcut_hair",
+      "slot": "pelo",
+      "nombre": "Bob corto",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "elvs_french_braid_variation",
+      "slot": "pelo",
+      "nombre": "Trenza francesa",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "culturalibre_hair_01",
+      "slot": "pelo",
+      "nombre": "Melena lisa",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "culturalibre_hair_02",
+      "slot": "pelo",
+      "nombre": "Corto peinado",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "rehmanpolanski_hair_bun_brown",
+      "slot": "pelo",
+      "nombre": "Moño",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "faydaen_hair_1",
+      "slot": "pelo",
+      "nombre": "Media melena",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "sonntag78_junglebook_hair",
+      "slot": "pelo",
+      "nombre": "Melena con flequillo",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "short03",
+      "slot": "pelo",
+      "nombre": "Flequillo de lado",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_blunt_bob",
+      "slot": "pelo",
+      "nombre": "Bob recto",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_inverted_bob_with_bangs",
+      "slot": "pelo",
+      "nombre": "Bob asimétrico con flequillo",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_curled_under_bob_with_bangs",
+      "slot": "pelo",
+      "nombre": "Bob rizado con flequillo",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "elvs_double_mh_braid",
+      "slot": "pelo",
+      "nombre": "Dos trenzas",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "elvs_unkempt_french_braid",
+      "slot": "pelo",
+      "nombre": "Trenza desordenada",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "grinsegold_beard_sigmund_wip",
+      "slot": "barba",
+      "nombre": "Barba completa",
+      "para": [
+        "hombre"
+      ],
+      "tinte_pelo": true,
+      "miniatura": true
+    },
+    {
+      "id": "rehmanpolanski_beard_viking",
+      "slot": "barba",
+      "nombre": "Perilla larga",
+      "para": [
+        "hombre"
+      ],
+      "tinte_pelo": true,
+      "miniatura": true
+    },
+    {
+      "id": "rehmanpolanski_moustache_viking",
+      "slot": "barba",
+      "nombre": "Bigote ancho",
+      "para": [
+        "hombre"
+      ],
+      "tinte_pelo": true,
+      "miniatura": true
+    },
+    {
+      "id": "wdg_scruffy_beard",
+      "slot": "barba",
+      "nombre": "Barba trenzada",
+      "para": [
+        "hombre"
+      ],
+      "tinte_pelo": true,
+      "miniatura": true
+    },
+    {
+      "id": "elvs_crude_t-shirt_male",
+      "slot": "torso",
+      "nombre": "Camiseta",
+      "para": [
+        "hombre"
+      ],
+      "tinte": true,
+      "miniatura": true
+    },
+    {
+      "id": "toigo_basic_tucked_t-shirt",
+      "slot": "torso",
+      "nombre": "Camiseta metida",
+      "para": [
+        "hombre"
+      ],
+      "tinte": true,
+      "miniatura": true
+    },
+    {
+      "id": "namuhekam_male_polo_shirt",
+      "slot": "torso",
+      "nombre": "Polo",
+      "para": [
+        "hombre"
+      ],
+      "tinte": true,
+      "miniatura": true
+    },
+    {
+      "id": "toigo_fisherman_sweater",
+      "slot": "torso",
+      "nombre": "Jersey de punto",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#ac3b3b",
+      "miniatura": true
+    },
+    {
+      "id": "joepal_crude_t-shirt_female",
+      "slot": "torso",
+      "nombre": "Camiseta de mujer",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "miniatura": true
+    },
+    {
+      "id": "toigo_camisole_top",
+      "slot": "torso",
+      "nombre": "Top de tirantes",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#ac5f8b",
+      "miniatura": true
+    },
+    {
+      "id": "toigo_keyhole_tank_top",
+      "slot": "torso",
+      "nombre": "Camiseta de estampado animal",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_bodice-style_top",
+      "slot": "torso",
+      "nombre": "Top corsé",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_turtleneck_halter_top",
+      "slot": "torso",
+      "nombre": "Top de cuello alto",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#f098e7",
+      "miniatura": true
+    },
+    {
+      "id": "cortu_cargo_pants",
+      "slot": "piernas",
+      "nombre": "Pantalón cargo",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#272720",
+      "miniatura": true
+    },
+    {
+      "id": "toigo_wool_pants",
+      "slot": "piernas",
+      "nombre": "Pantalón de lana",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#4c4e50",
+      "miniatura": true
+    },
+    {
+      "id": "cortu_jeans_shorts",
+      "slot": "piernas",
+      "nombre": "Short vaquero",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#333b4b",
+      "miniatura": true
+    },
+    {
+      "id": "male_casualsuit01",
+      "slot": "conjunto",
+      "nombre": "Camisa azul y vaqueros",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "male_casualsuit03",
+      "slot": "conjunto",
+      "nombre": "Camisa a rayas y vaqueros",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "male_casualsuit04",
+      "slot": "conjunto",
+      "nombre": "Camiseta azul y vaqueros",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "male_casualsuit05",
+      "slot": "conjunto",
+      "nombre": "Chaqueta y vaqueros",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "male_worksuit01",
+      "slot": "conjunto",
+      "nombre": "Mono vaquero",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "male_elegantsuit01",
+      "slot": "conjunto",
+      "nombre": "Traje con corbata",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "female_casualsuit01",
+      "slot": "conjunto",
+      "nombre": "Camiseta azul y vaqueros",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "female_casualsuit02",
+      "slot": "conjunto",
+      "nombre": "Camiseta y short vaquero",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "female_elegantsuit01",
+      "slot": "conjunto",
+      "nombre": "Traje de chaqueta y falda",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "female_sportsuit01",
+      "slot": "conjunto",
+      "nombre": "Conjunto deportivo",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "male_casualsuit02",
+      "slot": "conjunto",
+      "nombre": "Jersey azul y vaqueros",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "male_casualsuit06",
+      "slot": "conjunto",
+      "nombre": "Camiseta blanca y vaqueros",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "shoes01",
+      "slot": "calzado",
+      "nombre": "Zapatos marrones",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "shoes02",
+      "slot": "calzado",
+      "nombre": "Zapatillas gastadas",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "shoes03",
+      "slot": "calzado",
+      "nombre": "Botas negras",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "shoes04",
+      "slot": "calzado",
+      "nombre": "Zapatos negros",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "shoes05",
+      "slot": "calzado",
+      "nombre": "Zapatillas blancas",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "shoes06",
+      "slot": "calzado",
+      "nombre": "Zapatillas azules",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_ankle_boots_female",
+      "slot": "calzado",
+      "nombre": "Botines",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_ballet_flats",
+      "slot": "calzado",
+      "nombre": "Bailarinas",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_ballet_flats_with_bows",
+      "slot": "calzado",
+      "nombre": "Bailarinas con lazo",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_mj_cloth_shoes",
+      "slot": "calzado",
+      "nombre": "Merceditas",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_ankle_boots_male",
+      "slot": "calzado",
+      "nombre": "Botines de cuero",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "cortu_t-bar",
+      "slot": "calzado",
+      "nombre": "Zapatos de correa",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "jujube_newsboy_cap",
+      "slot": "cabeza",
+      "nombre": "Gorra",
+      "oculta": [
+        "pelo"
+      ],
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "tinte": true,
+      "miniatura": true
+    },
+    {
+      "id": "fedora01",
+      "slot": "cabeza",
+      "nombre": "Fedora",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "oculta": [
+        "pelo"
+      ],
+      "tinte": true,
+      "miniatura": true
+    },
+    {
+      "id": "fedora_cocked",
+      "slot": "cabeza",
+      "nombre": "Fedora ladeado",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "oculta": [
+        "pelo"
+      ],
+      "tinte": true,
+      "miniatura": true
+    },
+    {
+      "id": "aethelraed_unraed_cloche_hat",
+      "slot": "cabeza",
+      "nombre": "Sombrero de pescador",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "oculta": [
+        "pelo"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "spamrakuen_tbm_glasses_frames_01",
+      "slot": "gafas",
+      "nombre": "Gafas de pasta negras",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "frankyaye_glasses_library_male",
+      "slot": "gafas",
+      "nombre": "Gafas angulares",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "kwnet_at_optical_glasses",
+      "slot": "gafas",
+      "nombre": "Gafas de montura blanca",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "spamrakuen_sagerfrogs_glasses_01",
+      "slot": "gafas",
+      "nombre": "Gafas burdeos gruesas",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "spamrakuen_sagerfrogs_glasses_02",
+      "slot": "gafas",
+      "nombre": "Gafas burdeos finas",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "spamrakuen_sagerfrogs_glasses_03",
+      "slot": "gafas",
+      "nombre": "Gafas de media montura",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "spamrakuen_sagerfrogs_glasses_04",
+      "slot": "gafas",
+      "nombre": "Gafas sin montura",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_round_glasses_leopard",
+      "slot": "gafas",
+      "nombre": "Gafas redondas doradas",
+      "para": [
+        "hombre",
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "frankyaye_mini_skirt_01",
+      "slot": "piernas",
+      "nombre": "Minifalda escocesa",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "frankyaye_mini_skirt_02",
+      "slot": "piernas",
+      "nombre": "Minifalda escocesa con volante",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_skirt_with_lace_ruffle",
+      "slot": "piernas",
+      "nombre": "Falda de flores",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_tiered_mini_skirt",
+      "slot": "piernas",
+      "nombre": "Minifalda de volantes",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#515151",
+      "miniatura": true
+    },
+    {
+      "id": "toigo_tiered_skirt",
+      "slot": "piernas",
+      "nombre": "Falda larga de volantes",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#eeaee7",
+      "miniatura": true
+    },
+    {
+      "id": "toigo_shift_dress",
+      "slot": "conjunto",
+      "nombre": "Vestido recto",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#353535",
+      "miniatura": true
+    },
+    {
+      "id": "toigo_halter_dress_midi",
+      "slot": "conjunto",
+      "nombre": "Vestido largo de cuello halter",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#741c2b",
+      "miniatura": true
+    },
+    {
+      "id": "toigo_halter_dress_knee_length",
+      "slot": "conjunto",
+      "nombre": "Vestido de cuello halter",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#6e1d1d",
+      "miniatura": true
+    },
+    {
+      "id": "toigo_dress_with_tiered_skirt",
+      "slot": "conjunto",
+      "nombre": "Vestido de volantes",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_bodice_dress_with_lace_ruffle_skirt",
+      "slot": "conjunto",
+      "nombre": "Vestido de encaje",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_strapless_ruffle_top_dress",
+      "slot": "conjunto",
+      "nombre": "Vestido de flores sin tirantes",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_female_double-breasted_suit",
+      "slot": "conjunto",
+      "nombre": "Traje de mujer cruzado",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_female_suit",
+      "slot": "conjunto",
+      "nombre": "Traje de mujer con falda",
+      "para": [
+        "mujer"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_male_double-breasted_suit",
+      "slot": "conjunto",
+      "nombre": "Traje cruzado",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_male_suit_3",
+      "slot": "conjunto",
+      "nombre": "Traje azul marino",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_male_suit_tie_and_jacket",
+      "slot": "conjunto",
+      "nombre": "Traje gris con corbata",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "toigo_suit_with_jacket_and_bowtie",
+      "slot": "conjunto",
+      "nombre": "Traje con pajarita",
+      "para": [
+        "hombre"
+      ],
+      "miniatura": true
+    },
+    {
+      "id": "wolgade_female_top_01",
+      "slot": "torso",
+      "nombre": "Top deportivo",
+      "para": [
+        "mujer"
+      ],
+      "tinte": true,
+      "colorDefecto": "#c3daff",
+      "miniatura": true
+    }
+  ]
+}

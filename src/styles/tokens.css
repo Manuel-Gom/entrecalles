@@ -1,0 +1,62 @@
+/* Tokens de diseño de ENTRECALLES (ver los prototipos del menú previo). */
+:root {
+  /* superficies */
+  --bg: #0f1311;
+  --panel: #161c19;
+  --panel-2: #1a221e;
+  --panel-3: #1e2723;
+  --panel-sel: #212c20;
+  --line: #28322d;
+  --line-2: #34403a;
+  --line-3: #4a564f;
+
+  /* texto (contraste AA sobre --bg y --panel) */
+  --text: #f2f1ea;
+  --soft: #c3c9be;
+  --muted: #a9b0a5;
+
+  /* acentos */
+  --lime: #d5eb77;
+  --lime-ink: #14190f;
+  --lime-soft: #242f22;
+  --coral: #ff8a6b;
+  --coral-ink: #1a0e0a;
+
+  /* tipografía */
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+  /* escala (rem: se agranda con "Texto grande") */
+  --fs-label: 0.75rem;
+  --fs-small: 0.875rem;
+  --fs-body: 1rem;
+  --fs-lead: 1.125rem;
+
+  /* espaciado y forma */
+  --radius-s: 10px;
+  --radius: 12px;
+  --radius-l: 16px;
+  --radius-xl: 20px;
+  --touch: 2.75rem;
+  --gutter: clamp(16px, 4vw, 40px);
+  --max: 1280px;
+
+  color-scheme: dark;
+}
+
+/* Alto contraste: más separación y texto más claro */
+.high-contrast {
+  --bg: #000;
+  --panel: #0a0d0b;
+  --panel-2: #101512;
+  --panel-3: #151b17;
+  --panel-sel: #1c2a17;
+  --line: #5c6a62;
+  --line-2: #8a988f;
+  --line-3: #b4c0b8;
+  --text: #fff;
+  --soft: #f0f2ec;
+  --muted: #e0e5dd;
+  --lime: #e6ff7a;
+}

@@ -1,0 +1,916 @@
+{
+  "total": 160,
+  "semilla": 20261017,
+  "nombres": {
+    "hombre": [
+      "Adrián",
+      "Alberto",
+      "Alejandro",
+      "Álvaro",
+      "Andrés",
+      "Ángel",
+      "Antonio",
+      "Arturo",
+      "Bruno",
+      "Carlos",
+      "César",
+      "Cristian",
+      "Daniel",
+      "David",
+      "Diego",
+      "Eduardo",
+      "Emilio",
+      "Enrique",
+      "Ernesto",
+      "Fabián",
+      "Felipe",
+      "Fernando",
+      "Francisco",
+      "Gabriel",
+      "Gonzalo",
+      "Guillermo",
+      "Héctor",
+      "Hugo",
+      "Ignacio",
+      "Iker",
+      "Javier",
+      "Jesús",
+      "Joaquín",
+      "Jorge",
+      "José",
+      "Juan",
+      "Julián",
+      "Lorenzo",
+      "Lucas",
+      "Luis",
+      "Manuel",
+      "Marcelo",
+      "Mario",
+      "Martín",
+      "Mateo",
+      "Mauricio",
+      "Miguel",
+      "Nicolás",
+      "Óscar",
+      "Pablo",
+      "Pedro",
+      "Rafael",
+      "Ramiro",
+      "Raúl",
+      "Ricardo",
+      "Roberto",
+      "Rodrigo",
+      "Rubén",
+      "Samuel",
+      "Santiago",
+      "Sergio",
+      "Tomás",
+      "Valentín",
+      "Vicente",
+      "Víctor",
+      "Xavier",
+      "Yago",
+      "Ismael",
+      "Omar",
+      "Karim",
+      "Yusuf",
+      "Kenzo",
+      "Idris",
+      "Mamadou",
+      "Amadou",
+      "Tiago",
+      "Leandro",
+      "Rómulo",
+      "Bautista"
+    ],
+    "mujer": [
+      "Adriana",
+      "Alicia",
+      "Alba",
+      "Alma",
+      "Ana",
+      "Andrea",
+      "Ángela",
+      "Antonia",
+      "Aurora",
+      "Beatriz",
+      "Berta",
+      "Camila",
+      "Carla",
+      "Carolina",
+      "Catalina",
+      "Claudia",
+      "Cristina",
+      "Daniela",
+      "Diana",
+      "Elisa",
+      "Emilia",
+      "Esther",
+      "Eva",
+      "Fátima",
+      "Gabriela",
+      "Gloria",
+      "Graciela",
+      "Helena",
+      "Inés",
+      "Isabel",
+      "Jimena",
+      "Julia",
+      "Laura",
+      "Leonor",
+      "Lidia",
+      "Lola",
+      "Lorena",
+      "Lucía",
+      "Luisa",
+      "Manuela",
+      "Marga",
+      "María",
+      "Marina",
+      "Marta",
+      "Mercedes",
+      "Mónica",
+      "Nadia",
+      "Natalia",
+      "Nerea",
+      "Noelia",
+      "Olga",
+      "Paula",
+      "Pilar",
+      "Raquel",
+      "Rebeca",
+      "Regina",
+      "Rocío",
+      "Sara",
+      "Silvia",
+      "Sonia",
+      "Tamara",
+      "Teresa",
+      "Valeria",
+      "Vanesa",
+      "Verónica",
+      "Victoria",
+      "Yolanda",
+      "Aïcha",
+      "Amina",
+      "Fatou",
+      "Mina",
+      "Sakura",
+      "Yuna",
+      "Lía",
+      "Maite",
+      "Ainhoa",
+      "Itziar",
+      "Rosalía"
+    ]
+  },
+  "apellidos": [
+    "Aguirre",
+    "Alonso",
+    "Álvarez",
+    "Arias",
+    "Bravo",
+    "Cabrera",
+    "Calvo",
+    "Campos",
+    "Cano",
+    "Carrasco",
+    "Castillo",
+    "Castro",
+    "Cortés",
+    "Crespo",
+    "Delgado",
+    "Díaz",
+    "Domínguez",
+    "Durán",
+    "Escudero",
+    "Esteban",
+    "Fernández",
+    "Ferrer",
+    "Flores",
+    "Fuentes",
+    "Gallego",
+    "García",
+    "Gil",
+    "Giménez",
+    "Gómez",
+    "González",
+    "Guerrero",
+    "Gutiérrez",
+    "Herrera",
+    "Hidalgo",
+    "Ibáñez",
+    "Iglesias",
+    "Jiménez",
+    "Lara",
+    "León",
+    "López",
+    "Lozano",
+    "Marín",
+    "Márquez",
+    "Martín",
+    "Medina",
+    "Mendoza",
+    "Molina",
+    "Montero",
+    "Morales",
+    "Moreno",
+    "Muñoz",
+    "Navarro",
+    "Nieto",
+    "Núñez",
+    "Ortega",
+    "Ortiz",
+    "Pardo",
+    "Pascual",
+    "Peña",
+    "Pérez",
+    "Prieto",
+    "Ramírez",
+    "Ramos",
+    "Reyes",
+    "Rivera",
+    "Rodríguez",
+    "Rojas",
+    "Román",
+    "Romero",
+    "Rubio",
+    "Ruiz",
+    "Sáez",
+    "Salazar",
+    "Sanz",
+    "Serrano",
+    "Soler",
+    "Soto",
+    "Suárez",
+    "Torres",
+    "Vargas",
+    "Vega",
+    "Vidal",
+    "Vázquez",
+    "Zapata",
+    "Diop",
+    "Okafor",
+    "Tanaka",
+    "Nakamura",
+    "Chen",
+    "Kim",
+    "Haddad",
+    "Benali"
+  ],
+  "estilos": {
+    "Casual": {
+      "peso": {
+        "joven": 0.3,
+        "adulto": 0.25,
+        "mayor": 0.2
+      },
+      "roles": [
+        [
+          "Estudiante",
+          "Estudiante"
+        ],
+        [
+          "Repartidor",
+          "Repartidora"
+        ],
+        [
+          "Dependiente",
+          "Dependienta"
+        ],
+        [
+          "Músico",
+          "Música"
+        ],
+        [
+          "Barista",
+          "Barista"
+        ],
+        [
+          "Vecino",
+          "Vecina"
+        ],
+        [
+          "Diseñador",
+          "Diseñadora"
+        ],
+        [
+          "Fotógrafo",
+          "Fotógrafa"
+        ],
+        [
+          "Programador",
+          "Programadora"
+        ],
+        [
+          "Librero",
+          "Librera"
+        ]
+      ]
+    },
+    "Elegante": {
+      "peso": {
+        "joven": 0.08,
+        "adulto": 0.2,
+        "mayor": 0.1
+      },
+      "roles": [
+        [
+          "Abogado",
+          "Abogada"
+        ],
+        [
+          "Banquero",
+          "Banquera"
+        ],
+        [
+          "Gerente",
+          "Gerente"
+        ],
+        [
+          "Recepcionista",
+          "Recepcionista"
+        ],
+        [
+          "Notario",
+          "Notaria"
+        ],
+        [
+          "Periodista",
+          "Periodista"
+        ],
+        [
+          "Arquitecto",
+          "Arquitecta"
+        ],
+        [
+          "Camarero de hotel",
+          "Camarera de hotel"
+        ]
+      ]
+    },
+    "Deportivo": {
+      "peso": {
+        "joven": 0.15,
+        "adulto": 0.1,
+        "mayor": 0.05
+      },
+      "roles": [
+        [
+          "Corredor",
+          "Corredora"
+        ],
+        [
+          "Entrenador",
+          "Entrenadora"
+        ],
+        [
+          "Ciclista",
+          "Ciclista"
+        ],
+        [
+          "Monitor de gimnasio",
+          "Monitora de gimnasio"
+        ],
+        [
+          "Futbolista aficionado",
+          "Futbolista aficionada"
+        ],
+        [
+          "Instructor de yoga",
+          "Instructora de yoga"
+        ]
+      ]
+    },
+    "Trabajo": {
+      "peso": {
+        "joven": 0.05,
+        "adulto": 0.2,
+        "mayor": 0.08
+      },
+      "roles": [
+        [
+          "Mecánico",
+          "Mecánica"
+        ],
+        [
+          "Obrero",
+          "Obrera"
+        ],
+        [
+          "Albañil",
+          "Albañila"
+        ],
+        [
+          "Pintor",
+          "Pintora"
+        ],
+        [
+          "Fontanero",
+          "Fontanera"
+        ],
+        [
+          "Electricista",
+          "Electricista"
+        ],
+        [
+          "Cocinero",
+          "Cocinera"
+        ],
+        [
+          "Carpintero",
+          "Carpintera"
+        ]
+      ]
+    },
+    "Urbano": {
+      "peso": {
+        "joven": 0.22,
+        "adulto": 0.12,
+        "mayor": 0.02
+      },
+      "roles": [
+        [
+          "Mensajero",
+          "Mensajera"
+        ],
+        [
+          "Grafitero",
+          "Grafitera"
+        ],
+        [
+          "DJ",
+          "DJ"
+        ],
+        [
+          "Músico callejero",
+          "Música callejera"
+        ],
+        [
+          "Skater",
+          "Skater"
+        ],
+        [
+          "Tatuador",
+          "Tatuadora"
+        ],
+        [
+          "Barbero",
+          "Peluquera"
+        ]
+      ]
+    },
+    "Verano": {
+      "peso": {
+        "joven": 0.12,
+        "adulto": 0.06,
+        "mayor": 0.02
+      },
+      "roles": [
+        [
+          "Turista",
+          "Turista"
+        ],
+        [
+          "Vendedor de helados",
+          "Vendedora de helados"
+        ],
+        [
+          "Camarero de terraza",
+          "Camarera de terraza"
+        ],
+        [
+          "Socorrista",
+          "Socorrista"
+        ],
+        [
+          "Guía turístico",
+          "Guía turística"
+        ]
+      ]
+    },
+    "Noche": {
+      "peso": {
+        "joven": 0.08,
+        "adulto": 0.04,
+        "mayor": 0
+      },
+      "roles": [
+        [
+          "Camarero de bar",
+          "Camarera de bar"
+        ],
+        [
+          "Portero de discoteca",
+          "Bailarina"
+        ],
+        [
+          "DJ",
+          "DJ"
+        ],
+        [
+          "Cantante",
+          "Cantante"
+        ],
+        [
+          "Bailarín",
+          "Bailarina"
+        ]
+      ]
+    },
+    "Clásico": {
+      "peso": {
+        "joven": 0,
+        "adulto": 0.03,
+        "mayor": 0.5
+      },
+      "roles": [
+        [
+          "Jubilado",
+          "Jubilada"
+        ],
+        [
+          "Tendero",
+          "Tendera"
+        ],
+        [
+          "Quiosquero",
+          "Quiosquera"
+        ],
+        [
+          "Panadero",
+          "Panadera"
+        ],
+        [
+          "Vecino de toda la vida",
+          "Vecina de toda la vida"
+        ],
+        [
+          "Relojero",
+          "Costurera"
+        ]
+      ]
+    }
+  },
+  "etiquetas": {
+    "torso": {
+      "elvs_crude_t-shirt_male": [
+        "Casual",
+        "Urbano",
+        "Deportivo",
+        "Verano"
+      ],
+      "toigo_basic_tucked_t-shirt": [
+        "Casual",
+        "Trabajo",
+        "Verano"
+      ],
+      "namuhekam_male_polo_shirt": [
+        "Casual",
+        "Elegante",
+        "Clásico",
+        "Verano"
+      ],
+      "toigo_fisherman_sweater": [
+        "Casual",
+        "Clásico",
+        "Urbano"
+      ],
+      "joepal_crude_t-shirt_female": [
+        "Casual",
+        "Urbano",
+        "Deportivo",
+        "Verano"
+      ],
+      "toigo_camisole_top": [
+        "Verano",
+        "Casual"
+      ],
+      "toigo_keyhole_tank_top": [
+        "Verano",
+        "Casual"
+      ],
+      "toigo_bodice-style_top": [
+        "Noche"
+      ],
+      "toigo_turtleneck_halter_top": [
+        "Noche",
+        "Verano",
+        "Casual"
+      ],
+      "wolgade_female_top_01": [
+        "Deportivo"
+      ]
+    },
+    "piernas": {
+      "cortu_cargo_pants": [
+        "Casual",
+        "Urbano",
+        "Trabajo",
+        "Deportivo"
+      ],
+      "toigo_wool_pants": [
+        "Elegante",
+        "Clásico",
+        "Casual",
+        "Noche"
+      ],
+      "cortu_jeans_shorts": [
+        "Verano",
+        "Casual",
+        "Deportivo"
+      ]
+    },
+    "conjunto": {
+      "male_casualsuit01": [
+        "Casual",
+        "Clásico"
+      ],
+      "male_casualsuit03": [
+        "Casual",
+        "Clásico"
+      ],
+      "male_casualsuit04": [
+        "Casual",
+        "Urbano"
+      ],
+      "male_casualsuit05": [
+        "Casual",
+        "Urbano",
+        "Clásico"
+      ],
+      "male_worksuit01": [
+        "Trabajo"
+      ],
+      "male_elegantsuit01": [
+        "Elegante"
+      ],
+      "female_casualsuit01": [
+        "Casual",
+        "Urbano"
+      ],
+      "female_casualsuit02": [
+        "Verano",
+        "Casual"
+      ],
+      "female_elegantsuit01": [
+        "Elegante"
+      ],
+      "female_sportsuit01": [
+        "Deportivo"
+      ],
+      "male_casualsuit02": [
+        "Casual",
+        "Urbano"
+      ],
+      "male_casualsuit06": [
+        "Casual",
+        "Verano",
+        "Deportivo"
+      ],
+      "toigo_male_suit_3": [
+        "Elegante"
+      ]
+    },
+    "calzado": {
+      "shoes01": [
+        "Elegante",
+        "Clásico"
+      ],
+      "shoes02": [
+        "Trabajo",
+        "Casual",
+        "Urbano"
+      ],
+      "shoes03": [
+        "Trabajo",
+        "Urbano",
+        "Noche"
+      ],
+      "shoes04": [
+        "Elegante",
+        "Noche",
+        "Clásico"
+      ],
+      "shoes05": [
+        "Casual",
+        "Deportivo",
+        "Urbano",
+        "Verano"
+      ],
+      "shoes06": [
+        "Casual",
+        "Deportivo",
+        "Urbano",
+        "Verano"
+      ],
+      "toigo_ankle_boots_female": [
+        "Urbano",
+        "Casual",
+        "Noche"
+      ],
+      "toigo_ballet_flats": [
+        "Elegante",
+        "Verano",
+        "Clásico",
+        "Casual"
+      ],
+      "toigo_ballet_flats_with_bows": [
+        "Verano",
+        "Casual"
+      ],
+      "toigo_stiletto_booties": [
+        "Noche",
+        "Elegante"
+      ],
+      "toigo_mj_cloth_shoes": [
+        "Clásico",
+        "Casual",
+        "Elegante"
+      ],
+      "toigo_ankle_boots_male": [
+        "Urbano",
+        "Casual",
+        "Trabajo",
+        "Noche"
+      ],
+      "cortu_t-bar": [
+        "Clásico",
+        "Casual",
+        "Verano"
+      ]
+    },
+    "cabeza": {
+      "jujube_newsboy_cap": [
+        "Casual",
+        "Urbano",
+        "Clásico",
+        "Trabajo"
+      ],
+      "fedora01": [
+        "Elegante",
+        "Clásico",
+        "Urbano",
+        "Casual"
+      ],
+      "fedora_cocked": [
+        "Clásico",
+        "Urbano",
+        "Noche",
+        "Casual"
+      ],
+      "aethelraed_unraed_cloche_hat": [
+        "Verano",
+        "Casual"
+      ]
+    }
+  },
+  "colores": {
+    "Elegante": [
+      "#202225",
+      "#1f3a5f",
+      "#8d9296",
+      "#f4f4f0",
+      "#cdb694",
+      "#b53a35"
+    ],
+    "Deportivo": [
+      "#f4f4f0",
+      "#202225",
+      "#3f7fbf",
+      "#b53a35",
+      "#2f9e9e",
+      "#d6a52f",
+      "#3f7d52"
+    ],
+    "Trabajo": [
+      "#cdb694",
+      "#3f7d52",
+      "#8d9296",
+      "#d6a52f",
+      "#1f3a5f",
+      "#202225"
+    ],
+    "Urbano": [
+      "#202225",
+      "#8d9296",
+      "#b53a35",
+      "#7b5ea7",
+      "#2f9e9e",
+      "#d6a52f",
+      "#f4f4f0"
+    ],
+    "Casual": [
+      "#f4f4f0",
+      "#3f7fbf",
+      "#b53a35",
+      "#3f7d52",
+      "#d6a52f",
+      "#d98aa4",
+      "#202225",
+      "#2f9e9e",
+      "#cdb694",
+      "#7b5ea7"
+    ],
+    "Verano": [
+      "#f4f4f0",
+      "#d98aa4",
+      "#d6a52f",
+      "#2f9e9e",
+      "#3f7fbf",
+      "#b53a35",
+      "#3f7d52"
+    ],
+    "Noche": [
+      "#202225",
+      "#b53a35",
+      "#7b5ea7",
+      "#1f3a5f",
+      "#d98aa4"
+    ],
+    "Clásico": [
+      "#cdb694",
+      "#8d9296",
+      "#1f3a5f",
+      "#3f7d52",
+      "#b53a35",
+      "#f4f4f0"
+    ]
+  },
+  "excluir": [],
+  "etiquetasPorPalabra": [
+    {
+      "palabras": [
+        "vestido"
+      ],
+      "tags": [
+        "Verano",
+        "Casual",
+        "Noche",
+        "Elegante"
+      ]
+    },
+    {
+      "palabras": [
+        "falda"
+      ],
+      "tags": [
+        "Casual",
+        "Elegante",
+        "Verano",
+        "Clásico"
+      ]
+    },
+    {
+      "palabras": [
+        "traje"
+      ],
+      "tags": [
+        "Elegante"
+      ]
+    },
+    {
+      "palabras": [
+        "chaqueta"
+      ],
+      "tags": [
+        "Elegante",
+        "Clásico",
+        "Urbano"
+      ]
+    },
+    {
+      "palabras": [
+        "botas",
+        "botines"
+      ],
+      "tags": [
+        "Urbano",
+        "Trabajo",
+        "Casual"
+      ]
+    },
+    {
+      "palabras": [
+        "sombrero",
+        "fedora"
+      ],
+      "tags": [
+        "Elegante",
+        "Clásico",
+        "Urbano",
+        "Casual"
+      ]
+    },
+    {
+      "palabras": [
+        "pescador"
+      ],
+      "tags": [
+        "Verano",
+        "Casual"
+      ]
+    }
+  ],
+  "maxUsosPorPrenda": 9
+}

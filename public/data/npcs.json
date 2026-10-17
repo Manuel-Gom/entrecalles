@@ -1,0 +1,3403 @@
+[
+ {
+  "id": "pnj-001",
+  "nombre": "Omar Muñoz",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Programador",
+  "spec": {
+   "cuerpo": "tomas",
+   "pelo": "short01",
+   "colorPelo": "#9b3d1f",
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-002",
+  "nombre": "Olga Torres",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Vendedora de helados",
+  "spec": {
+   "cuerpo": "noa",
+   "pelo": "short03",
+   "colorPelo": null,
+   "conjunto": "toigo_halter_dress_midi",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ballet_flats",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-003",
+  "nombre": "Bautista Ortega Calvo",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Mensajero",
+  "spec": {
+   "cuerpo": "nico",
+   "pelo": null,
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "elvs_crude_t-shirt_male",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#8d9296",
+    "piernas": "#f4f4f0"
+   }
+  }
+ },
+ {
+  "id": "pnj-004",
+  "nombre": "Emilia Carrasco",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Repartidora",
+  "spec": {
+   "cuerpo": "irene",
+   "pelo": "short04",
+   "colorPelo": "#4a2f1f",
+   "conjunto": null,
+   "torso": "toigo_turtleneck_halter_top",
+   "piernas": "frankyaye_mini_skirt_02",
+   "calzado": "toigo_ankle_boots_female",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#d98aa4"
+   }
+  }
+ },
+ {
+  "id": "pnj-005",
+  "nombre": "Mario Ferrer",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Dependiente",
+  "spec": {
+   "cuerpo": "leo",
+   "pelo": "short02",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "elvs_crude_t-shirt_male",
+   "piernas": "toigo_wool_pants",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": "spamrakuen_tbm_glasses_frames_01",
+   "barba": null,
+   "colores": {
+    "torso": "#2f9e9e",
+    "piernas": "#7b5ea7"
+   }
+  }
+ },
+ {
+  "id": "pnj-006",
+  "nombre": "Raquel Rojas Soler",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Turista",
+  "spec": {
+   "cuerpo": "aisha",
+   "pelo": "toigo_curled_under_bob_with_bangs",
+   "colorPelo": "#4a2f1f",
+   "conjunto": null,
+   "torso": "joepal_crude_t-shirt_female",
+   "piernas": "toigo_skirt_with_lace_ruffle",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#d98aa4"
+   }
+  }
+ },
+ {
+  "id": "pnj-007",
+  "nombre": "Emilio Moreno",
+  "genero": "hombre",
+  "edad": "mayor",
+  "estilo": "Elegante",
+  "rol": "Banquero",
+  "spec": {
+   "cuerpo": "ramon",
+   "pelo": "short01",
+   "colorPelo": "#e0e0e0",
+   "conjunto": "toigo_male_suit_tie_and_jacket",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_02",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-008",
+  "nombre": "Gloria Nakamura Kim",
+  "genero": "mujer",
+  "edad": "mayor",
+  "estilo": "Casual",
+  "rol": "Diseñadora",
+  "spec": {
+   "cuerpo": "rosa",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-009",
+  "nombre": "Felipe Lara Martín",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Clásico",
+  "rol": "Vecino de toda la vida",
+  "spec": {
+   "cuerpo": "hiro",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": null,
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "cortu_t-bar",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": "spamrakuen_sagerfrogs_glasses_03",
+   "barba": "rehmanpolanski_beard_viking",
+   "colores": {
+    "cabeza": "#cdb694"
+   }
+  }
+ },
+ {
+  "id": "pnj-010",
+  "nombre": "Aurora Moreno",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Barista",
+  "spec": {
+   "cuerpo": "sofia",
+   "pelo": "elvs_french_braid_variation",
+   "colorPelo": "#d2b26a",
+   "conjunto": "toigo_shift_dress",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-011",
+  "nombre": "César Fernández Román",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Mensajero",
+  "spec": {
+   "cuerpo": "kenji",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": null,
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-012",
+  "nombre": "Silvia Morales",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Monitora de gimnasio",
+  "spec": {
+   "cuerpo": "lucia",
+   "pelo": "toigo_inverted_bob_with_bangs",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_sportsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-013",
+  "nombre": "Juan Prieto",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Banquero",
+  "spec": {
+   "cuerpo": "malik",
+   "pelo": "rehmanpolanski_hair_bun_brown",
+   "colorPelo": null,
+   "conjunto": "toigo_suit_with_jacket_and_bowtie",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-014",
+  "nombre": "Lola Carrasco Suárez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Música",
+  "spec": {
+   "cuerpo": "mei",
+   "pelo": "toigo_inverted_bob_with_bangs",
+   "colorPelo": null,
+   "conjunto": "toigo_dress_with_tiered_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-015",
+  "nombre": "Karim Castro",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Repartidor",
+  "spec": {
+   "cuerpo": "marcos",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "toigo_basic_tucked_t-shirt",
+   "piernas": "toigo_wool_pants",
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#3f7fbf",
+    "piernas": "#2f9e9e"
+   }
+  }
+ },
+ {
+  "id": "pnj-016",
+  "nombre": "Aïcha Nieto",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Urbano",
+  "rol": "DJ",
+  "spec": {
+   "cuerpo": "carmen",
+   "pelo": "toigo_curled_under_bob",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "toigo_fisherman_sweater",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_01",
+   "barba": null,
+   "colores": {
+    "torso": "#8d9296",
+    "piernas": "#202225"
+   }
+  }
+ },
+ {
+  "id": "pnj-017",
+  "nombre": "Carlos Flores",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Electricista",
+  "spec": {
+   "cuerpo": "ivan",
+   "pelo": "afro01",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "toigo_basic_tucked_t-shirt",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "shoes03",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": null,
+   "barba": "wdg_scruffy_beard",
+   "colores": {
+    "torso": "#cdb694",
+    "piernas": "#202225",
+    "cabeza": "#8d9296"
+   }
+  }
+ },
+ {
+  "id": "pnj-018",
+  "nombre": "Paula Kim",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Noche",
+  "rol": "Camarera de bar",
+  "spec": {
+   "cuerpo": "zoe",
+   "pelo": "long01",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "toigo_bodice-style_top",
+   "piernas": "toigo_wool_pants",
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": "fedora_cocked",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "piernas": "#1f3a5f",
+    "cabeza": "#d98aa4"
+   }
+  }
+ },
+ {
+  "id": "pnj-019",
+  "nombre": "Rómulo Pardo",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Barbero",
+  "spec": {
+   "cuerpo": "dani",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#202225"
+   }
+  }
+ },
+ {
+  "id": "pnj-020",
+  "nombre": "Helena Escudero",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Noche",
+  "rol": "Bailarina",
+  "spec": {
+   "cuerpo": "elena",
+   "pelo": "elvs_french_braid_variation",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "toigo_halter_dress_knee_length",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": "fedora_cocked",
+   "gafas": "spamrakuen_tbm_glasses_frames_01",
+   "barba": null,
+   "colores": {
+    "cabeza": "#1f3a5f"
+   }
+  }
+ },
+ {
+  "id": "pnj-021",
+  "nombre": "Eduardo Rojas",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Vecino",
+  "spec": {
+   "cuerpo": "nico",
+   "pelo": "culturalibre_hair_05",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit03",
+   "torso": null,
+   "piernas": null,
+   "calzado": "cortu_t-bar",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-022",
+  "nombre": "Adriana Nieto",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Ciclista",
+  "spec": {
+   "cuerpo": "lucia",
+   "pelo": "toigo_curled_under_bob_with_bangs",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "wolgade_female_top_01",
+   "piernas": "cortu_jeans_shorts",
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#d6a52f",
+    "piernas": "#3f7fbf"
+   }
+  }
+ },
+ {
+  "id": "pnj-023",
+  "nombre": "Marcelo Moreno Iglesias",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Músico",
+  "spec": {
+   "cuerpo": "hiro",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "namuhekam_male_polo_shirt",
+   "piernas": "toigo_wool_pants",
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": "fedora_cocked",
+   "gafas": "toigo_round_glasses_leopard",
+   "barba": "grinsegold_beard_sigmund_wip",
+   "colores": {
+    "torso": "#3f7fbf",
+    "piernas": "#d98aa4",
+    "cabeza": "#7b5ea7"
+   }
+  }
+ },
+ {
+  "id": "pnj-024",
+  "nombre": "Rebeca Castro",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Notaria",
+  "spec": {
+   "cuerpo": "carmen",
+   "pelo": "culturalibre_hair_01",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "toigo_bodice_dress_with_lace_ruffle_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-025",
+  "nombre": "Emilio Rojas",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Periodista",
+  "spec": {
+   "cuerpo": "ivan",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "toigo_male_suit_3",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-026",
+  "nombre": "Yolanda Herrera",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Noche",
+  "rol": "Cantante",
+  "spec": {
+   "cuerpo": "mei",
+   "pelo": "short02",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "toigo_turtleneck_halter_top",
+   "piernas": "toigo_wool_pants",
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#202225",
+    "piernas": "#b53a35"
+   }
+  }
+ },
+ {
+  "id": "pnj-027",
+  "nombre": "Arturo Castro",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Repartidor",
+  "spec": {
+   "cuerpo": "malik",
+   "pelo": "rehmanpolanski_hair_bun_brown",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "namuhekam_male_polo_shirt",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#d6a52f",
+    "piernas": "#f4f4f0"
+   }
+  }
+ },
+ {
+  "id": "pnj-028",
+  "nombre": "Esther Lozano Arias",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Urbano",
+  "rol": "Grafitera",
+  "spec": {
+   "cuerpo": "irene",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-029",
+  "nombre": "Rodrigo Álvarez",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Estudiante",
+  "spec": {
+   "cuerpo": "leo",
+   "pelo": null,
+   "colorPelo": null,
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_03",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-030",
+  "nombre": "Julia Serrano",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Fotógrafa",
+  "spec": {
+   "cuerpo": "zoe",
+   "pelo": "culturalibre_hair_05",
+   "colorPelo": null,
+   "conjunto": "female_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-031",
+  "nombre": "Vicente Pascual",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Corredor",
+  "spec": {
+   "cuerpo": "dani",
+   "pelo": "afro01",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-032",
+  "nombre": "Marga Esteban",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Dependienta",
+  "spec": {
+   "cuerpo": "sofia",
+   "pelo": "elvs_unkempt_french_braid",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "toigo_camisole_top",
+   "piernas": "frankyaye_mini_skirt_01",
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#3f7fbf"
+   }
+  }
+ },
+ {
+  "id": "pnj-033",
+  "nombre": "Ismael Castillo",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Repartidor",
+  "spec": {
+   "cuerpo": "kenji",
+   "pelo": null,
+   "colorPelo": null,
+   "conjunto": "male_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-034",
+  "nombre": "Julia Salazar Prieto",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Skater",
+  "spec": {
+   "cuerpo": "noa",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "joepal_crude_t-shirt_female",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#2f9e9e",
+    "piernas": "#f4f4f0"
+   }
+  }
+ },
+ {
+  "id": "pnj-035",
+  "nombre": "Ernesto Durán",
+  "genero": "hombre",
+  "edad": "mayor",
+  "estilo": "Casual",
+  "rol": "Dependiente",
+  "spec": {
+   "cuerpo": "ramon",
+   "pelo": null,
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "toigo_basic_tucked_t-shirt",
+   "piernas": "toigo_wool_pants",
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": "toigo_round_glasses_leopard",
+   "barba": null,
+   "colores": {
+    "torso": "#3f7fbf",
+    "piernas": "#3f7d52"
+   }
+  }
+ },
+ {
+  "id": "pnj-036",
+  "nombre": "Raquel Guerrero Rodríguez",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Barista",
+  "spec": {
+   "cuerpo": "elena",
+   "pelo": "rehmanpolanski_hair_bun_brown",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-037",
+  "nombre": "Lucas Castro",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Grafitero",
+  "spec": {
+   "cuerpo": "marcos",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-038",
+  "nombre": "Raquel Lozano",
+  "genero": "mujer",
+  "edad": "mayor",
+  "estilo": "Clásico",
+  "rol": "Panadera",
+  "spec": {
+   "cuerpo": "rosa",
+   "pelo": "toigo_inverted_bob_with_bangs",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_female_suit",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-039",
+  "nombre": "Vicente Núñez Soler",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Elegante",
+  "rol": "Recepcionista",
+  "spec": {
+   "cuerpo": "tomas",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "namuhekam_male_polo_shirt",
+   "piernas": "toigo_wool_pants",
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#202225",
+    "piernas": "#8d9296"
+   }
+  }
+ },
+ {
+  "id": "pnj-040",
+  "nombre": "Nadia Vázquez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Instructora de yoga",
+  "spec": {
+   "cuerpo": "aisha",
+   "pelo": "elvs_double_mh_braid",
+   "colorPelo": null,
+   "conjunto": "female_sportsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-041",
+  "nombre": "Eduardo Lara",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "DJ",
+  "spec": {
+   "cuerpo": "kenji",
+   "pelo": "short03",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "rehmanpolanski_beard_viking"
+  }
+ },
+ {
+  "id": "pnj-042",
+  "nombre": "Nerea Lara",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Música",
+  "spec": {
+   "cuerpo": "irene",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "toigo_fisherman_sweater",
+   "piernas": "toigo_tiered_mini_skirt",
+   "calzado": "toigo_ballet_flats_with_bows",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#202225",
+    "piernas": "#7b5ea7"
+   }
+  }
+ },
+ {
+  "id": "pnj-043",
+  "nombre": "Ignacio Durán Álvarez",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Programador",
+  "spec": {
+   "cuerpo": "ivan",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit03",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_03",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-044",
+  "nombre": "Yuna Reyes",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Programadora",
+  "spec": {
+   "cuerpo": "zoe",
+   "pelo": "ponytail01",
+   "colorPelo": "#d2b26a",
+   "conjunto": null,
+   "torso": "toigo_keyhole_tank_top",
+   "piernas": "toigo_tiered_skirt",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "piernas": "#b53a35"
+   }
+  }
+ },
+ {
+  "id": "pnj-045",
+  "nombre": "Valentín Torres",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Barbero",
+  "spec": {
+   "cuerpo": "nico",
+   "pelo": null,
+   "colorPelo": null,
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-046",
+  "nombre": "Nerea Molina",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Grafitera",
+  "spec": {
+   "cuerpo": "mei",
+   "pelo": "short01",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-047",
+  "nombre": "Fernando Montero",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Diseñador",
+  "spec": {
+   "cuerpo": "malik",
+   "pelo": "short02",
+   "colorPelo": "#4a2f1f",
+   "conjunto": null,
+   "torso": "toigo_fisherman_sweater",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "cortu_t-bar",
+   "cabeza": null,
+   "gafas": "spamrakuen_tbm_glasses_frames_01",
+   "barba": null,
+   "colores": {
+    "torso": "#202225",
+    "piernas": "#f4f4f0"
+   }
+  }
+ },
+ {
+  "id": "pnj-048",
+  "nombre": "Fatou Cabrera",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Diseñadora",
+  "spec": {
+   "cuerpo": "sofia",
+   "pelo": "afro01",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "joepal_crude_t-shirt_female",
+   "piernas": "cortu_jeans_shorts",
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#d6a52f",
+    "piernas": "#b53a35"
+   }
+  }
+ },
+ {
+  "id": "pnj-049",
+  "nombre": "Ángel Campos",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Repartidor",
+  "spec": {
+   "cuerpo": "tomas",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit03",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-050",
+  "nombre": "Sonia Romero",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Notaria",
+  "spec": {
+   "cuerpo": "elena",
+   "pelo": "toigo_curled_under_bob_with_bangs",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "toigo_female_double-breasted_suit",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-051",
+  "nombre": "Arturo Herrera",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Fotógrafo",
+  "spec": {
+   "cuerpo": "marcos",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": "#4a2f1f",
+   "conjunto": null,
+   "torso": "toigo_basic_tucked_t-shirt",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#d6a52f",
+    "piernas": "#d98aa4"
+   }
+  }
+ },
+ {
+  "id": "pnj-052",
+  "nombre": "Graciela Flores Rivera",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Elegante",
+  "rol": "Recepcionista",
+  "spec": {
+   "cuerpo": "noa",
+   "pelo": "culturalibre_hair_01",
+   "colorPelo": "#d2b26a",
+   "conjunto": "toigo_strapless_ruffle_top_dress",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-053",
+  "nombre": "Javier Kim",
+  "genero": "hombre",
+  "edad": "mayor",
+  "estilo": "Trabajo",
+  "rol": "Albañil",
+  "spec": {
+   "cuerpo": "ramon",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#9a9a9a",
+   "conjunto": null,
+   "torso": "toigo_basic_tucked_t-shirt",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "shoes02",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#d6a52f",
+    "piernas": "#202225",
+    "cabeza": "#202225"
+   }
+  }
+ },
+ {
+  "id": "pnj-054",
+  "nombre": "Aïcha Pascual",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Notaria",
+  "spec": {
+   "cuerpo": "carmen",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "toigo_halter_dress_knee_length",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-055",
+  "nombre": "Sergio Soto",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Obrero",
+  "spec": {
+   "cuerpo": "hiro",
+   "pelo": "short02",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-056",
+  "nombre": "Itziar Gil Marín",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Librera",
+  "spec": {
+   "cuerpo": "lucia",
+   "pelo": "braid01",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "toigo_camisole_top",
+   "piernas": "toigo_tiered_mini_skirt",
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": "kwnet_at_optical_glasses",
+   "barba": null,
+   "colores": {
+    "torso": "#2f9e9e",
+    "piernas": "#d6a52f"
+   }
+  }
+ },
+ {
+  "id": "pnj-057",
+  "nombre": "César Fernández",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Mecánico",
+  "spec": {
+   "cuerpo": "leo",
+   "pelo": "culturalibre_hair_05",
+   "colorPelo": "#4a2f1f",
+   "conjunto": null,
+   "torso": "toigo_basic_tucked_t-shirt",
+   "piernas": "cortu_cargo_pants",
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_02",
+   "barba": "rehmanpolanski_moustache_viking",
+   "colores": {
+    "torso": "#3f7d52",
+    "piernas": "#1f3a5f"
+   }
+  }
+ },
+ {
+  "id": "pnj-058",
+  "nombre": "Alicia Soler Pardo",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Vendedora de helados",
+  "spec": {
+   "cuerpo": "aisha",
+   "pelo": "elvs_french_braid_variation",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "toigo_keyhole_tank_top",
+   "piernas": "toigo_skirt_with_lace_ruffle",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-059",
+  "nombre": "Enrique Iglesias",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Turista",
+  "spec": {
+   "cuerpo": "dani",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "cortu_t-bar",
+   "cabeza": null,
+   "gafas": "kwnet_at_optical_glasses",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-060",
+  "nombre": "Andrea Giménez",
+  "genero": "mujer",
+  "edad": "mayor",
+  "estilo": "Clásico",
+  "rol": "Costurera",
+  "spec": {
+   "cuerpo": "rosa",
+   "pelo": "long01",
+   "colorPelo": "#e0e0e0",
+   "conjunto": "toigo_female_suit",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-061",
+  "nombre": "Vicente Medina",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Barista",
+  "spec": {
+   "cuerpo": "marcos",
+   "pelo": "short02",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-062",
+  "nombre": "Inés Cortés",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Deportivo",
+  "rol": "Futbolista aficionada",
+  "spec": {
+   "cuerpo": "carmen",
+   "pelo": "afro01",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "wolgade_female_top_01",
+   "piernas": "cortu_jeans_shorts",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#3f7fbf",
+    "piernas": "#3f7d52"
+   }
+  }
+ },
+ {
+  "id": "pnj-063",
+  "nombre": "Marcelo Ortega",
+  "genero": "hombre",
+  "edad": "mayor",
+  "estilo": "Clásico",
+  "rol": "Jubilado",
+  "spec": {
+   "cuerpo": "ramon",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#e0e0e0",
+   "conjunto": null,
+   "torso": "toigo_fisherman_sweater",
+   "piernas": "toigo_wool_pants",
+   "calzado": "cortu_t-bar",
+   "cabeza": "fedora_cocked",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#b53a35",
+    "piernas": "#f4f4f0",
+    "cabeza": "#cdb694"
+   }
+  }
+ },
+ {
+  "id": "pnj-064",
+  "nombre": "Nerea Marín",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Programadora",
+  "spec": {
+   "cuerpo": "noa",
+   "pelo": "toigo_blunt_bob",
+   "colorPelo": "#a67c3d",
+   "conjunto": null,
+   "torso": "joepal_crude_t-shirt_female",
+   "piernas": "cortu_jeans_shorts",
+   "calzado": "cortu_t-bar",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#f4f4f0",
+    "piernas": "#7b5ea7"
+   }
+  }
+ },
+ {
+  "id": "pnj-065",
+  "nombre": "Iker Carrasco",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Fotógrafo",
+  "spec": {
+   "cuerpo": "dani",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-066",
+  "nombre": "Beatriz Cabrera",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Elegante",
+  "rol": "Recepcionista",
+  "spec": {
+   "cuerpo": "lucia",
+   "pelo": "toigo_inverted_bob_with_bangs",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "female_elegantsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ballet_flats",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-067",
+  "nombre": "Omar Gutiérrez",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Obrero",
+  "spec": {
+   "cuerpo": "leo",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-068",
+  "nombre": "Marga Ruiz Vega",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Programadora",
+  "spec": {
+   "cuerpo": "elena",
+   "pelo": "short02",
+   "colorPelo": null,
+   "conjunto": "toigo_halter_dress_midi",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_female",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-069",
+  "nombre": "Pedro Marín",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Camarero de terraza",
+  "spec": {
+   "cuerpo": "kenji",
+   "pelo": "culturalibre_hair_01",
+   "colorPelo": null,
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "grinsegold_beard_sigmund_wip"
+  }
+ },
+ {
+  "id": "pnj-070",
+  "nombre": "Yolanda Calvo",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Vecina",
+  "spec": {
+   "cuerpo": "zoe",
+   "pelo": "littleright_bobcut_hair",
+   "colorPelo": "#9b3d1f",
+   "conjunto": null,
+   "torso": "toigo_camisole_top",
+   "piernas": "frankyaye_mini_skirt_02",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#3f7fbf"
+   }
+  }
+ },
+ {
+  "id": "pnj-071",
+  "nombre": "Javier López",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "DJ",
+  "spec": {
+   "cuerpo": "tomas",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#a67c3d",
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": "fedora_cocked",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#7b5ea7"
+   }
+  }
+ },
+ {
+  "id": "pnj-072",
+  "nombre": "Marga Cano",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Vendedora de helados",
+  "spec": {
+   "cuerpo": "sofia",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "toigo_turtleneck_halter_top",
+   "piernas": "toigo_tiered_skirt",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_03",
+   "barba": null,
+   "colores": {
+    "torso": "#3f7d52",
+    "piernas": "#3f7fbf"
+   }
+  }
+ },
+ {
+  "id": "pnj-073",
+  "nombre": "Álvaro Carrasco",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "DJ",
+  "spec": {
+   "cuerpo": "nico",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#b53a35"
+   }
+  }
+ },
+ {
+  "id": "pnj-074",
+  "nombre": "Teresa Romero",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Gerente",
+  "spec": {
+   "cuerpo": "irene",
+   "pelo": "short02",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_elegantsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-075",
+  "nombre": "Rubén Herrera",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Cocinero",
+  "spec": {
+   "cuerpo": "ivan",
+   "pelo": "rehmanpolanski_hair_bun_brown",
+   "colorPelo": null,
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-076",
+  "nombre": "Marga Vargas",
+  "genero": "mujer",
+  "edad": "mayor",
+  "estilo": "Clásico",
+  "rol": "Jubilada",
+  "spec": {
+   "cuerpo": "rosa",
+   "pelo": "culturalibre_hair_05",
+   "colorPelo": "#9a9a9a",
+   "conjunto": null,
+   "torso": "toigo_fisherman_sweater",
+   "piernas": "frankyaye_mini_skirt_02",
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#3f7d52"
+   }
+  }
+ },
+ {
+  "id": "pnj-077",
+  "nombre": "Felipe Torres",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Estudiante",
+  "spec": {
+   "cuerpo": "hiro",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-078",
+  "nombre": "Paula Gómez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Vendedora de helados",
+  "spec": {
+   "cuerpo": "aisha",
+   "pelo": "bob02",
+   "colorPelo": null,
+   "conjunto": "toigo_halter_dress_knee_length",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-079",
+  "nombre": "Fabián Fernández",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Clásico",
+  "rol": "Vecino de toda la vida",
+  "spec": {
+   "cuerpo": "malik",
+   "pelo": "short03",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "cortu_t-bar",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-080",
+  "nombre": "Aïcha Vargas Crespo",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Guía turística",
+  "spec": {
+   "cuerpo": "mei",
+   "pelo": "toigo_curled_under_bob_with_bangs",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_strapless_ruffle_top_dress",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-081",
+  "nombre": "Diego Chen",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Obrero",
+  "spec": {
+   "cuerpo": "leo",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-082",
+  "nombre": "Isabel Cano",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Elegante",
+  "rol": "Recepcionista",
+  "spec": {
+   "cuerpo": "mei",
+   "pelo": "afro01",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_halter_dress_knee_length",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-083",
+  "nombre": "Karim Benali",
+  "genero": "hombre",
+  "edad": "mayor",
+  "estilo": "Elegante",
+  "rol": "Camarero de hotel",
+  "spec": {
+   "cuerpo": "ramon",
+   "pelo": "short04",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_male_double-breasted_suit",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-084",
+  "nombre": "Mercedes Campos Crespo",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Arquitecta",
+  "spec": {
+   "cuerpo": "irene",
+   "pelo": "elvs_unkempt_french_braid",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "toigo_dress_with_tiered_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ballet_flats",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-085",
+  "nombre": "Santiago Giménez",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Arquitecto",
+  "spec": {
+   "cuerpo": "ivan",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "namuhekam_male_polo_shirt",
+   "piernas": "toigo_wool_pants",
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_03",
+   "barba": null,
+   "colores": {
+    "torso": "#202225",
+    "piernas": "#1f3a5f"
+   }
+  }
+ },
+ {
+  "id": "pnj-086",
+  "nombre": "Marta Herrera",
+  "genero": "mujer",
+  "edad": "mayor",
+  "estilo": "Clásico",
+  "rol": "Panadera",
+  "spec": {
+   "cuerpo": "rosa",
+   "pelo": "long01",
+   "colorPelo": "#9a9a9a",
+   "conjunto": null,
+   "torso": "toigo_fisherman_sweater",
+   "piernas": "frankyaye_mini_skirt_01",
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#3f7d52"
+   }
+  }
+ },
+ {
+  "id": "pnj-087",
+  "nombre": "Juan Navarro Nieto",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Barista",
+  "spec": {
+   "cuerpo": "dani",
+   "pelo": "short03",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-088",
+  "nombre": "Rosalía Bravo Sáez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Librera",
+  "spec": {
+   "cuerpo": "noa",
+   "pelo": "short03",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_dress_with_tiered_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ballet_flats",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-089",
+  "nombre": "Amadou Benali",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Programador",
+  "spec": {
+   "cuerpo": "marcos",
+   "pelo": "afro01",
+   "colorPelo": null,
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "rehmanpolanski_beard_viking"
+  }
+ },
+ {
+  "id": "pnj-090",
+  "nombre": "Daniela Diop",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Vecina",
+  "spec": {
+   "cuerpo": "aisha",
+   "pelo": "ponytail01",
+   "colorPelo": "#4a2f1f",
+   "conjunto": null,
+   "torso": "toigo_turtleneck_halter_top",
+   "piernas": "toigo_skirt_with_lace_ruffle",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#3f7fbf"
+   }
+  }
+ },
+ {
+  "id": "pnj-091",
+  "nombre": "Gabriel Aguirre",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Skater",
+  "spec": {
+   "cuerpo": "kenji",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#2f9e9e"
+   }
+  }
+ },
+ {
+  "id": "pnj-092",
+  "nombre": "Diana Haddad",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Elegante",
+  "rol": "Banquera",
+  "spec": {
+   "cuerpo": "zoe",
+   "pelo": "short02",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_strapless_ruffle_top_dress",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": "fedora01",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#1f3a5f"
+   }
+  }
+ },
+ {
+  "id": "pnj-093",
+  "nombre": "Tiago Arias",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Instructor de yoga",
+  "spec": {
+   "cuerpo": "tomas",
+   "pelo": "short04",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-094",
+  "nombre": "Aurora Tanaka",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Arquitecta",
+  "spec": {
+   "cuerpo": "carmen",
+   "pelo": "short02",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_female_double-breasted_suit",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-095",
+  "nombre": "Pablo Reyes Campos",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Carpintero",
+  "spec": {
+   "cuerpo": "hiro",
+   "pelo": "short04",
+   "colorPelo": null,
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": "spamrakuen_sagerfrogs_glasses_01",
+   "barba": null,
+   "colores": {
+    "cabeza": "#1f3a5f"
+   }
+  }
+ },
+ {
+  "id": "pnj-096",
+  "nombre": "Yuna Márquez",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Deportivo",
+  "rol": "Monitora de gimnasio",
+  "spec": {
+   "cuerpo": "elena",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "wolgade_female_top_01",
+   "piernas": "cortu_jeans_shorts",
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#d6a52f",
+    "piernas": "#3f7fbf"
+   }
+  }
+ },
+ {
+  "id": "pnj-097",
+  "nombre": "Vicente Salazar Suárez",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Músico",
+  "spec": {
+   "cuerpo": "nico",
+   "pelo": "rehmanpolanski_hair_bun_brown",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit03",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-098",
+  "nombre": "Laura Vidal",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Futbolista aficionada",
+  "spec": {
+   "cuerpo": "sofia",
+   "pelo": "toigo_inverted_bob_with_bangs",
+   "colorPelo": "#d2b26a",
+   "conjunto": null,
+   "torso": "wolgade_female_top_01",
+   "piernas": "cortu_jeans_shorts",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#202225",
+    "piernas": "#2f9e9e"
+   }
+  }
+ },
+ {
+  "id": "pnj-099",
+  "nombre": "Bautista Flores",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Repartidor",
+  "spec": {
+   "cuerpo": "malik",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_03",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-100",
+  "nombre": "Silvia Vázquez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Peluquera",
+  "spec": {
+   "cuerpo": "lucia",
+   "pelo": "ponytail01",
+   "colorPelo": null,
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_female",
+   "cabeza": "fedora01",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#202225"
+   }
+  }
+ },
+ {
+  "id": "pnj-101",
+  "nombre": "Karim Jiménez",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Skater",
+  "spec": {
+   "cuerpo": "marcos",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": "fedora01",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#d6a52f"
+   }
+  }
+ },
+ {
+  "id": "pnj-102",
+  "nombre": "Elisa Ramírez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Noche",
+  "rol": "Cantante",
+  "spec": {
+   "cuerpo": "aisha",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_strapless_ruffle_top_dress",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-103",
+  "nombre": "Bautista Vargas López",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Deportivo",
+  "rol": "Entrenador",
+  "spec": {
+   "cuerpo": "leo",
+   "pelo": "rehmanpolanski_hair_bun_brown",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_04",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-104",
+  "nombre": "Ana Rivera",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Urbano",
+  "rol": "Música callejera",
+  "spec": {
+   "cuerpo": "elena",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": null,
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-105",
+  "nombre": "Daniel Martín",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Monitor de gimnasio",
+  "spec": {
+   "cuerpo": "kenji",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": null,
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "grinsegold_beard_sigmund_wip"
+  }
+ },
+ {
+  "id": "pnj-106",
+  "nombre": "Aïcha Vargas",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Deportivo",
+  "rol": "Ciclista",
+  "spec": {
+   "cuerpo": "carmen",
+   "pelo": "elvs_double_mh_braid",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_sportsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-107",
+  "nombre": "José Díaz",
+  "genero": "hombre",
+  "edad": "mayor",
+  "estilo": "Trabajo",
+  "rol": "Cocinero",
+  "spec": {
+   "cuerpo": "ramon",
+   "pelo": "short02",
+   "colorPelo": "#9a9a9a",
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": "frankyaye_glasses_library_male",
+   "barba": "wdg_scruffy_beard"
+  }
+ },
+ {
+  "id": "pnj-108",
+  "nombre": "María Martín",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Música callejera",
+  "spec": {
+   "cuerpo": "zoe",
+   "pelo": "braid01",
+   "colorPelo": null,
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-109",
+  "nombre": "Iker Aguirre",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Ciclista",
+  "spec": {
+   "cuerpo": "dani",
+   "pelo": "short03",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": "spamrakuen_tbm_glasses_frames_01",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-110",
+  "nombre": "Daniela Marín Suárez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Guía turística",
+  "spec": {
+   "cuerpo": "sofia",
+   "pelo": "culturalibre_hair_01",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "joepal_crude_t-shirt_female",
+   "piernas": "toigo_skirt_with_lace_ruffle",
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#b53a35"
+   }
+  }
+ },
+ {
+  "id": "pnj-111",
+  "nombre": "Gabriel Lozano Román",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Músico",
+  "spec": {
+   "cuerpo": "tomas",
+   "pelo": "short02",
+   "colorPelo": null,
+   "conjunto": "male_casualsuit03",
+   "torso": null,
+   "piernas": null,
+   "calzado": "cortu_t-bar",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-112",
+  "nombre": "Rosalía Cano",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Programadora",
+  "spec": {
+   "cuerpo": "lucia",
+   "pelo": "toigo_curled_under_bob_with_bangs",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_dress_with_tiered_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-113",
+  "nombre": "Felipe Molina Diop",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Estudiante",
+  "spec": {
+   "cuerpo": "nico",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": "fedora01",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#d6a52f"
+   }
+  }
+ },
+ {
+  "id": "pnj-114",
+  "nombre": "Rosalía Márquez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Barista",
+  "spec": {
+   "cuerpo": "noa",
+   "pelo": "elvs_unkempt_french_braid",
+   "colorPelo": "#d2b26a",
+   "conjunto": "toigo_bodice_dress_with_lace_ruffle_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-115",
+  "nombre": "Sergio Vargas",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Deportivo",
+  "rol": "Entrenador",
+  "spec": {
+   "cuerpo": "malik",
+   "pelo": null,
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit06",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "grinsegold_beard_sigmund_wip"
+  }
+ },
+ {
+  "id": "pnj-116",
+  "nombre": "Ángela Torres",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Socorrista",
+  "spec": {
+   "cuerpo": "mei",
+   "pelo": "elvs_unkempt_french_braid",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_halter_dress_midi",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ballet_flats_with_bows",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-117",
+  "nombre": "Ángel Gómez",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Pintor",
+  "spec": {
+   "cuerpo": "hiro",
+   "pelo": "short03",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "rehmanpolanski_beard_viking"
+  }
+ },
+ {
+  "id": "pnj-118",
+  "nombre": "Valeria Rivera",
+  "genero": "mujer",
+  "edad": "mayor",
+  "estilo": "Clásico",
+  "rol": "Panadera",
+  "spec": {
+   "cuerpo": "rosa",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "toigo_fisherman_sweater",
+   "piernas": "toigo_tiered_skirt",
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_02",
+   "barba": null,
+   "colores": {
+    "torso": "#b53a35",
+    "piernas": "#8d9296"
+   }
+  }
+ },
+ {
+  "id": "pnj-119",
+  "nombre": "Adrián Esteban",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Urbano",
+  "rol": "Tatuador",
+  "spec": {
+   "cuerpo": "ivan",
+   "pelo": "short01",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-120",
+  "nombre": "Fatou Cabrera Lara",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Urbano",
+  "rol": "Skater",
+  "spec": {
+   "cuerpo": "irene",
+   "pelo": "toigo_blunt_bob",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#8d9296"
+   }
+  }
+ },
+ {
+  "id": "pnj-121",
+  "nombre": "Rafael Prieto",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Cocinero",
+  "spec": {
+   "cuerpo": "leo",
+   "pelo": "afro01",
+   "colorPelo": null,
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-122",
+  "nombre": "Laura Reyes",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Música",
+  "spec": {
+   "cuerpo": "zoe",
+   "pelo": "ponytail01",
+   "colorPelo": "#d2b26a",
+   "conjunto": null,
+   "torso": "toigo_keyhole_tank_top",
+   "piernas": "toigo_skirt_with_lace_ruffle",
+   "calzado": "toigo_ballet_flats",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-123",
+  "nombre": "Ismael Ortega",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Músico callejero",
+  "spec": {
+   "cuerpo": "tomas",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": null,
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "rehmanpolanski_moustache_viking"
+  }
+ },
+ {
+  "id": "pnj-124",
+  "nombre": "Sonia Torres",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Turista",
+  "spec": {
+   "cuerpo": "aisha",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_shift_dress",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-125",
+  "nombre": "Alberto Ortega",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Librero",
+  "spec": {
+   "cuerpo": "marcos",
+   "pelo": "afro01",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-126",
+  "nombre": "Sakura Rojas",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Elegante",
+  "rol": "Banquera",
+  "spec": {
+   "cuerpo": "mei",
+   "pelo": "ponytail01",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_halter_dress_midi",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes01",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-127",
+  "nombre": "Alberto Morales",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "DJ",
+  "spec": {
+   "cuerpo": "kenji",
+   "pelo": null,
+   "colorPelo": null,
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes03",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-128",
+  "nombre": "Yuna Molina",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Elegante",
+  "rol": "Camarera de hotel",
+  "spec": {
+   "cuerpo": "noa",
+   "pelo": "afro01",
+   "colorPelo": "#9b3d1f",
+   "conjunto": "toigo_bodice_dress_with_lace_ruffle_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-129",
+  "nombre": "Adrián Ortiz",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Urbano",
+  "rol": "Skater",
+  "spec": {
+   "cuerpo": "ivan",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "rehmanpolanski_moustache_viking"
+  }
+ },
+ {
+  "id": "pnj-130",
+  "nombre": "Helena Gutiérrez",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Vecina",
+  "spec": {
+   "cuerpo": "elena",
+   "pelo": "toigo_blunt_bob",
+   "colorPelo": null,
+   "conjunto": "female_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-131",
+  "nombre": "Gabriel Rubio",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Gerente",
+  "spec": {
+   "cuerpo": "malik",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_elegantsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-132",
+  "nombre": "Mónica Gallego",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Repartidora",
+  "spec": {
+   "cuerpo": "sofia",
+   "pelo": "braid01",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_bodice_dress_with_lace_ruffle_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-133",
+  "nombre": "Pedro Peña",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Urbano",
+  "rol": "Skater",
+  "spec": {
+   "cuerpo": "hiro",
+   "pelo": "afro01",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": "kwnet_at_optical_glasses",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-134",
+  "nombre": "Esther Gómez",
+  "genero": "mujer",
+  "edad": "mayor",
+  "estilo": "Clásico",
+  "rol": "Jubilada",
+  "spec": {
+   "cuerpo": "rosa",
+   "pelo": "culturalibre_hair_05",
+   "colorPelo": "#e0e0e0",
+   "conjunto": null,
+   "torso": "toigo_fisherman_sweater",
+   "piernas": "toigo_skirt_with_lace_ruffle",
+   "calzado": "toigo_ballet_flats",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#f4f4f0"
+   }
+  }
+ },
+ {
+  "id": "pnj-135",
+  "nombre": "Manuel Román Calvo",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Dependiente",
+  "spec": {
+   "cuerpo": "dani",
+   "pelo": "culturalibre_hair_05",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-136",
+  "nombre": "Ana Nakamura",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Noche",
+  "rol": "DJ",
+  "spec": {
+   "cuerpo": "carmen",
+   "pelo": "bob01",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_halter_dress_midi",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-137",
+  "nombre": "Valentín Díaz",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Programador",
+  "spec": {
+   "cuerpo": "nico",
+   "pelo": "short02",
+   "colorPelo": "#a67c3d",
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-138",
+  "nombre": "Eva Ortiz",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Deportivo",
+  "rol": "Monitora de gimnasio",
+  "spec": {
+   "cuerpo": "lucia",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#1b1612",
+   "conjunto": "female_sportsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-139",
+  "nombre": "Juan Núñez Calvo",
+  "genero": "hombre",
+  "edad": "mayor",
+  "estilo": "Casual",
+  "rol": "Vecino",
+  "spec": {
+   "cuerpo": "ramon",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#9a9a9a",
+   "conjunto": "male_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": "toigo_round_glasses_leopard",
+   "barba": "rehmanpolanski_beard_viking"
+  }
+ },
+ {
+  "id": "pnj-140",
+  "nombre": "Adriana Romero Martín",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Periodista",
+  "spec": {
+   "cuerpo": "irene",
+   "pelo": "bob01",
+   "colorPelo": null,
+   "conjunto": "toigo_shift_dress",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-141",
+  "nombre": "Alberto Tanaka",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Trabajo",
+  "rol": "Mecánico",
+  "spec": {
+   "cuerpo": "ivan",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_worksuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-142",
+  "nombre": "Alicia Aguirre",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Peluquera",
+  "spec": {
+   "cuerpo": "sofia",
+   "pelo": "toigo_inverted_bob",
+   "colorPelo": null,
+   "conjunto": "female_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-143",
+  "nombre": "Ricardo Suárez",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Músico callejero",
+  "spec": {
+   "cuerpo": "kenji",
+   "pelo": "culturalibre_hair_05",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit02",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-144",
+  "nombre": "Fátima Álvarez",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Diseñadora",
+  "spec": {
+   "cuerpo": "noa",
+   "pelo": "toigo_inverted_bob_with_bangs",
+   "colorPelo": null,
+   "conjunto": null,
+   "torso": "joepal_crude_t-shirt_female",
+   "piernas": "frankyaye_mini_skirt_01",
+   "calzado": "toigo_ballet_flats",
+   "cabeza": "fedora_cocked",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#f4f4f0",
+    "cabeza": "#cdb694"
+   }
+  }
+ },
+ {
+  "id": "pnj-145",
+  "nombre": "Iker Ortega",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Fotógrafo",
+  "spec": {
+   "cuerpo": "leo",
+   "pelo": "sonntag78_junglebook_hair",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit03",
+   "torso": null,
+   "piernas": null,
+   "calzado": "cortu_t-bar",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#cdb694"
+   }
+  }
+ },
+ {
+  "id": "pnj-146",
+  "nombre": "Paula Navarro Alonso",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Barista",
+  "spec": {
+   "cuerpo": "zoe",
+   "pelo": "elvs_double_mh_braid",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "toigo_female_suit",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": "jujube_newsboy_cap",
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "cabeza": "#b53a35"
+   }
+  }
+ },
+ {
+  "id": "pnj-147",
+  "nombre": "Jesús Morales",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Elegante",
+  "rol": "Notario",
+  "spec": {
+   "cuerpo": "hiro",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_suit_with_jacket_and_bowtie",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes04",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_04",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-148",
+  "nombre": "Andrea Cabrera",
+  "genero": "mujer",
+  "edad": "mayor",
+  "estilo": "Elegante",
+  "rol": "Abogada",
+  "spec": {
+   "cuerpo": "rosa",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#e0e0e0",
+   "conjunto": "female_elegantsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-149",
+  "nombre": "Miguel Soler",
+  "genero": "hombre",
+  "edad": "mayor",
+  "estilo": "Clásico",
+  "rol": "Panadero",
+  "spec": {
+   "cuerpo": "ramon",
+   "pelo": "cortu_short_messy_hair",
+   "colorPelo": "#9a9a9a",
+   "conjunto": "male_casualsuit05",
+   "torso": null,
+   "piernas": null,
+   "calzado": "cortu_t-bar",
+   "cabeza": "fedora01",
+   "gafas": "kwnet_at_optical_glasses",
+   "barba": "grinsegold_beard_sigmund_wip",
+   "colores": {
+    "cabeza": "#cdb694"
+   }
+  }
+ },
+ {
+  "id": "pnj-150",
+  "nombre": "Alba García",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Noche",
+  "rol": "Bailarina",
+  "spec": {
+   "cuerpo": "mei",
+   "pelo": "culturalibre_hair_02",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_dress_with_tiered_skirt",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-151",
+  "nombre": "Álvaro Cortés",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Músico",
+  "spec": {
+   "cuerpo": "nico",
+   "pelo": null,
+   "colorPelo": null,
+   "conjunto": "male_casualsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ankle_boots_male",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-152",
+  "nombre": "Paula Cortés",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Elegante",
+  "rol": "Notaria",
+  "spec": {
+   "cuerpo": "aisha",
+   "pelo": "short03",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_halter_dress_midi",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_mj_cloth_shoes",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-153",
+  "nombre": "Mario Cabrera",
+  "genero": "hombre",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Programador",
+  "spec": {
+   "cuerpo": "malik",
+   "pelo": "faydaen_hair_1",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": "spamrakuen_sagerfrogs_glasses_02",
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-154",
+  "nombre": "Adriana Carrasco",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Casual",
+  "rol": "Repartidora",
+  "spec": {
+   "cuerpo": "carmen",
+   "pelo": "toigo_curled_under_bob_with_bangs",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_shift_dress",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-155",
+  "nombre": "Ismael Díaz",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Urbano",
+  "rol": "Tatuador",
+  "spec": {
+   "cuerpo": "marcos",
+   "pelo": "rehmanpolanski_hair_bun_brown",
+   "colorPelo": "#1b1612",
+   "conjunto": "male_casualsuit04",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": null,
+   "gafas": null,
+   "barba": "rehmanpolanski_moustache_viking"
+  }
+ },
+ {
+  "id": "pnj-156",
+  "nombre": "Amina Soler",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Deportivo",
+  "rol": "Ciclista",
+  "spec": {
+   "cuerpo": "irene",
+   "pelo": "toigo_curled_under_bob",
+   "colorPelo": "#4a2f1f",
+   "conjunto": "female_sportsuit01",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes06",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-157",
+  "nombre": "Joaquín Haddad",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Diseñador",
+  "spec": {
+   "cuerpo": "tomas",
+   "pelo": "culturalibre_hair_05",
+   "colorPelo": null,
+   "conjunto": "male_casualsuit03",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes02",
+   "cabeza": "fedora_cocked",
+   "gafas": null,
+   "barba": "rehmanpolanski_beard_viking",
+   "colores": {
+    "cabeza": "#2f9e9e"
+   }
+  }
+ },
+ {
+  "id": "pnj-158",
+  "nombre": "Mercedes Castro",
+  "genero": "mujer",
+  "edad": "joven",
+  "estilo": "Verano",
+  "rol": "Socorrista",
+  "spec": {
+   "cuerpo": "lucia",
+   "pelo": "braid01",
+   "colorPelo": "#1b1612",
+   "conjunto": null,
+   "torso": "toigo_turtleneck_halter_top",
+   "piernas": "frankyaye_mini_skirt_01",
+   "calzado": "toigo_ballet_flats",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null,
+   "colores": {
+    "torso": "#3f7d52"
+   }
+  }
+ },
+ {
+  "id": "pnj-159",
+  "nombre": "David Cortés",
+  "genero": "hombre",
+  "edad": "joven",
+  "estilo": "Casual",
+  "rol": "Barista",
+  "spec": {
+   "cuerpo": "dani",
+   "pelo": null,
+   "colorPelo": null,
+   "conjunto": "male_casualsuit03",
+   "torso": null,
+   "piernas": null,
+   "calzado": "shoes05",
+   "cabeza": null,
+   "gafas": null,
+   "barba": null
+  }
+ },
+ {
+  "id": "pnj-160",
+  "nombre": "Catalina Vidal",
+  "genero": "mujer",
+  "edad": "adulto",
+  "estilo": "Verano",
+  "rol": "Turista",
+  "spec": {
+   "cuerpo": "elena",
+   "pelo": "afro01",
+   "colorPelo": "#1b1612",
+   "conjunto": "toigo_female_suit",
+   "torso": null,
+   "piernas": null,
+   "calzado": "toigo_ballet_flats",
+   "cabeza": null,
+   "gafas": "frankyaye_glasses_library_male",
+   "barba": null
+  }
+ }
+]

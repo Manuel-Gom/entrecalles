@@ -1,0 +1,71 @@
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true # modelos, miniaturas y retratos van con Git LFS
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Navegador de las pruebas de extremo a extremo
+        run: npx playwright install --with-deps chromium
+
+      # tipos, unitarias con cobertura, catálogo y extremo a extremo
+      - run: npm run verificar:ci
+        env:
+          CI: 'true'
+
+      - name: Informe de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-playwright
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage/
+          retention-days: 7
+
+  # Regenerar PNJ y retratos necesita Blender y el visor: se lanza a mano, no en cada cambio
+  regenerar-pnj:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build && npm run pnj && npm run retratos -- --todos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pnj
+          path: |
+            public/data/npcs.json
+            public/npcs/retratos/

@@ -1,0 +1,6 @@
+# Modelos, miniaturas y retratos: archivos grandes (unos 320 MB) con Git LFS
+public/models/**/*.glb filter=lfs diff=lfs merge=lfs -text
+public/models/**/*.png filter=lfs diff=lfs merge=lfs -text
+public/npcs/**/*.webp filter=lfs diff=lfs merge=lfs -text
+docs/previews/*.png filter=lfs diff=lfs merge=lfs -text
+* text=auto

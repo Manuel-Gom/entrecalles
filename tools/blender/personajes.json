@@ -1,0 +1,485 @@
+{
+  "defaults": {
+    "eyes": "low-poly",
+    "eyebrows": "eyebrow001",
+    "eyelashes": "eyelashes01",
+    "rig": "game_engine"
+  },
+  "personajes": [
+    {
+      "id": "marcos",
+      "nombre": "Marcos",
+      "genero": "hombre",
+      "descripcion": "Camiseta blanca, pantalón cargo y zapatillas blancas",
+      "skin": "young_caucasian_male",
+      "macro": {
+        "age": 0.5,
+        "muscle": 0.5,
+        "weight": 0.5,
+        "height": 0.55,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "short01",
+      "clothes": [
+        "elvs_crude_t-shirt_male",
+        "cortu_cargo_pants",
+        "shoes05"
+      ]
+    },
+    {
+      "id": "dani",
+      "nombre": "Dani",
+      "genero": "hombre",
+      "descripcion": "Camisa a rayas, vaqueros y zapatillas azules",
+      "skin": "young_african_male",
+      "macro": {
+        "age": 0.5,
+        "muscle": 0.65,
+        "weight": 0.5,
+        "height": 0.52,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.03,
+          "african": 0.94
+        }
+      },
+      "hair": "short01",
+      "clothes": [
+        "male_casualsuit03",
+        "shoes06"
+      ]
+    },
+    {
+      "id": "kenji",
+      "nombre": "Kenji",
+      "genero": "hombre",
+      "descripcion": "Polo gris, pantalón de lana y zapatos negros",
+      "skin": "young_asian_male",
+      "macro": {
+        "age": 0.52,
+        "muscle": 0.4,
+        "weight": 0.4,
+        "height": 0.45,
+        "race": {
+          "asian": 0.94,
+          "caucasian": 0.03,
+          "african": 0.03
+        }
+      },
+      "hair": "short02",
+      "clothes": [
+        "namuhekam_male_polo_shirt",
+        "toigo_wool_pants",
+        "shoes04"
+      ]
+    },
+    {
+      "id": "ivan",
+      "nombre": "Iván",
+      "genero": "hombre",
+      "descripcion": "Jersey rojo, pantalón cargo y zapatos marrones",
+      "skin": "middleage_caucasian_male",
+      "macro": {
+        "age": 0.68,
+        "muscle": 0.45,
+        "weight": 0.62,
+        "height": 0.5,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "cortu_short_messy_hair",
+      "clothes": [
+        "toigo_fisherman_sweater",
+        "cortu_cargo_pants",
+        "shoes01"
+      ]
+    },
+    {
+      "id": "malik",
+      "nombre": "Malik",
+      "genero": "hombre",
+      "descripcion": "Chaqueta verde sobre camisa, vaqueros y zapatillas blancas",
+      "skin": "middleage_african_male",
+      "macro": {
+        "age": 0.6,
+        "muscle": 0.7,
+        "weight": 0.55,
+        "height": 0.6,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.03,
+          "african": 0.94
+        }
+      },
+      "hair": "afro01",
+      "clothes": [
+        "male_casualsuit05",
+        "shoes05"
+      ]
+    },
+    {
+      "id": "hiro",
+      "nombre": "Hiro",
+      "genero": "hombre",
+      "descripcion": "Camisa azul, vaqueros y zapatos negros",
+      "skin": "middleage_asian_male",
+      "macro": {
+        "age": 0.65,
+        "muscle": 0.45,
+        "weight": 0.5,
+        "height": 0.4,
+        "race": {
+          "asian": 0.94,
+          "caucasian": 0.03,
+          "african": 0.03
+        }
+      },
+      "hair": "short04",
+      "clothes": [
+        "male_casualsuit01",
+        "shoes03"
+      ]
+    },
+    {
+      "id": "tomas",
+      "nombre": "Tomás",
+      "genero": "hombre",
+      "descripcion": "Camiseta gris, pantalón gris, gorra y zapatos de calle",
+      "skin": "toigo_light_skin_male_freckles",
+      "macro": {
+        "age": 0.5,
+        "muscle": 0.3,
+        "weight": 0.35,
+        "height": 0.4,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": null,
+      "clothes": [
+        "toigo_basic_tucked_t-shirt",
+        "toigo_wool_pants",
+        "jujube_newsboy_cap",
+        "shoes02"
+      ]
+    },
+    {
+      "id": "ramon",
+      "nombre": "Ramón",
+      "genero": "hombre",
+      "descripcion": "Pelo canoso, camiseta azul, vaqueros y zapatos marrones",
+      "skin": "old_caucasian_male",
+      "macro": {
+        "age": 0.92,
+        "muscle": 0.25,
+        "weight": 0.45,
+        "height": 0.45,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "short04",
+      "clothes": [
+        "male_casualsuit04",
+        "shoes01"
+      ],
+      "hair_material": "toigo_short_04_gray",
+      "color_pelo": "#9a9a9a"
+    },
+    {
+      "id": "nico",
+      "nombre": "Nico",
+      "genero": "hombre",
+      "descripcion": "Mono vaquero con camiseta blanca y zapatillas azules",
+      "skin": "toigo_light_skin_male_bronze",
+      "macro": {
+        "age": 0.5,
+        "muscle": 0.55,
+        "weight": 0.5,
+        "height": 0.5,
+        "race": {
+          "asian": 0.2,
+          "caucasian": 0.7,
+          "african": 0.1
+        }
+      },
+      "hair": "culturalibre_hair_05",
+      "clothes": [
+        "male_worksuit01",
+        "shoes06"
+      ]
+    },
+    {
+      "id": "leo",
+      "nombre": "Leo",
+      "genero": "hombre",
+      "descripcion": "Traje gris con corbata y zapatos negros",
+      "skin": "young_caucasian_male2",
+      "macro": {
+        "age": 0.55,
+        "muscle": 0.5,
+        "weight": 0.45,
+        "height": 0.55,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "short02",
+      "clothes": [
+        "male_elegantsuit01",
+        "shoes04"
+      ]
+    },
+    {
+      "id": "lucia",
+      "nombre": "Lucía",
+      "genero": "mujer",
+      "descripcion": "Larga melena, camiseta azul, vaqueros y zapatillas blancas",
+      "skin": "young_caucasian_female",
+      "macro": {
+        "age": 0.5,
+        "muscle": 0.4,
+        "weight": 0.4,
+        "height": 0.5,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "long01",
+      "clothes": [
+        "female_casualsuit01",
+        "shoes05"
+      ]
+    },
+    {
+      "id": "sofia",
+      "nombre": "Sofía",
+      "genero": "mujer",
+      "descripcion": "Coleta pelirroja, camiseta blanca, short vaquero y zapatillas azules",
+      "skin": "toigo_light_skin_female_freckles",
+      "macro": {
+        "age": 0.45,
+        "muscle": 0.45,
+        "weight": 0.45,
+        "height": 0.45,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "ponytail01",
+      "clothes": [
+        "joepal_crude_t-shirt_female",
+        "cortu_jeans_shorts",
+        "shoes06"
+      ],
+      "color_pelo": "#a8501f"
+    },
+    {
+      "id": "aisha",
+      "nombre": "Aisha",
+      "genero": "mujer",
+      "descripcion": "Trenza, top de tirantes, pantalón de lana y botines",
+      "skin": "young_african_female",
+      "macro": {
+        "age": 0.5,
+        "muscle": 0.5,
+        "weight": 0.45,
+        "height": 0.58,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.03,
+          "african": 0.94
+        }
+      },
+      "hair": "braid01",
+      "clothes": [
+        "toigo_camisole_top",
+        "toigo_wool_pants",
+        "toigo_ankle_boots_female"
+      ]
+    },
+    {
+      "id": "mei",
+      "nombre": "Mei",
+      "genero": "mujer",
+      "descripcion": "Media melena con flequillo, top ajustado, pantalón de lana y bailarinas",
+      "skin": "young_asian_female",
+      "macro": {
+        "age": 0.48,
+        "muscle": 0.3,
+        "weight": 0.3,
+        "height": 0.38,
+        "race": {
+          "asian": 0.94,
+          "caucasian": 0.03,
+          "african": 0.03
+        }
+      },
+      "hair": "toigo_blunt_bob_with_bangs",
+      "clothes": [
+        "toigo_bodice-style_top",
+        "toigo_wool_pants",
+        "toigo_ballet_flats"
+      ]
+    },
+    {
+      "id": "carmen",
+      "nombre": "Carmen",
+      "genero": "mujer",
+      "descripcion": "Traje de chaqueta elegante, pelo corto y bailarinas negras",
+      "skin": "middleage_caucasian_female",
+      "macro": {
+        "age": 0.66,
+        "muscle": 0.35,
+        "weight": 0.55,
+        "height": 0.55,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "toigo_curled_under_bob",
+      "clothes": [
+        "female_elegantsuit01",
+        "toigo_ballet_flats"
+      ]
+    },
+    {
+      "id": "noa",
+      "nombre": "Noa",
+      "genero": "mujer",
+      "descripcion": "Joven deportista con bob asimétrico y zapatillas",
+      "skin": "toigo_light_skin_female_bronze",
+      "macro": {
+        "age": 0.38,
+        "muscle": 0.6,
+        "weight": 0.4,
+        "height": 0.5,
+        "race": {
+          "asian": 0.2,
+          "caucasian": 0.7,
+          "african": 0.1
+        }
+      },
+      "hair": "toigo_inverted_bob",
+      "clothes": [
+        "female_sportsuit01",
+        "shoes06"
+      ]
+    },
+    {
+      "id": "irene",
+      "nombre": "Irene",
+      "genero": "mujer",
+      "descripcion": "Camiseta, short vaquero, pelo corto y zapatillas",
+      "skin": "middleage_asian_female",
+      "macro": {
+        "age": 0.62,
+        "muscle": 0.35,
+        "weight": 0.5,
+        "height": 0.4,
+        "race": {
+          "asian": 0.94,
+          "caucasian": 0.03,
+          "african": 0.03
+        }
+      },
+      "hair": "bob01",
+      "clothes": [
+        "female_casualsuit02",
+        "shoes02"
+      ]
+    },
+    {
+      "id": "zoe",
+      "nombre": "Zoe",
+      "genero": "mujer",
+      "descripcion": "Top rosa, pantalón cargo y botas",
+      "skin": "toigo_light_skin_female_ginger",
+      "macro": {
+        "age": 0.42,
+        "muscle": 0.4,
+        "weight": 0.35,
+        "height": 0.55,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "littleright_bobcut_hair",
+      "clothes": [
+        "toigo_turtleneck_halter_top",
+        "cortu_cargo_pants",
+        "shoes03"
+      ]
+    },
+    {
+      "id": "elena",
+      "nombre": "Elena",
+      "genero": "mujer",
+      "descripcion": "Pelo rizado, camiseta, pantalón cargo y zapatillas",
+      "skin": "middleage_african_female",
+      "macro": {
+        "age": 0.6,
+        "muscle": 0.4,
+        "weight": 0.65,
+        "height": 0.45,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.03,
+          "african": 0.94
+        }
+      },
+      "hair": "afro01",
+      "clothes": [
+        "joepal_crude_t-shirt_female",
+        "cortu_cargo_pants",
+        "shoes05"
+      ]
+    },
+    {
+      "id": "rosa",
+      "nombre": "Rosa",
+      "genero": "mujer",
+      "descripcion": "Pelo canoso, jersey rojo, pantalón de lana y zapatos marrones",
+      "skin": "old_caucasian_female",
+      "macro": {
+        "age": 0.92,
+        "muscle": 0.2,
+        "weight": 0.5,
+        "height": 0.35,
+        "race": {
+          "asian": 0.03,
+          "caucasian": 0.94,
+          "african": 0.03
+        }
+      },
+      "hair": "toigo_curled_under_bob",
+      "clothes": [
+        "toigo_fisherman_sweater",
+        "toigo_wool_pants",
+        "shoes01"
+      ],
+      "color_pelo": "#b4b4b4"
+    }
+  ]
+}
