@@ -2,8 +2,10 @@ import * as THREE from 'three'
 import { segmentEntry } from './collision'
 import type { Blocker } from './layout'
 
-const MIN_PITCH = -0.1
+const MIN_PITCH = -1.2
 const MAX_PITCH = 1.25
+const CAMERA_WALL_GAP = 0.18
+const MIN_CAMERA_DISTANCE = 0.08
 
 /** Cámara en tercera persona: orbita alrededor del personaje y se acerca si una pared se interpone. */
 export class FollowCamera {
@@ -45,7 +47,7 @@ export class FollowCamera {
       if (t === null) continue
       // solo tapa si el rayo pasa por debajo del tejado
       const rayHeight = this.focus.y + dirY * allowed * t
-      if (rayHeight < height && t * allowed - 0.35 < allowed) allowed = Math.max(1.1, t * allowed - 0.35)
+      if (rayHeight < height) allowed = Math.min(allowed, Math.max(MIN_CAMERA_DISTANCE, t * allowed - CAMERA_WALL_GAP))
     }
     // se acerca de golpe y se aleja despacio, para que no tiemble
     this.current = instant || allowed < this.current ? allowed : this.current + (allowed - this.current) * (1 - Math.exp(-3 * dt))

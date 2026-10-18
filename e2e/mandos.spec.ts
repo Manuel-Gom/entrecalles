@@ -162,6 +162,33 @@ test.describe('diagnóstico y bancos', () => {
     await page.waitForFunction(() => window.__world!()!.stats().player.seated, null, { timeout: 60_000 })
     const sentado = await stats(page)
     expect(Math.hypot(sentado.player.x - banco.x, sentado.player.z - banco.z)).toBeLessThan(0.5)
+    const ajuste = await page.evaluate(() => {
+      const w = window.__world!()!
+      const bones = w.playerBones(['pelvis', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r', 'foot_l', 'hand_l', 'hand_r'])
+      const yaw = w.stats().player.yaw
+      const kneeForward =
+        (bones.calf_l[0] - bones.thigh_l[0]) * Math.sin(yaw) +
+        (bones.calf_l[2] - bones.thigh_l[2]) * Math.cos(yaw)
+      const handOnThigh = (side: 'l' | 'r') => {
+        const thigh = bones[`thigh_${side}`]
+        const knee = bones[`calf_${side}`]
+        const hand = bones[`hand_${side}`]
+        const midpoint = thigh.map((value, axis) => (value + knee[axis]) / 2)
+        return {
+          distance: Math.hypot(...hand.map((value, axis) => value - midpoint[axis])),
+          heightDifference: hand[1] - midpoint[1],
+        }
+      }
+      return { bones, kneeForward, hands: { left: handOnThigh('l'), right: handOnThigh('r') } }
+    })
+    expect(ajuste.bones.pelvis[1]).toBeGreaterThan(0.49)
+    expect(ajuste.bones.pelvis[1]).toBeLessThan(0.59)
+    expect(ajuste.kneeForward).toBeGreaterThan(0.3)
+    expect(ajuste.bones.foot_l[1]).toBeLessThan(0.2)
+    for (const hand of Object.values(ajuste.hands)) {
+      expect(hand.distance).toBeLessThan(0.22)
+      expect(Math.abs(hand.heightDifference)).toBeLessThan(0.08)
+    }
     await expect(page.getByText(/Pulsa\s*E\s*para levantarte/)).toBeVisible()
 
     // al pulsar de nuevo se levanta y vuelve a poder sentarse

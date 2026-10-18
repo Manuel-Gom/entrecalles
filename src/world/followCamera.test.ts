@@ -34,7 +34,7 @@ describe('FollowCamera', () => {
     camera.orbit(0, 10)
     expect(camera.pitch).toBeLessThanOrEqual(1.25)
     camera.orbit(0, -10)
-    expect(camera.pitch).toBeGreaterThanOrEqual(-0.1)
+    expect(camera.pitch).toBeGreaterThanOrEqual(-1.2)
     camera.zoom(100)
     expect(camera.distance).toBe(8)
     camera.zoom(-100)
@@ -47,6 +47,14 @@ describe('FollowCamera', () => {
     const wall = [{ box: boxAt(0, 3, 20, 1), height: 20 }] // z 2.5..3.5
     const c = place(camera, wall)
     expect(c.position.z).toBeLessThan(2.5)
+  })
+
+  it('mantiene la cámara antes de una pared cercana en vez de forzarla al otro lado', () => {
+    const camera = new FollowCamera(0)
+    camera.distance = 6
+    const wall = [{ box: boxAt(0, 0.55, 20, 0.1), height: 20 }]
+    const c = place(camera, wall)
+    expect(c.position.z).toBeLessThan(wall[0].box.minZ)
   })
 
   it('un edificio bajo no la acerca si la cámara pasa por encima', () => {

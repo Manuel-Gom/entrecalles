@@ -69,29 +69,40 @@ El jugador choca con paredes, mobiliario y **con las personas** (círculos de 0,
 ### Interacción y asientos
 Una sola tecla (o botón) hace lo que corresponda donde estés, y un aviso en pantalla (`Pulsa E para sentarte`, `…para entrar al café`) lo dice antes:
 
-- **Bancos y sillas**: cada banco tiene dos plazas, también los del parque (a los que llegan los vecinos por unas diagonales de la red de aceras). Se llega por delante en los bancos y **por detrás** en las sillas con mesa y los taburetes. Sentarse y levantarse son graduales, con la altura del asiento de cada uno (46 cm el banco, 67 el taburete). Si te sientas, ningún vecino ocupa tu plaza. Estando sentado, `E` o empujar una dirección te levanta.
+- **Bancos y sillas**: cada banco tiene dos plazas, también los del parque (a los que llegan los vecinos por unas diagonales de la red de aceras). Se llega por delante en los bancos y **por detrás** en las sillas con mesa y los taburetes. Sentarse y levantarse recorren el mismo camino en sentidos opuestos, desde la posición real del jugador; se calculan rutas laterales que respetan las colisiones de mesas y muebles, en vez de cambiar de sitio al empezar o acabar. La transición adapta gradualmente la altura del asiento (46 cm el banco, 67 cm el taburete), la pelvis y las piernas, y apoya las manos sobre los muslos. La postura se calcula sobre el esqueleto y los marcadores del modelo, sin simulación física rígida. Si te sientas, ningún vecino ocupa tu plaza. Estando sentado, `E` o empujar una dirección te levanta.
 - **El café**: delante de su puerta se ofrece entrar. Hay un fundido a negro, la calle desaparece y apareces en la sala (con luces de interior, ambiente de café y suelo de baldosa). La sala no se puede abandonar andando (la puerta tiene colisión y la cámara no la atraviesa): se sale junto a la puerta con la misma tecla, a la calle y de cara a ella. El interior se carga al entrar y se **libera al salir**. Con «movimiento reducido» no hay fundido.
 
 ### Modelos de Blender
-`tools/blender/crear_props.py` genera, por código y sin nada de terceros (CC0), los tres modelos de `public/models/mundo/`:
+`tools/blender/crear_props.py` genera, por código y sin nada de terceros (CC0), los modelos de `public/models/mundo/`:
 
 | Modelo | Qué es | Peso | Triángulos |
 |---|---|---|---|
 | `banco.glb` | Banco de listones de madera con bastidor de hierro; se dibuja decenas de veces con 2 llamadas | 22 KB | ~880 |
 | `fachada_cafe.glb` | Módulo de 5 m con ventana, puerta con hoja que gira, toldo a rayas y cartel «CAFÉ» | 47 KB | ~1.700 |
-| `cafe_interior.glb` | Sala de 8 × 7 m (sin techo, para la cámara) con mostrador, taburetes, 4 mesas y 8 sillas | 69 KB | ~3.300 |
+| `cafe_interior.glb` | Sala de 8 × 7 m (sin techo, para la cámara) con mostrador, taburetes, 4 mesas y 8 sillas | 71 KB | ~3.300 |
+| `fuente.glb` | Fuente central de piedra con pilón circular, varios niveles, agua y remates metálicos | 34 KB | ~3.900 |
+| `arbol.glb` | Árbol con tronco ahusado, ramas y copas de hojas en tonos variados; se instancia en el parque y las calles | 20 KB | ~1.760 |
+| `farola.glb` | Farola de hierro con base escalonada, brazo curvo y luminaria de vidrio | 10 KB | ~900 |
+| `sol.glb` | Disco solar con corona y rayos cortos; recorre el cielo según la hora local | 21 KB | ~2.560 |
+| `luna.glb` | Esfera lunar con relieve y cráteres modelados; recorre el cielo opuesta al sol | 16 KB | ~1.760 |
+| `luna_nueva.glb` | Disco oscuro con cráteres en relieve, sin cara iluminada | ~16 KB | ~1.680 |
+| `luna_creciente.glb` | Cuarto creciente con relieve de cráteres en la zona iluminada | ~28 KB | ~3.120 |
+| `luna_llena.glb` | Disco completo brillante con cráteres en relieve | ~38 KB | ~4.570 |
+| `luna_menguante.glb` | Cuarto menguante con la iluminación en el lado opuesto | ~28 KB | ~3.120 |
 
 ```powershell
 & "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python tools/blender/crear_props.py
-# solo uno:  ... -- banco | fachada | interior
+# solo uno:  ... -- banco | fachada | interior | fuente | arbol | farola | sol | luna | luna_nueva | luna_creciente | luna_llena | luna_menguante
 ```
 
 Convenciones (la lee `props.ts`; las comprueba `tests/mundo-modelos.test.ts`):
 - Sin texturas: solo colores de material. Los límites de peso y triángulos están en la prueba.
 - Se modela con el frente hacia −Y de Blender (+Z en glTF), con los pies en el suelo y en metros.
 - Los **objetos vacíos** son datos: `COL_*` caja de colisión (la escala es la mitad del tamaño; los que empiezan por `COL_pared` tapan además la vista de la cámara), `SEAT_*` plaza (mira hacia donde apunta), `LUZ_*` punto de luz, `ENTRADA`/`SALIDA`/`PUERTA_CENTRO` puntos de referencia. Un objeto llamado `PUERTA_HOJA` es la hoja de una puerta, con la bisagra como origen.
-- Los datos de los modelos se **comprueban contra el código**: las plazas del banco coinciden con las de la ciudad, el punto de acercamiento de cada silla está libre, cada silla mira a una mesa, la sala no tiene huecos.
-- El resto de la ciudad (edificios, calles, árboles) sigue siendo procedural. Se irán sustituyendo por modelos de Blender solo los elementos que destaquen, midiendo antes el coste.
+- Los datos de los modelos se **comprueban contra el código**: las plazas del banco coinciden con las de la ciudad, se puede trazar una ruta libre para cada asiento, cada silla mira a una mesa, y las sillas, taburetes, estantería y planta-lámpara tienen colisión. Los taburetes dejan más espacio frente a la barra y la sala no tiene huecos.
+- La fuente, los árboles y las farolas usan modelos de Blender instanciados; sus colisiones siguen saliendo del diseño del barrio. Edificios y calles aún se generan por código.
+- El reloj empieza con la hora local del ordenador y avanza a **un minuto de juego por cada segundo real**; se muestra como HH:MM en la barra superior y se detiene al pausar. El sol, la iluminación, el cielo y la niebla cambian gradualmente. La fase lunar se calcula con la fecha del juego y selecciona uno de cuatro modelos detallados. Hasta 24 farolas cercanas proyectan luz local de intensidad moderada (18) y alcance de 28 m, con atenuación física inversa al cuadrado; el vidrio de las luminarias también reduce su brillo emisivo por la noche para evitar sobreexponer personajes y edificios. Para mantener el rendimiento, el agua tiene reflejos animados en el shader, no una simulación física de fluidos.
+- La cámara puede inclinarse hacia arriba para mirar el cielo y ver el recorrido de los cuerpos celestes.
 
 ### Vecinos y charlas
 `cast.ts` reparte 16 vecinos: 3 que se sientan (mejor si son mayores), 2 que hacen footing, 2 parejas que charlan, 2 que miran escaparates, 2 que esperan en una esquina y 3 que pasean. Se cargan de dos en dos; los que están a más de 48 m no se animan y a más de 80 m se ocultan.
@@ -122,4 +133,4 @@ Navegador de escritorio con WebGL 2 y Web Audio (Chrome, Edge, Firefox o Safari 
 - Probar con mandos reales: las pruebas usan un mando simulado (ver [pruebas.md](pruebas.md)); la validación con un mando de Xbox y uno de PlayStation en los navegadores de destino, y las mediciones de rendimiento, las tiene que hacer quien tenga el equipo.
 
 ## Revisar el resultado
-`npm run build && node tools/revision/mundo.mjs <marcha|calle|pnj|sentado|tienda|interior> [cuerpo]` deja capturas en `docs/previews/web/` (que no se versiona). Ver [pruebas.md](pruebas.md).
+`npm run build && node tools/revision/mundo.mjs <marcha|calle|parque|ciclo|pnj|pnj-sentado|sentado|tienda|interior> [cuerpo]` deja capturas en `docs/previews/web/` (que no se versiona). `parque` saca una vista de detalle y otra general de los modelos de Blender; `ciclo` captura el parque de día y de noche. Ver [pruebas.md](pruebas.md).

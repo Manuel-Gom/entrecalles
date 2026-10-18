@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { makeSeat, seatsFor } from './brain'
 import { generateCity } from './layout'
-import { SEAT_REACH, SeatSession, findSeat, seatPrompt } from './seating'
+import { SEAT_REACH, SeatSession, findSeat, makeSeatRoute, seatPrompt } from './seating'
 
 const city = generateCity()
 const fresh = () => seatsFor(city)
@@ -56,7 +56,7 @@ describe('plazas a las que se llega por detrás (sillas)', () => {
 
   it('al levantarse sale por detrás de la silla', () => {
     const seat = chair()
-    const s = new SeatSession(seat, seat.approach, seat.yaw)
+    const s = new SeatSession(seat, seat.yaw)
     for (let t = 0; t < 1.2; t += 1 / 60) s.update(1 / 60)
     s.standUp()
     for (let t = 0; t < 1.2; t += 1 / 60) s.update(1 / 60)
@@ -69,7 +69,7 @@ describe('SeatSession', () => {
     const seats = fresh()
     const seat = seats[0]
     const yawToSeat = Math.atan2(seat.x - seat.approach.x, seat.z - seat.approach.z)
-    return { seat, s: new SeatSession(seat, seat.approach, yawToSeat) }
+    return { seat, s: new SeatSession(seat, yawToSeat) }
   }
   const run = (s: SeatSession, seconds: number) => {
     for (let t = 0; t < seconds; t += 1 / 60) s.update(1 / 60)
@@ -87,17 +87,51 @@ describe('SeatSession', () => {
     expect(seat.taken).toBe(false)
   })
 
-  it('se sienta de forma gradual hasta la plaza y acaba mirando como el banco', () => {
+  it('recorre la ruta sin saltos al sentarse y termina centrado en la plaza', () => {
     const { seat, s } = session()
     run(s, 0.45)
     expect(s.phase).toBe('sentandose')
     expect(s.sit).toBeGreaterThan(0.2)
     expect(s.sit).toBeLessThan(0.8)
+    expect(Math.hypot(s.x - seat.approach.x, s.z - seat.approach.z)).toBeGreaterThan(0.1)
+    expect(Math.hypot(s.x - seat.x, s.z - seat.z)).toBeGreaterThan(0.1)
     run(s, 0.7)
     expect(s.sit).toBe(1)
     expect(s.x).toBeCloseTo(seat.x, 6)
     expect(s.z).toBeCloseTo(seat.z, 6)
     expect(Math.cos(s.yaw - seat.yaw)).toBeGreaterThan(0.999)
+  })
+
+  it('empieza y termina en la posición real del jugador, recorriendo la ruta en ambos sentidos', () => {
+    const { seat } = session()
+    const from = { x: seat.approach.x + 0.25, z: seat.approach.z }
+    const s = new SeatSession(seat, seat.yaw, from)
+    expect({ x: s.x, z: s.z }).toEqual(from)
+    const advanceContinuously = (seconds: number) => {
+      let previous = { x: s.x, z: s.z }
+      for (let elapsed = 0; elapsed < seconds; elapsed += 1 / 60) {
+        s.update(1 / 60)
+        expect(Math.hypot(s.x - previous.x, s.z - previous.z)).toBeLessThan(0.1)
+        previous = { x: s.x, z: s.z }
+      }
+    }
+    advanceContinuously(2)
+    expect(s.phase).toBe('sentado')
+    s.standUp()
+    advanceContinuously(2)
+    expect(s.done).toBe(true)
+    expect(s.x).toBeCloseTo(from.x, 6)
+    expect(s.z).toBeCloseTo(from.z, 6)
+  })
+
+  it('genera rutas laterales que terminan en el centro del asiento y no cruzan obstáculos', () => {
+    const seat = makeSeat(0, 0, Math.PI / 2, 'detras', 1)
+    const ownCollider = { minX: -0.3, maxX: 0.3, minZ: -0.3, maxZ: 0.3 }
+    seat.collider = ownCollider
+    const obstacle = { minX: 1, maxX: 2, minZ: -0.5, maxZ: 0.5 }
+    const route = makeSeatRoute(seat, [ownCollider, obstacle], ownCollider)
+    expect(route[0]).toEqual(seat.approach)
+    expect(route.at(-1)).toEqual({ x: seat.x, z: seat.z })
   })
 
   it('no se puede levantar mientras se sienta', () => {
@@ -119,7 +153,10 @@ describe('SeatSession', () => {
     const { seat, s } = session()
     run(s, 1.2)
     s.standUp()
-    run(s, 1.2)
+    run(s, 0.45)
+    expect(Math.hypot(s.x - seat.approach.x, s.z - seat.approach.z)).toBeGreaterThan(0.1)
+    expect(Math.hypot(s.x - seat.x, s.z - seat.z)).toBeGreaterThan(0.1)
+    run(s, 0.75)
     expect(s.x).toBeCloseTo(seat.approach.x, 6)
     expect(s.z).toBeCloseTo(seat.approach.z, 6)
     expect(s.sit).toBe(0)
@@ -148,7 +185,7 @@ describe('seatPrompt', () => {
     const seats = fresh()
     expect(seatPrompt(null, seats[0])).toBe('sentarse')
     expect(seatPrompt(null, null)).toBeNull()
-    const s = new SeatSession(seats[0], seats[0].approach, 0)
+    const s = new SeatSession(seats[0], 0)
     expect(seatPrompt(s, null)).toBeNull()
     for (let t = 0; t < 1.2; t += 1 / 60) s.update(1 / 60)
     expect(seatPrompt(s, null)).toBe('levantarse')

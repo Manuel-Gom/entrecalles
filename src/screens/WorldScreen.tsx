@@ -40,7 +40,7 @@ export function WorldScreen() {
   const { catalog } = useCatalog()
   const notify = useToast()
   const [npcs, setNpcs] = useState<Npc[] | null>(null)
-  const [status, setStatus] = useState<WorldStatus>({ state: 'cargando', npcsLoaded: 0, npcsTotal: 0, fps: 0, device: 'teclado', gamepad: null, prompt: null, subtitle: null, audio: 'none', diagnostics: '' })
+  const [status, setStatus] = useState<WorldStatus>({ state: 'cargando', npcsLoaded: 0, npcsTotal: 0, fps: 0, device: 'teclado', gamepad: null, prompt: null, subtitle: null, audio: 'none', gameTime: '--:--', diagnostics: '' })
   const [quality, setQuality] = useState<Quality>(readQuality)
   const [paused, setPaused] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
@@ -136,6 +136,10 @@ export function WorldScreen() {
         <div className="world-chip">
           <span className="label">Protagonista</span>
           <strong>{activeCharacter.name}</strong>
+        </div>
+        <div className="world-clock" title="Cada segundo real avanza un minuto dentro del barrio">
+          <span className="label">Hora del barrio</span>
+          <time>{status.gameTime}</time>
         </div>
         {pad && (
           <div className="world-chip" role="status">

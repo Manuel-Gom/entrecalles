@@ -115,6 +115,9 @@ export interface CityMeshes {
   group: THREE.Group
   /** bancos de relleno hechos con cajas: se ocultan cuando llegan los modelos de Blender */
   benchMesh: THREE.Mesh
+  fountainMesh: THREE.Mesh
+  treeMesh: THREE.Mesh
+  lampMesh: THREE.Mesh
   dispose(): void
 }
 
@@ -123,11 +126,14 @@ const SIDEWALK_COLOR = 0xb9b6ae
 const MARKING = 0xe8e4d6
 const GRASS = 0x6f9a52
 
-/** Construye el barrio: dos mallas fusionadas (edificios con ventanas y mobiliario urbano) más el terreno. */
+/** Construye el barrio: mallas fusionadas de edificios y relleno, más los modelos de Blender que se pueden sustituir. */
 export function buildCityMeshes(layout: CityLayout): CityMeshes {
   const props = new GeometryBuilder()
   const walls = new GeometryBuilder()
   const benches = new GeometryBuilder()
+  const fountain = new GeometryBuilder()
+  const trees = new GeometryBuilder()
+  const lamps = new GeometryBuilder()
 
   // calzada
   props.floor(-WORLD_HALF, -WORLD_HALF, WORLD_HALF, WORLD_HALF, 0, ASPHALT)
@@ -179,9 +185,9 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
   props.floor(park.minX, park.minZ, park.maxX, park.maxZ, 0.03, GRASS)
   props.floor(-1.2, -park.maxZ, 1.2, park.maxZ, 0.035, 0xc8b99a) // paseo norte-sur
   props.floor(-park.maxX, -1.2, park.maxX, 1.2, 0.035, 0xc8b99a) // paseo este-oeste
-  props.box(-1.7, 0, -1.7, 1.7, 0.45, 1.7, 0x9a9a95) // fuente
-  props.floor(-1.45, -1.45, 1.45, 1.45, 0.38, 0x5fa3c4)
-  props.box(-0.2, 0, -0.2, 0.2, 1.3, 0.2, 0x8c8c88)
+  fountain.box(-1.7, 0, -1.7, 1.7, 0.45, 1.7, 0x9a9a95)
+  fountain.floor(-1.45, -1.45, 1.45, 1.45, 0.38, 0x5fa3c4)
+  fountain.box(-0.2, 0, -0.2, 0.2, 1.3, 0.2, 0x8c8c88)
 
   // edificios: paredes con ventanas y azotea
   for (const building of layout.buildings) {
@@ -220,8 +226,8 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
 
   // farolas
   for (const lamp of layout.lamps) {
-    props.box(lamp.x - 0.06, 0, lamp.z - 0.06, lamp.x + 0.06, 4.5, lamp.z + 0.06, 0x2c2f33)
-    props.box(lamp.x - 0.3, 4.5, lamp.z - 0.12, lamp.x + 0.3, 4.65, lamp.z + 0.12, 0x2c2f33)
+    lamps.box(lamp.x - 0.06, 0, lamp.z - 0.06, lamp.x + 0.06, 4.5, lamp.z + 0.06, 0x2c2f33)
+    lamps.box(lamp.x - 0.3, 4.5, lamp.z - 0.12, lamp.x + 0.3, 4.65, lamp.z + 0.12, 0x2c2f33)
   }
 
   // árboles
@@ -230,9 +236,9 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
   const matrix = new THREE.Matrix4()
   layout.trees.forEach((tree, index) => {
     const s = tree.scale
-    props.box(tree.x - 0.12 * s, 0, tree.z - 0.12 * s, tree.x + 0.12 * s, 2.3 * s, tree.z + 0.12 * s, 0x5a4330)
+    trees.box(tree.x - 0.12 * s, 0, tree.z - 0.12 * s, tree.x + 0.12 * s, 2.3 * s, tree.z + 0.12 * s, 0x5a4330)
     matrix.compose(new THREE.Vector3(tree.x, 3.1 * s, tree.z), new THREE.Quaternion(), new THREE.Vector3(1.4 * s, 1.3 * s, 1.4 * s))
-    props.mesh(canopy, matrix, greens[index % greens.length])
+    trees.mesh(canopy, matrix, greens[index % greens.length])
   })
   canopy.dispose()
 
@@ -240,6 +246,9 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
   const benchGeometry = benches.build()
   const propGeometry = props.build()
   const wallGeometry = walls.build()
+  const fountainGeometry = fountain.build()
+  const treeGeometry = trees.build()
+  const lampGeometry = lamps.build()
   const propMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 })
   const wallMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, map: texture, roughness: 0.9, metalness: 0 })
 
@@ -249,8 +258,11 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
   propMesh.receiveShadow = wallMesh.receiveShadow = true
   propMesh.castShadow = wallMesh.castShadow = true
   const benchMesh = new THREE.Mesh(benchGeometry, propMaterial)
-  benchMesh.castShadow = benchMesh.receiveShadow = true
-  group.add(propMesh, wallMesh, benchMesh)
+  const fountainMesh = new THREE.Mesh(fountainGeometry, propMaterial)
+  const treeMesh = new THREE.Mesh(treeGeometry, propMaterial)
+  const lampMesh = new THREE.Mesh(lampGeometry, propMaterial)
+  for (const mesh of [benchMesh, fountainMesh, treeMesh, lampMesh]) mesh.castShadow = mesh.receiveShadow = true
+  group.add(propMesh, wallMesh, benchMesh, fountainMesh, treeMesh, lampMesh)
 
   // terreno lejano, por debajo de todo
   const farGround = new THREE.Mesh(
@@ -264,10 +276,16 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
   return {
     group,
     benchMesh,
+    fountainMesh,
+    treeMesh,
+    lampMesh,
     dispose() {
       benchGeometry.dispose()
       propGeometry.dispose()
       wallGeometry.dispose()
+      fountainGeometry.dispose()
+      treeGeometry.dispose()
+      lampGeometry.dispose()
       farGround.geometry.dispose()
       ;(farGround.material as THREE.Material).dispose()
       propMaterial.dispose()

@@ -5,6 +5,7 @@ import { makeSeat, seatsFor } from '../src/world/brain'
 import { generateCity } from '../src/world/layout'
 import { CHAIR_APPROACH, STOOL_APPROACH } from '../src/world/interior'
 import { markerFromMatrix, worldBox, type Marker } from '../src/world/props'
+import { makeSeatRoute } from '../src/world/seating'
 
 /** Comprueba los modelos de Blender del mundo (public/models/mundo/): peso, triángulos, datos y que cuadren con el código. */
 
@@ -89,6 +90,15 @@ describe.each([
   ['banco', { kb: 60, triangles: 1200 }],
   ['fachada_cafe', { kb: 120, triangles: 2500 }],
   ['cafe_interior', { kb: 200, triangles: 5000 }],
+  ['fuente', { kb: 120, triangles: 6000 }],
+  ['arbol', { kb: 120, triangles: 3500 }],
+  ['farola', { kb: 80, triangles: 1800 }],
+  ['sol', { kb: 80, triangles: 4000 }],
+  ['luna', { kb: 80, triangles: 3000 }],
+  ['luna_nueva', { kb: 120, triangles: 8000 }],
+  ['luna_creciente', { kb: 120, triangles: 8000 }],
+  ['luna_llena', { kb: 120, triangles: 8000 }],
+  ['luna_menguante', { kb: 120, triangles: 8000 }],
 ] as const)('%s.glb', (name, limits) => {
   const { gltf, bytes } = readGlb(name)
 
@@ -111,6 +121,64 @@ describe.each([
   it('los nodos de datos son solo los que entiende el código', () => {
     const names = gltf.nodes.filter((n) => n.mesh === undefined).map((n) => n.name ?? '')
     for (const nodeName of names) expect(nodeName, 'nodo de datos desconocido').toMatch(/^(COL_|SEAT_|LUZ_|ENTRADA|SALIDA|PUERTA_CENTRO|PUERTA_HOJA)/)
+  })
+})
+
+describe('modelos del parque', () => {
+  it('la fuente tiene una huella circular compacta y una altura de fuente urbana', () => {
+    const { gltf } = readGlb('fuente')
+    const bounds = meshBounds(gltf)
+    const size = bounds.getSize(new THREE.Vector3())
+    expect(size.x).toBeGreaterThan(2.8)
+    expect(size.x).toBeLessThan(3.4)
+    expect(size.z).toBeGreaterThan(2.8)
+    expect(size.z).toBeLessThan(3.4)
+    expect(size.y).toBeGreaterThan(1.6)
+    expect(size.y).toBeLessThan(2)
+    expect(bounds.min.y).toBeCloseTo(0, 2)
+  })
+
+  it('el árbol tiene copa con volumen y un tronco de más de tres metros', () => {
+    const { gltf } = readGlb('arbol')
+    const size = meshBounds(gltf).getSize(new THREE.Vector3())
+    expect(size.x).toBeGreaterThan(1.8)
+    expect(size.z).toBeGreaterThan(1.8)
+    expect(size.y).toBeGreaterThan(4.5)
+    expect(size.y).toBeLessThan(5.3)
+  })
+
+  it('la farola incluye luminaria elevada y mantiene una altura de calle', () => {
+    const { gltf } = readGlb('farola')
+    const bounds = meshBounds(gltf)
+    const size = bounds.getSize(new THREE.Vector3())
+    expect(size.x).toBeGreaterThan(0.8)
+    expect(size.y).toBeGreaterThan(4.2)
+    expect(bounds.min.y).toBeCloseTo(0, 2)
+  })
+
+  it('el sol y la luna son modelos compactos y centrados para recorrer el cielo', () => {
+    const sun = meshBounds(readGlb('sol').gltf)
+    const moon = meshBounds(readGlb('luna').gltf)
+    expect(sun.getSize(new THREE.Vector3()).x).toBeGreaterThan(4)
+    expect(sun.getSize(new THREE.Vector3()).y).toBeGreaterThan(3)
+    expect(moon.getSize(new THREE.Vector3()).x).toBeGreaterThan(2.5)
+    expect(moon.getSize(new THREE.Vector3()).y).toBeGreaterThan(2.5)
+    expect(moon.getCenter(new THREE.Vector3()).length()).toBeLessThan(0.02)
+  })
+
+  it('las cuatro fases lunares conservan la misma esfera y tienen superficies propias', () => {
+    const phases = ['luna_nueva', 'luna_creciente', 'luna_llena', 'luna_menguante']
+    const models = phases.map((name) => readGlb(name).gltf)
+    const bounds = models.map(meshBounds)
+    const sizes = bounds.map((box) => box.getSize(new THREE.Vector3()))
+    for (const size of sizes) {
+      expect(size.x).toBeGreaterThan(2.7)
+      expect(size.y).toBeGreaterThan(2.7)
+      expect(size.z).toBeGreaterThan(2.7)
+    }
+    expect(triangles(models[0])).toBeLessThan(triangles(models[1]))
+    expect(triangles(models[1])).toBeLessThan(triangles(models[2]))
+    expect(triangles(models[3])).toBeLessThan(triangles(models[2]))
   })
 })
 
@@ -230,9 +298,16 @@ describe('cafe_interior.glb', () => {
 
   it('hay plazas suficientes (4 mesas con 2 sillas y 3 taburetes) y todas se alcanzan por un sitio libre', () => {
     expect(seats.length).toBe(11)
+    expect(boxes.filter((box) => /^COL_silla/.test(box.name))).toHaveLength(8)
+    expect(boxes.filter((box) => /^COL_taburete/.test(box.name))).toHaveLength(3)
     for (const seat of seats) {
       const approach = /taburete/.test(seat.name) ? STOOL_APPROACH : CHAIR_APPROACH
       const built = makeSeat(seat.position.x, seat.position.z, seat.yaw, 'detras', approach, seat.position.y)
+      const collider = boxes.find((box) => box.name === seat.name.replace(/^SEAT_/, 'COL_'))?.box
+      built.collider = collider
+      const route = makeSeatRoute(built, boxes.map((box) => box.box))
+      expect(route[0]).toEqual(built.approach)
+      expect(route.at(-1)).toEqual({ x: built.x, z: built.z })
       expect(built.approach.x).toBeGreaterThan(-3.8)
       expect(built.approach.x).toBeLessThan(3.8)
       expect(built.approach.z).toBeGreaterThan(0.4)
@@ -244,6 +319,23 @@ describe('cafe_interior.glb', () => {
     }
   })
 
+  it('las sillas y taburetes bloquean el paso sin cerrar sus puntos de acercamiento', () => {
+    for (const seat of seats) {
+      const collider = boxes.find((box) => box.name === seat.name.replace(/^SEAT_/, 'COL_'))
+      expect(collider, `${seat.name} no tiene colisión`).toBeDefined()
+      expect(collider!.maxY - collider!.minY).toBeGreaterThan(0.6)
+      expect(collider!.maxY - collider!.minY).toBeLessThan(1.1)
+    }
+  })
+
+  it('la estantería del mostrador también tiene colisión', () => {
+    expect(boxes.find((box) => box.name === 'COL_estanteria')).toBeDefined()
+  })
+
+  it('la planta alta de la esquina tiene colisión propia', () => {
+    expect(boxes.find((box) => box.name === 'COL_lampara')).toBeDefined()
+  })
+
   it('el frente de cada silla mira hacia una mesa y el de cada taburete, hacia el mostrador', () => {
     const tables = boxes.filter((box) => /^COL_mesa/.test(box.name))
     expect(tables).toHaveLength(4)
@@ -253,6 +345,7 @@ describe('cafe_interior.glb', () => {
     }
     const counter = boxes.find((box) => box.name === 'COL_mostrador')!
     for (const seat of seats.filter((s) => /taburete/.test(s.name))) {
+      expect(seat.position.z).toBeLessThan(counter.box.minZ - 0.3)
       const ahead = { x: seat.position.x + Math.sin(seat.yaw) * 0.6, z: seat.position.z + Math.cos(seat.yaw) * 0.6 }
       expect(ahead.z).toBeGreaterThan(counter.box.minZ - 0.05)
       expect(ahead.x).toBeGreaterThan(counter.box.minX)

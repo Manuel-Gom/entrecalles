@@ -150,13 +150,13 @@ export function computeGait(input: GaitInput, dims: GaitDims): GaitPose {
     kneeR: right.knee,
     footL: left.foot,
     footR: right.foot,
-    armL: left.arm,
-    armR: right.arm,
-    armOutL: 0.06,
-    armOutR: 0.06,
-    elbowL: lerp(0.12, 1.5, run) * moving + 0.08 * (1 - moving),
-    elbowR: lerp(0.12, 1.5, run) * moving + 0.08 * (1 - moving),
-    spineLean: lerp(0.03, 0.3, run) * moving,
+    armL: left.arm - 0.18 * run * moving,
+    armR: right.arm - 0.18 * run * moving,
+    armOutL: lerp(0.06, 0.16, run),
+    armOutR: lerp(0.06, 0.16, run),
+    elbowL: lerp(0.18, 1.65, run) * moving + 0.08 * (1 - moving),
+    elbowR: lerp(0.18, 1.65, run) * moving + 0.08 * (1 - moving),
+    spineLean: lerp(0.04, 0.38, run) * moving,
     spineTwist: -0.16 * forwardPhase * moving * (0.6 + 0.4 * run),
     pelvisYaw: 0.1 * forwardPhase * moving * (0.6 + 0.4 * run),
     pelvisRoll: 0.03 * Math.cos(2 * Math.PI * phase) * moving,
@@ -189,26 +189,38 @@ export function computeGait(input: GaitInput, dims: GaitDims): GaitPose {
     pose.spineTwist += 0.06 * beat * talk
   }
 
-  // sentado: los muslos horizontales, las rodillas dobladas y la pelvis a la altura del asiento
+  // sentado: los muslos sobre el asiento, rodillas flexionadas, pelvis asentada sin levitar y pies planos
   const sit = input.sit
   if (sit > 0) {
-    // la articulación de la cadera queda 12 cm por encima de la superficie del asiento (0,58 m en un banco de calle)
-    const drop = Math.max(0.2, dims.hipHeight - ((input.seatHeight ?? 0.46) + 0.12))
-    const thigh = -1.45
-    const knee = 1.5
+    // la cadera queda ~4,5 cm sobre la superficie del asiento (0,505 m en un banco de 0,46 m) para que los glúteos descansen en la madera
+    const drop = Math.max(0.2, dims.hipHeight - ((input.seatHeight ?? 0.46) + 0.045))
+    // muslos un poco por debajo de la horizontal: acercan las rodillas al asiento y dejan caer la pelvis
+    const thigh = -1.61
+    const knee = 1.62
     pose.thighL = lerp(pose.thighL, thigh, sit)
     pose.thighR = lerp(pose.thighR, thigh, sit)
     pose.kneeL = lerp(pose.kneeL, knee, sit)
     pose.kneeR = lerp(pose.kneeR, knee, sit)
-    pose.footL = lerp(pose.footL, -(thigh + knee) * 0.9, sit)
-    pose.footR = lerp(pose.footR, -(thigh + knee) * 0.9, sit)
+    pose.footL = lerp(pose.footL, -(thigh + knee), sit)
+    pose.footR = lerp(pose.footR, -(thigh + knee), sit)
+
+    // la pelvis desciende guiada por la longitud efectiva de las piernas para que los pies no atraviesen el suelo al sentarse ni levantarse
+    const extent = legExtent(pose.thighL, pose.kneeL, dims)
+    const footDrop = extent - (dims.thigh + dims.shin)
     pose.pelvisDrop = lerp(pose.pelvisDrop, -drop, sit)
-    pose.pelvisBack = 0.06 * sit
-    pose.armL = lerp(pose.armL, -0.2, sit)
-    pose.armR = lerp(pose.armR, -0.2, sit)
-    pose.elbowL = lerp(pose.elbowL, 1.3, sit)
-    pose.elbowR = lerp(pose.elbowR, 1.3, sit)
-    pose.spineLean = lerp(pose.spineLean, 0.04, sit)
+    pose.pelvisDrop = Math.max(pose.pelvisDrop, footDrop)
+    // 0.12 m lleva las caderas al fondo del asiento
+    pose.pelvisBack = 0.12 * sit
+
+    // postura relajada: espalda apoyada y antebrazos suavemente flexionados sobre los muslos
+    pose.armL = lerp(pose.armL, -0.14, sit)
+    pose.armR = lerp(pose.armR, -0.14, sit)
+    pose.elbowL = lerp(pose.elbowL, 0.1, sit)
+    pose.elbowR = lerp(pose.elbowR, 0.1, sit)
+    pose.armOutL = lerp(pose.armOutL, -0.04, sit)
+    pose.armOutR = lerp(pose.armOutR, -0.04, sit)
+    pose.spineLean = lerp(pose.spineLean, -0.25, sit)
+    pose.headPitch = lerp(pose.headPitch, 0.08, sit)
     pose.pelvisRoll *= 1 - sit
   }
   return pose

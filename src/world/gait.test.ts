@@ -81,11 +81,18 @@ describe('zancada', () => {
     expect(pose({ speed: RUN_SPEED, phase: 0.1 }).spineLean).toBeGreaterThan(pose({ speed: WALK_SPEED, phase: 0.1 }).spineLean + 0.1)
   })
 
-  it('sentado: muslos horizontales, rodillas dobladas y cadera a la altura del asiento', () => {
-    const p = pose({ sit: 1 })
-    expect(p.thighL).toBeLessThan(-1.2)
-    expect(p.kneeL).toBeGreaterThan(1.2)
-    expect(dims.hipHeight + p.pelvisDrop).toBeCloseTo(0.58, 2)
+  it('sentado: pelvis a la altura del asiento, piernas por delante y brazos relajados', () => {
+    for (const seatHeight of [0.46, 0.47, 0.67]) {
+      const p = pose({ sit: 1, seatHeight })
+      expect(p.thighL).toBeCloseTo(-1.61, 6)
+      expect(p.kneeL).toBeGreaterThan(1.2)
+      expect(dims.hipHeight + p.pelvisDrop).toBeCloseTo(seatHeight + 0.045, 3)
+      expect(ankleForward(p.thighL, p.kneeL, dims)).toBeGreaterThan(0.4)
+      expect(p.elbowL).toBeLessThan(0.2)
+      expect(p.elbowR).toBeLessThan(0.2)
+      expect(p.armOutL).toBeLessThan(0)
+      expect(p.armOutR).toBeLessThan(0)
+    }
   })
 
   it('sentarse es gradual: a medias queda entre de pie y sentado', () => {

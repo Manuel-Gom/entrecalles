@@ -1,8 +1,8 @@
-"""Genera los modelos del mundo (banco, fachada con puerta e interior del café) en public/models/mundo/.
+"""Genera los modelos del mundo (mobiliario, parque y café) en public/models/mundo/.
 
 Uso (desde la raíz del proyecto):
   blender.exe --background --python tools/blender/crear_props.py
-  blender.exe --background --python tools/blender/crear_props.py -- banco     (solo uno: banco, fachada, interior)
+  blender.exe --background --python tools/blender/crear_props.py -- luna_nueva  (solo uno: banco, fachada, interior, fuente, arbol, farola, sol, luna o una fase lunar)
 
 Convenciones (las lee src/world/props.ts):
 - Se modela en Blender con el frente hacia -Y; el exportador lo convierte a glTF (+Z hacia delante, +Y arriba).
@@ -90,6 +90,65 @@ class Grupo:
         bmesh.ops.transform(bm, matrix=Matrix.Translation(Vector(centro)), verts=bm.verts)
         self._anadir(bm)
 
+    def segmento(self, inicio, fin, radio_inicio, radio_fin, segmentos=10):
+        """Cono entre dos puntos; se usa para troncos y brazos curvos."""
+        a = Vector(inicio)
+        b = Vector(fin)
+        direccion = b - a
+        if direccion.length == 0:
+            return
+        bm = bmesh.new()
+        bmesh.ops.create_cone(
+            bm, cap_ends=True, cap_tris=False, segments=segmentos,
+            radius1=radio_inicio, radius2=radio_fin, depth=direccion.length,
+        )
+        rotacion = Vector((0, 0, 1)).rotation_difference(direccion.normalized()).to_matrix().to_4x4()
+        bmesh.ops.transform(bm, matrix=Matrix.Translation((a + b) / 2) @ rotacion, verts=bm.verts)
+        self._anadir(bm)
+
+    def esfera(self, radio, centro, escala=(1, 1, 1), subdivisiones=2, irregularidad=0.0):
+        bm = bmesh.new()
+        bmesh.ops.create_icosphere(bm, subdivisions=subdivisiones, radius=radio)
+        for vert in bm.verts:
+            if irregularidad:
+                onda = math.sin(vert.co.x * 8 + vert.co.y * 5) * math.cos(vert.co.z * 7 - vert.co.x * 3)
+                vert.co *= 1 + onda * irregularidad
+            vert.co.x *= escala[0]
+            vert.co.y *= escala[1]
+            vert.co.z *= escala[2]
+        bmesh.ops.translate(bm, vec=Vector(centro), verts=bm.verts)
+        self._anadir(bm)
+
+    def toro(self, radio, tubo, centro, segmentos=32, lados=10):
+        """Anillo redondo de perfil para remates de piedra y luminarias."""
+        bm = bmesh.new()
+        verts = []
+        faces = []
+        for i in range(segmentos):
+            a = 2 * math.pi * i / segmentos
+            for j in range(lados):
+                b = 2 * math.pi * j / lados
+                ring = radio + tubo * math.cos(b)
+                verts.append((
+                    centro[0] + ring * math.cos(a),
+                    centro[1] + ring * math.sin(a),
+                    centro[2] + tubo * math.sin(b),
+                ))
+        for i in range(segmentos):
+            for j in range(lados):
+                a = i * lados + j
+                b = i * lados + (j + 1) % lados
+                c = ((i + 1) % segmentos) * lados + (j + 1) % lados
+                d = ((i + 1) % segmentos) * lados + j
+                faces.append((a, b, c, d))
+        mesh = bpy.data.meshes.new("tmp_toro")
+        mesh.from_pydata(verts, [], faces)
+        mesh.update()
+        bm.from_mesh(mesh)
+        bm.normal_update()
+        bpy.data.meshes.remove(mesh)
+        self._anadir(bm)
+
     def _anadir(self, bm):
         malla = bpy.data.meshes.new("tmp")
         bm.to_mesh(malla)
@@ -97,8 +156,11 @@ class Grupo:
         self.bm.from_mesh(malla)
         bpy.data.meshes.remove(malla)
 
-    def crear(self, origen=(0, 0, 0)):
+    def crear(self, origen=(0, 0, 0), suavizar=False):
         """Convierte lo acumulado en un objeto. `origen` es donde queda su origen (p. ej. una bisagra)."""
+        if not self.bm.faces:
+            self.bm.free()
+            return None
         malla = bpy.data.meshes.new(self.nombre)
         desplazamiento = Vector(origen)
         bmesh.ops.translate(self.bm, vec=-desplazamiento, verts=self.bm.verts)
@@ -107,6 +169,9 @@ class Grupo:
         malla.materials.append(self.mat)
         objeto = bpy.data.objects.new(self.nombre, malla)
         objeto.location = desplazamiento
+        if suavizar:
+            for poligono in malla.polygons:
+                poligono.use_smooth = True
         bpy.context.scene.collection.objects.link(objeto)
         return objeto
 
@@ -315,9 +380,9 @@ def interior():
     pizarra.caja((2.0, 0.04, 1.1), (1.8, y(fondo) - 0.02 + 0.04, 2.1), bisel=0.01)  # carta en la pared
     # taburetes del mostrador (cada uno con su plaza)
     for k, x in enumerate((-1.6, -0.4, 0.8)):
-        oscuro.cilindro(0.04, 0.6, (x, y(5.3), 0.3), 8)
-        tapizado.cilindro(0.19, 0.07, (x, y(5.3), 0.64), 10)
-        oscuro.cilindro(0.17, 0.02, (x, y(5.3), 0.02), 10)
+        oscuro.cilindro(0.04, 0.6, (x, y(5.1), 0.3), 8)
+        tapizado.cilindro(0.19, 0.07, (x, y(5.1), 0.64), 10)
+        oscuro.cilindro(0.17, 0.02, (x, y(5.1), 0.02), 10)
     # mesas redondas con dos sillas
     # (las sillas se alcanzan por detrás, así que dejan sitio entre su respaldo y la pared)
     mesas = [(-1.9, 1.9), (-1.9, 3.6), (2.0, 2.1), (2.0, 3.9)]
@@ -335,7 +400,8 @@ def interior():
             # respaldo en el lado contrario a la mesa
             madera.caja((0.04, 0.42, 0.4), (cx + lado * 0.2, y(cy), 0.68), bisel=0.005)
             # la plaza mira hacia la mesa: el frente de la silla es hacia el lado de la mesa
-            plazas.append((cx, y(cy), 90 if lado == -1 else -90))
+            yaw = 90 if lado == -1 else -90
+            plazas.append((cx, y(cy), yaw))
         colision("mesa", (mx, y(my), 0.4), (1.0, 1.0, 0.8))
     # cuadros
     for i, x in enumerate((-2.4, -0.8, 0.8)):
@@ -356,10 +422,15 @@ def interior():
     # el hueco de la puerta queda cerrado a efectos de colisión y de cámara: se sale con la tecla de interactuar, no andando
     colision("pared_puerta", (0, y(0) + t / 2, alto / 2), (1.0, t, alto))
     colision("mostrador", (-0.2, y(5.9), 0.5), (5.4, 0.9, 1.0))
+    colision("estanteria", (-0.2, y(6.75), 1.95), (5.2, 0.45, 0.7))
     for i, (px, py, giro) in enumerate(plazas):
         vacio(f"SEAT_silla{i}", (px, py, 0.47), giro_z=giro, tipo="ARROWS")
     for k, x in enumerate((-1.6, -0.4, 0.8)):
-        vacio(f"SEAT_taburete{k}", (x, y(5.3), 0.67), giro_z=0, tipo="ARROWS")  # mirando al mostrador (hacia el fondo)
+        vacio(f"SEAT_taburete{k}", (x, y(5.1), 0.67), giro_z=0, tipo="ARROWS")  # mirando al mostrador (hacia el fondo)
+        colision(f"taburete{k}", (x, y(5.1), 0.34), (0.42, 0.42, 0.68))
+    for i, (px, py, giro) in enumerate(plazas):
+        colision(f"silla{i}", (px, py, 0.45), (0.58, 0.58, 0.9), giro_z=giro)
+    colision("lampara", (3.4, y(0.6), 0.5), (0.7, 0.7, 1.0))
     for i, (lx, ly) in enumerate(((-2.6, 3.4), (2.4, 3.4), (0.0, 6.0), (0.0, 1.2))):
         vacio(f"LUZ_{i}", (lx, y(ly), 2.4), tipo="SPHERE")
     vacio("ENTRADA", (0, y(1.6), 0), tipo="ARROWS")
@@ -367,7 +438,209 @@ def interior():
     exportar("cafe_interior")
 
 
-PRODUCTOS = {"banco": banco, "fachada": fachada, "interior": interior}
+# --------------------------------------------------------------------------- parque
+
+def fuente():
+    reiniciar()
+    piedra = Grupo("piedra_fuente", material("PiedraFuente", "aaa69b", 0.82))
+    borde = Grupo("detalle_piedra", material("PiedraClara", "d0cabe", 0.72))
+    agua = Grupo("agua", material("AguaFuente", "559bb0", 0.24, 0.18))
+    metal = Grupo("detalle_metal", material("BronceFuente", "756b55", 0.4, 0.68))
+
+    piedra.cilindro(1.55, 0.16, (0, 0, 0.08), 48)
+    borde.toro(1.43, 0.045, (0, 0, 0.18), 48, 10)
+    piedra.cilindro(1.38, 0.18, (0, 0, 0.34), 48, 1.26)
+    borde.toro(1.31, 0.055, (0, 0, 0.45), 48, 10)
+    agua.cilindro(1.18, 0.025, (0, 0, 0.47), 48)
+
+    piedra.cilindro(0.27, 0.52, (0, 0, 0.72), 24, 0.2)
+    borde.cilindro(0.42, 0.1, (0, 0, 1.0), 32, 0.34)
+    piedra.cilindro(0.34, 0.13, (0, 0, 1.11), 32, 0.5)
+    borde.toro(0.49, 0.035, (0, 0, 1.18), 32, 8)
+    agua.cilindro(0.43, 0.02, (0, 0, 1.15), 32)
+
+    piedra.cilindro(0.14, 0.46, (0, 0, 1.42), 20, 0.11)
+    borde.cilindro(0.23, 0.08, (0, 0, 1.66), 24, 0.18)
+    metal.esfera(0.105, (0, 0, 1.77), (1, 1, 1.2), 2)
+    for index in range(8):
+        angle = index * math.tau / 8
+        metal.segmento(
+            (math.cos(angle) * 0.2, math.sin(angle) * 0.2, 1.7),
+            (math.cos(angle) * 0.45, math.sin(angle) * 0.45, 1.27),
+            0.018, 0.008, 6,
+        )
+    for group in (piedra, borde, agua, metal):
+        group.crear(suavizar=True)
+    exportar("fuente")
+
+
+def arbol():
+    reiniciar()
+    corteza = Grupo("corteza", material("Corteza", "594333", 0.96))
+    hojas = [
+        Grupo("hojas_oliva", material("HojasOliva", "557744", 0.94)),
+        Grupo("hojas_luz", material("HojasLuz", "708c4e", 0.94)),
+        Grupo("hojas_sombra", material("HojasSombra", "3e663d", 0.96)),
+    ]
+
+    trunk = [
+        ((0, 0, 0), (0.015, 0.0, 1.25), 0.23, 0.19),
+        ((0.015, 0.0, 1.25), (-0.04, 0.025, 2.45), 0.19, 0.125),
+        ((-0.04, 0.025, 2.45), (0.03, 0.02, 3.65), 0.125, 0.055),
+        ((0.015, 0.0, 1.1), (-0.55, -0.12, 2.45), 0.13, 0.065),
+        ((-0.55, -0.12, 2.45), (-1.0, -0.18, 3.15), 0.065, 0.025),
+        ((-0.02, 0.0, 1.65), (0.65, -0.1, 2.75), 0.12, 0.06),
+        ((0.65, -0.1, 2.75), (1.0, -0.16, 3.35), 0.06, 0.025),
+        ((0.0, 0.02, 2.0), (0.05, 0.58, 2.95), 0.1, 0.045),
+        ((0.05, 0.58, 2.95), (0.12, 0.9, 3.5), 0.045, 0.02),
+        ((0.0, 0.0, 2.2), (-0.08, -0.62, 3.05), 0.09, 0.04),
+        ((-0.08, -0.62, 3.05), (-0.15, -0.92, 3.55), 0.04, 0.018),
+        ((-0.04, 0.025, 2.6), (-0.48, 0.45, 3.32), 0.07, 0.035),
+        ((-0.48, 0.45, 3.32), (-0.78, 0.63, 3.75), 0.035, 0.015),
+        ((-0.01, 0.02, 2.8), (0.5, 0.5, 3.45), 0.065, 0.03),
+        ((0.5, 0.5, 3.45), (0.78, 0.75, 3.8), 0.03, 0.014),
+    ]
+    for start, end, thick, thin in trunk:
+        corteza.segmento(start, end, thick, thin, 9)
+
+    crowns = [
+        (-0.95, -0.2, 3.25, 0.67), (-0.7, -0.55, 3.62, 0.65),
+        (-0.55, 0.2, 3.55, 0.72), (-0.52, 0.55, 3.85, 0.62),
+        (-0.15, -0.72, 3.55, 0.62), (0.1, -0.45, 3.95, 0.72),
+        (0.38, -0.8, 3.45, 0.6), (0.75, -0.45, 3.55, 0.68),
+        (0.94, 0.05, 3.8, 0.65), (0.63, 0.25, 4.08, 0.72),
+        (-0.1, 0.42, 4.12, 0.7), (-0.7, 0.05, 4.05, 0.67),
+        (-0.4, -0.1, 4.48, 0.68), (0.25, -0.1, 4.55, 0.7),
+        (0.38, 0.62, 3.68, 0.62), (-0.2, 0.78, 3.55, 0.58),
+    ]
+    for index, (x, y, z, radius) in enumerate(crowns):
+        hojas[index % len(hojas)].esfera(
+            radius, (x, y, z),
+            (1.0 + (index % 3) * 0.08, 0.92 + (index % 2) * 0.12, 0.82 + (index % 4) * 0.06),
+            2, 0.16,
+        )
+    corteza.crear(suavizar=True)
+    for group in hojas:
+        group.crear(suavizar=True)
+    exportar("arbol")
+
+
+def farola():
+    reiniciar()
+    hierro = Grupo("hierro_forjado", material("HierroForjado", "30343a", 0.36, 0.72))
+    cristal = Grupo("cristal_lampara", material("CristalLechoso", "e8d6a5", 0.24, 0.12))
+
+    hierro.cilindro(0.34, 0.12, (0, 0, 0.06), 24, 0.27)
+    hierro.cilindro(0.2, 0.28, (0, 0, 0.24), 20, 0.1)
+    hierro.cilindro(0.085, 3.3, (0, 0, 2.0), 16, 0.055)
+    hierro.cilindro(0.11, 0.09, (0, 0, 3.65), 16, 0.08)
+    hierro.segmento((0, 0, 3.65), (0.0, 0, 4.08), 0.065, 0.05, 12)
+    hierro.segmento((0, 0, 4.08), (0.35, 0, 4.35), 0.05, 0.04, 12)
+    hierro.segmento((0.35, 0, 4.35), (0.72, 0, 4.35), 0.04, 0.04, 12)
+    hierro.segmento((0.72, 0, 4.35), (0.82, 0, 4.14), 0.04, 0.035, 12)
+    hierro.cilindro(0.11, 0.08, (0.82, 0, 4.11), 16, 0.19)
+    cristal.cilindro(0.16, 0.34, (0.82, 0, 3.9), 12, 0.12)
+    hierro.cilindro(0.22, 0.09, (0.82, 0, 3.71), 16, 0.12)
+    hierro.toro(0.17, 0.025, (0.82, 0, 3.9), 16, 8)
+    hierro.esfera(0.1, (0.82, 0, 4.22), (1.6, 1.2, 0.5), 1)
+
+    hierro.crear(suavizar=True)
+    cristal.crear(suavizar=True)
+    exportar("farola")
+
+
+def sol():
+    reiniciar()
+    esfera = Grupo("disco_solar", material("LuzSolar", "ffd36a", 0.24, 0.08))
+    corona = Grupo("corona_solar", material("CoronaSolar", "ffad45", 0.38, 0.22))
+    esfera.esfera(1.55, (0, 0, 0), subdivisiones=4)
+    corona.toro(1.78, 0.07, (0, 0, 0), 48, 10)
+    for index in range(16):
+        angle = math.tau * index / 16
+        start = (math.cos(angle) * 1.95, math.sin(angle) * 1.95, 0)
+        end = (math.cos(angle) * (2.3 if index % 2 == 0 else 2.12), math.sin(angle) * (2.3 if index % 2 == 0 else 2.12), 0)
+        corona.segmento(start, end, 0.045, 0.012, 6)
+    esfera.crear(suavizar=True)
+    corona.crear(suavizar=True)
+    exportar("sol")
+
+
+def luna_variante(nombre, fraccion):
+    reiniciar()
+    superficie = Grupo("regolito_oscuro", material("RegolitoOscuro", "343b49", 0.94, 0.0))
+    crateres = Grupo("crateres_sombra", material("CráteresSombra", "202735", 0.96, 0.0))
+    luz = Grupo("hemisferio_iluminado", material("RegolitoIluminado", "e8e9e7", 0.82, 0.0))
+    relieve = Grupo("crateres_iluminados", material("CráteresIluminados", "9ea5aa", 0.91, 0.0))
+    radio = 1.4
+    superficie.esfera(radio, (0, 0, 0), subdivisiones=4, irregularidad=0.012)
+
+    # Cuatro vistas de la esfera comparten el relieve; se ilumina la región que ve el sol en cada fase.
+    esfera = bmesh.new()
+    bmesh.ops.create_icosphere(esfera, subdivisions=5, radius=radio * 1.006)
+    esfera.normal_update()
+    angulo = (fraccion - 0.5) * math.tau
+    sol_local = Vector((math.sin(angulo), -math.cos(angulo), 0))
+    conservar = [
+        cara for cara in esfera.faces
+        if cara.normal.dot(Vector((0, -1, 0))) <= 0.015 or cara.normal.dot(sol_local) <= 0.0
+    ]
+    bmesh.ops.delete(esfera, geom=conservar, context="FACES")
+    esfera.normal_update()
+    malla_luz = bpy.data.meshes.new("hemisferio_iluminado")
+    esfera.to_mesh(malla_luz)
+    esfera.free()
+    if malla_luz.polygons:
+        malla_luz.materials.append(luz.mat)
+        objeto_luz = bpy.data.objects.new("hemisferio_iluminado", malla_luz)
+        for poligono in malla_luz.polygons:
+            poligono.use_smooth = True
+        bpy.context.scene.collection.objects.link(objeto_luz)
+    else:
+        bpy.data.meshes.remove(malla_luz)
+
+    crateres.esfera(0.24, (-0.48, -1.29, 0.52), (1.0, 0.12, 0.82), 2)
+    crateres.esfera(0.18, (0.43, -1.34, 0.72), (1.0, 0.1, 0.78), 2)
+    crateres.esfera(0.3, (0.25, -1.24, -0.43), (1.0, 0.12, 0.75), 2)
+    crateres.esfera(0.14, (-0.72, -1.17, -0.3), (1.0, 0.1, 0.8), 2)
+    crateres.esfera(0.11, (0.72, -1.17, 0.0), (1.0, 0.1, 0.8), 2)
+    for index in range(18):
+        angle_crater = index * 2.399963
+        distance = 0.35 + (index % 4) * 0.18
+        x = math.cos(angle_crater) * distance
+        z = math.sin(angle_crater) * distance
+        normal = Vector((x, -math.sqrt(max(0.08, radio * radio - x * x - z * z)), z)).normalized()
+        if normal.dot(Vector((0, -1, 0))) <= 0 or normal.dot(sol_local) <= 0:
+            continue
+        y = normal.y * radio - 0.012
+        size = 0.045 + (index % 3) * 0.018
+        relieve.esfera(size, (x, y, z), (1, 0.14, 0.82), 1)
+    superficie.crear(suavizar=True)
+    crateres.crear(suavizar=True)
+    relieve.crear(suavizar=True)
+    exportar(nombre)
+
+
+def luna():
+    luna_variante("luna", 0.5)
+
+
+def luna_nueva():
+    luna_variante("luna_nueva", 0.0)
+
+
+def luna_creciente():
+    luna_variante("luna_creciente", 0.25)
+
+
+def luna_llena():
+    luna_variante("luna_llena", 0.5)
+
+
+def luna_menguante():
+    luna_variante("luna_menguante", 0.75)
+
+
+PRODUCTOS = {"banco": banco, "fachada": fachada, "interior": interior, "fuente": fuente, "arbol": arbol, "farola": farola, "sol": sol, "luna": luna, "luna_nueva": luna_nueva, "luna_creciente": luna_creciente, "luna_llena": luna_llena, "luna_menguante": luna_menguante}
 
 if __name__ == "__main__":
     argumentos = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []

@@ -69,6 +69,18 @@ describe('generateCity', () => {
     expect(maxReach).toBeGreaterThan(65)
   })
 
+  it('las farolas tienen una zona de colisión mayor que el poste visible', () => {
+    for (const lamp of city.lamps) {
+      const collider = city.obstacles.find((box) =>
+        Math.abs((box.minX + box.maxX) / 2 - lamp.x) < 1e-9 &&
+        Math.abs((box.minZ + box.maxZ) / 2 - lamp.z) < 1e-9,
+      )
+      expect(collider).toBeDefined()
+      expect(collider!.maxX - collider!.minX).toBe(0.5)
+      expect(collider!.maxZ - collider!.minZ).toBe(0.5)
+    }
+  })
+
   it('los bancos no se solapan con árboles, farolas ni entre sí', () => {
     const benchBoxes = city.obstacles.slice(city.buildings.length, city.buildings.length + city.benches.length)
     expect(benchBoxes).toHaveLength(city.benches.length)

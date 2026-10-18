@@ -278,7 +278,7 @@ export function generateCity(seed = 20261018): CityLayout {
     obstacles.push(boxAt(bench.x, bench.z, alongX ? BENCH_LENGTH : BENCH_DEPTH, alongX ? BENCH_DEPTH : BENCH_LENGTH))
   }
   for (const tree of trees) obstacles.push(boxAt(tree.x, tree.z, 0.4, 0.4))
-  for (const lamp of lamps) obstacles.push(boxAt(lamp.x, lamp.z, 0.25, 0.25))
+  for (const lamp of lamps) obstacles.push(boxAt(lamp.x, lamp.z, 0.5, 0.5))
   obstacles.push(boxAt(0, 0, 3.4, 3.4)) // fuente
   // límites del mundo: cuatro paredes más allá de la calle perimetral
   const wall = WORLD_HALF + 1

@@ -3,6 +3,7 @@ import { makeSeat, type Seat } from './brain'
 import type { Box, Vec2 } from './collision'
 import type { Blocker, Spot } from './layout'
 import { disposeProp, loadProp, placementMatrix, worldBox, type Prop } from './props'
+import { makeSeatRoute } from './seating'
 
 /** El interior está lejos de la ciudad, en su propio rincón del mundo (se enseña solo cuando se está dentro). */
 export const INTERIOR_ORIGIN = { x: 0, z: 400 }
@@ -10,7 +11,7 @@ export const INTERIOR_ORIGIN = { x: 0, z: 400 }
 const EXIT_REACH = 1.2
 /** Distancia a la que se acerca uno a una silla (por detrás) o a un taburete. */
 export const CHAIR_APPROACH = 0.8
-export const STOOL_APPROACH = 0.8
+export const STOOL_APPROACH = 0.55
 
 /** Una sala de un edificio (modelo de Blender) con sus colisiones, plazas y luces, cargada solo mientras se está dentro. */
 export class Interior {
@@ -32,16 +33,23 @@ export class Interior {
     prop.root.applyMatrix4(placement)
     this.group.add(prop.root)
 
+    const colliderBoxes = new Map<string, Box>()
     for (const collider of prop.colliders) {
       const { box, maxY } = worldBox(collider, placement)
       this.obstacles.push(box)
-      if (/^COL_pared/.test(collider.name)) this.blockers.push({ box, height: maxY })
+      colliderBoxes.set(collider.name, box)
+      // La sala no tiene techo; el bloqueo de cámara se prolonga para que la cámara no salga por encima de los muros.
+      if (/^COL_pared/.test(collider.name)) this.blockers.push({ box, height: maxY + 3.8 })
     }
     for (const marker of prop.seats) {
       const position = marker.position.clone().applyMatrix4(placement)
       // los taburetes y las sillas se alcanzan por detrás: delante tienen la barra o la mesa
       const approach = /taburete/.test(marker.name) ? STOOL_APPROACH : CHAIR_APPROACH
-      this.seats.push(makeSeat(position.x, position.z, marker.yaw, 'detras', approach, marker.position.y))
+      const seat = makeSeat(position.x, position.z, marker.yaw, 'detras', approach, marker.position.y)
+      const colliderName = marker.name.replace(/^SEAT_/, 'COL_')
+      seat.collider = colliderBoxes.get(colliderName)
+      seat.route = makeSeatRoute(seat, this.obstacles)
+      this.seats.push(seat)
     }
     const entry = prop.markers.get('ENTRADA')
     const exit = prop.markers.get('SALIDA')

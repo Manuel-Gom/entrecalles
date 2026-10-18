@@ -19,8 +19,10 @@ import { PairDialogue } from './dialogue'
 import { Interior } from './interior'
 import { Storefront } from './storefront'
 import { disposeProp, instanceProp, loadProp, placementMatrix, type Prop } from './props'
-import { SeatSession, findSeat } from './seating'
+import { SeatSession, findSeat, makeSeatRoute } from './seating'
 import { PLAYER_ID, PLAYER_RADIUS, nearestAngle, newPlayer, stepPlayer, type PlayerInput, type PlayerState } from './player'
+import { advanceGameClock, celestialPosition, celestialState, formatGameClock, lunarPhase, skyColors, type CelestialState, type MoonPhase } from './dayNight'
+import { animateWater, type AnimatedWater } from './water'
 
 export type Quality = 'baja' | 'media' | 'alta'
 export type WorldState = 'cargando' | 'listo' | 'error' | 'sin-3d'
@@ -64,6 +66,8 @@ export interface WorldStatus {
   subtitle: Subtitle | null
   /** estado del sonido: 'suspended' hasta que el navegador deja sonar (tras una tecla o un clic) */
   audio: AudioState
+  /** hora del barrio (cada segundo real equivale a un minuto de juego) */
+  gameTime: string
   /** texto con FPS, tirones, resolución, calidad y tarjeta gráfica, para copiar */
   diagnostics: string
 }
@@ -102,9 +106,16 @@ const GROUND = 0.025
 const NPC_ANIMATE_DISTANCE = 48
 const NPC_HIDE_DISTANCE = 80
 const SKY = 0xbcd2e4
+const NIGHT_LAMPS = 24
+const MOON_MODELS: Record<MoonPhase, string> = {
+  nueva: 'luna_nueva',
+  creciente: 'luna_creciente',
+  llena: 'luna_llena',
+  menguante: 'luna_menguante',
+}
 /** Duración de cada mitad del fundido al entrar o salir de un edificio (s). */
 const FADE_SECONDS = 0.28
-const INTERIOR_BACKGROUND = 0x14100c
+const INTERIOR_BACKGROUND = 0xd9c7a3
 
 interface Transition {
   action: 'entrar' | 'salir'
@@ -129,6 +140,9 @@ export class World {
   private readonly camera = new THREE.PerspectiveCamera(55, 1, 0.1, 260)
   private readonly follow: FollowCamera
   private readonly sun = new THREE.DirectionalLight(0xfff0d8, 2.6)
+  private readonly moon = new THREE.DirectionalLight(0xc5d4f2, 0.25)
+  private readonly lampLights: THREE.PointLight[] = []
+  private readonly lampMaterials: THREE.MeshStandardMaterial[] = []
   private city: CityMeshes | null = null
   /** todo lo de la calle (ciudad, bancos, fachada y vecinos): se oculta al entrar en un edificio */
   private readonly exterior = new THREE.Group()
@@ -141,6 +155,15 @@ export class World {
   private fade: HTMLDivElement | null = null
   private benchProp: Prop | null = null
   private benchGroup: THREE.Group | null = null
+  private readonly sceneryProps: Prop[] = []
+  private readonly sceneryLoaded = new Set<'fuente' | 'arbol' | 'farola' | 'sol' | 'luna'>()
+  private sunModel: Prop | null = null
+  private readonly moonModels = new Map<MoonPhase, Prop>()
+  private moonPhase: MoonPhase = 'llena'
+  private water: AnimatedWater | null = null
+  private celestial: CelestialState = celestialState(new Date())
+  private gameClock = new Date()
+  private lampRefresh = 0
   private environment: THREE.Texture | null = null
   private observer: ResizeObserver | null = null
   private frame = 0
@@ -267,11 +290,13 @@ export class World {
     this.sun.shadow.camera.bottom = -34
     this.sun.shadow.bias = -0.0005
     this.sun.shadow.normalBias = 0.03
-    scene.add(this.sun, this.sun.target)
+    this.moon.castShadow = false
+    scene.add(this.sun, this.sun.target, this.moon, this.moon.target)
 
     this.city = buildCityMeshes(this.layout)
     this.exterior.add(this.city.group)
     scene.add(this.exterior)
+    this.updateCelestial(this.gameClock)
   }
 
   private applyQuality() {
@@ -323,6 +348,8 @@ export class World {
       }
       this.playerActor = this.addActor(assembly, 0.37)
       this.placeActor(this.playerActor, this.player.x, this.player.z, this.player.yaw)
+      this.gameClock = new Date()
+      this.updateCelestial(this.gameClock)
       this.setState('listo')
       void this.loadScenery()
       void this.loadCast()
@@ -332,7 +359,7 @@ export class World {
     }
   }
 
-  /** Los bancos y la fachada del café, hechos en Blender: sustituyen a los de relleno que genera el código. */
+  /** Los modelos de Blender sustituyen el mobiliario de relleno generado por el código. */
   private async loadScenery() {
     const failed = (what: string) => (error: unknown) => console.error(`No se pudo cargar ${what}; se queda el de relleno.`, error)
     await Promise.all([
@@ -352,6 +379,111 @@ export class World {
           this.exterior.add(storefront.group)
         })
         .catch(failed('la fachada del café')),
+      loadProp('fuente')
+        .then((prop) => {
+          if (this.disposed) return disposeProp(prop)
+          prop.root.traverse((object) => {
+            const mesh = object as THREE.Mesh
+            if (!mesh.isMesh) return
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+            for (const material of materials) {
+              if (material.name === 'AguaFuente' && material instanceof THREE.MeshStandardMaterial) this.water = animateWater(material)
+            }
+          })
+          this.sceneryProps.push(prop)
+          this.sceneryLoaded.add('fuente')
+          this.exterior.add(instanceProp(prop, [placementMatrix(0, 0, 0, 0)]))
+          if (this.city) this.city.fountainMesh.visible = false
+        })
+        .catch(failed('la fuente del parque')),
+      loadProp('arbol')
+        .then((prop) => {
+          if (this.disposed) return disposeProp(prop)
+          this.sceneryProps.push(prop)
+          this.sceneryLoaded.add('arbol')
+          this.exterior.add(instanceProp(prop, this.layout.trees.map((tree, index) => placementMatrix(tree.x, 0, tree.z, index * 2.399963))))
+          if (this.city) this.city.treeMesh.visible = false
+        })
+        .catch(failed('los árboles')),
+      loadProp('farola')
+        .then((prop) => {
+          if (this.disposed) return disposeProp(prop)
+          prop.root.traverse((object) => {
+            const mesh = object as THREE.Mesh
+            if (!mesh.isMesh) return
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+            for (const material of materials) {
+              if (material.name !== 'CristalLechoso' || !(material instanceof THREE.MeshStandardMaterial)) continue
+              material.emissive.set(0xffbf70)
+              material.emissiveIntensity = 0
+              this.lampMaterials.push(material)
+            }
+          })
+          this.sceneryProps.push(prop)
+          this.sceneryLoaded.add('farola')
+          this.exterior.add(instanceProp(prop, this.layout.lamps.map((lamp, index) => placementMatrix(lamp.x, 0, lamp.z, index % 2 ? Math.PI : 0))))
+          for (let i = 0; i < NIGHT_LAMPS; i++) {
+            const light = new THREE.PointLight(0xffc779, 18, 28, 2)
+            light.visible = false
+            this.exterior.add(light)
+            this.lampLights.push(light)
+          }
+          if (this.city) this.city.lampMesh.visible = false
+        })
+        .catch(failed('las farolas')),
+      loadProp('sol')
+        .then((prop) => {
+          if (this.disposed) return disposeProp(prop)
+          this.sunModel = prop
+          prop.root.scale.setScalar(0.9)
+          prop.root.traverse((object) => {
+            const mesh = object as THREE.Mesh
+            const materials = mesh.isMesh ? (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) : []
+            for (const material of materials) {
+              if (material instanceof THREE.MeshStandardMaterial) {
+                material.emissive.set(0xffa72e)
+                material.emissiveIntensity = 0.28
+              }
+            }
+          })
+          this.sceneryProps.push(prop)
+          this.sceneryLoaded.add('sol')
+          this.exterior.add(prop.root)
+        })
+        .catch(failed('el modelo del sol')),
+      Promise.all(
+        (Object.entries(MOON_MODELS) as [MoonPhase, string][]).map(([phase, name]) =>
+          loadProp(name)
+            .then((prop) => {
+              if (this.disposed) return disposeProp(prop)
+              prop.root.scale.setScalar(1.55)
+              prop.root.visible = phase === this.moonPhase
+              prop.root.traverse((object) => {
+                const mesh = object as THREE.Mesh
+                const materials = mesh.isMesh ? (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) : []
+                for (const material of materials) {
+                  if (!(material instanceof THREE.MeshStandardMaterial)) continue
+                  if (material.name === 'RegolitoIluminado') {
+                    material.emissive.set(0xbac9df)
+                    material.emissiveIntensity = 1.65
+                  } else if (material.name === 'CráteresIluminados') {
+                    material.emissive.set(0x76859a)
+                    material.emissiveIntensity = 0.95
+                  } else {
+                    material.emissive.set(0x111722)
+                    material.emissiveIntensity = 0.12
+                  }
+                }
+              })
+              this.sceneryProps.push(prop)
+              this.moonModels.set(phase, prop)
+              this.exterior.add(prop.root)
+            })
+            .catch(failed(`el modelo de luna ${phase}`)),
+        ),
+      ).then(() => {
+        if (this.moonModels.size === Object.keys(MOON_MODELS).length) this.sceneryLoaded.add('luna')
+      }),
     ])
   }
 
@@ -489,6 +621,7 @@ export class World {
   /** Avanza la simulación `dt` segundos (sin dibujar). */
   update(dt: number) {
     this.time += dt
+    this.gameClock = advanceGameClock(this.gameClock, dt)
     const { player } = this
     this.advanceTransition(dt)
     this.storefront?.update(dt, player.x, player.z)
@@ -520,6 +653,8 @@ export class World {
       }
     }
     this.updateChats(dt)
+    this.updateCelestial(this.gameClock)
+    this.updateNightLighting(dt)
 
     for (const [i, npc] of this.npcActors.entries()) {
       npc.brain.update(dt, this.time, this.circles)
@@ -626,9 +761,6 @@ export class World {
       player.vx = player.vz = 0
       if (session.done) {
         this.seating = null
-        // al levantarse queda en el punto de acercamiento
-        player.x = session.seat.approach.x
-        player.z = session.seat.approach.z
       }
     } else if (wantsInteract) {
       const action = this.promptNow()
@@ -637,7 +769,9 @@ export class World {
       else if (action === 'sentarse') {
         const seat = findSeat(this.activeSeats, player.x, player.z)
         if (seat) {
-          this.seating = new SeatSession(seat, { x: player.x, z: player.z }, player.yaw)
+          const from = { x: player.x, z: player.z }
+          const route = this.interior ? makeSeatRoute(seat, this.interior.obstacles, seat.collider, from) : undefined
+          this.seating = new SeatSession(seat, player.yaw, from, route)
           this.audio.event('sentarse')
           player.vx = player.vz = 0
         }
@@ -699,6 +833,82 @@ export class World {
     }
   }
 
+  private updateCelestial(date: Date) {
+    this.celestial = celestialState(date)
+    this.moonPhase = lunarPhase(date).phase
+    if (this.inside) return
+
+    const colors = skyColors(this.celestial.daylight, this.celestial.sunAltitude)
+    const sky = this.scene.background
+    if (sky instanceof THREE.Color) sky.setHex(colors.sky)
+    if (this.scene.fog instanceof THREE.Fog) {
+      this.scene.fog.color.setHex(colors.sky)
+      this.scene.fog.near = 80
+      this.scene.fog.far = 190
+    }
+    if (this.hemi) {
+      this.hemi.color.setHex(colors.sky)
+      this.hemi.groundColor.setHex(colors.ground)
+      this.hemi.intensity = 0.18 + this.celestial.daylight * 0.72
+    }
+    this.scene.environmentIntensity = 0.12 + this.celestial.daylight * 0.38
+    this.sun.intensity = this.celestial.daylight * 2.6
+    this.sun.color.setHex(this.celestial.sunAltitude < 0.12 ? 0xffc18a : 0xfff0d8)
+    this.sun.visible = this.celestial.sunAltitude > -0.08
+    this.sun.castShadow = this.quality !== 'baja' && this.celestial.daylight > 0.08
+    const moonAboveHorizon = this.celestial.moonDirection.y > -0.04
+    this.moon.intensity = moonAboveHorizon ? (1 - this.celestial.daylight) * 0.52 : 0
+    this.moon.visible = moonAboveHorizon
+    if (this.sunModel) this.sunModel.root.visible = this.sun.visible
+    for (const [phase, prop] of this.moonModels) prop.root.visible = moonAboveHorizon && phase === this.moonPhase
+  }
+
+  private updateNightLighting(dt: number) {
+    this.water?.update(this.time)
+    const night = this.celestial.night
+    for (const material of this.lampMaterials) material.emissiveIntensity = night ? 1.6 : 0
+    if (!night) {
+      for (const light of this.lampLights) light.visible = false
+      this.lampRefresh = 0
+      return
+    }
+
+    this.lampRefresh -= dt
+    if (this.lampRefresh > 0) return
+    this.lampRefresh = 0.45
+    const nearest = this.layout.lamps
+      .map((lamp, index) => {
+        const yaw = index % 2 ? Math.PI : 0
+        const x = lamp.x + Math.cos(yaw) * 0.82
+        const z = lamp.z - Math.sin(yaw) * 0.82
+        return { x, z, distance: Math.hypot(lamp.x - this.player.x, lamp.z - this.player.z) }
+      })
+      .sort((a, b) => a.distance - b.distance)
+    this.lampLights.forEach((light, index) => {
+      const lamp = nearest[index]
+      if (!lamp) {
+        light.visible = false
+        return
+      }
+      light.position.set(lamp.x, 4.1, lamp.z)
+      light.visible = true
+    })
+  }
+
+  /** Fuerza una fecha local fija para capturas y pruebas; null vuelve al reloj del ordenador. */
+  setClockOverride(isoDate: string | null) {
+    if (isoDate === null) {
+      this.gameClock = new Date()
+    } else {
+      const timestamp = Date.parse(isoDate)
+      if (!Number.isFinite(timestamp)) throw new RangeError(`Fecha de reloj no válida: ${isoDate}`)
+      this.gameClock = new Date(timestamp)
+    }
+    this.updateCelestial(this.gameClock)
+    this.updateNightLighting(0)
+    this.emit()
+  }
+
   /** Cambia la escena al interior: se oculta la calle, se enciende la sala y el protagonista aparece dentro. */
   private performEnter() {
     const interior = this.interior
@@ -707,6 +917,7 @@ export class World {
     this.exterior.visible = false
     this.scene.add(interior.group)
     this.sun.visible = false
+    this.moon.visible = false
     if (this.hemi) this.hemi.intensity = 0.55
     this.scene.environmentIntensity = 0.3
     this.scene.background = new THREE.Color(INTERIOR_BACKGROUND)
@@ -728,11 +939,9 @@ export class World {
     const storefront = this.storefront
     this.inside = false
     this.exterior.visible = true
-    this.sun.visible = true
-    if (this.hemi) this.hemi.intensity = 0.9
-    this.scene.environmentIntensity = 0.5
     this.scene.background = new THREE.Color(SKY)
     this.scene.fog = new THREE.Fog(SKY, 80, 190)
+    this.updateCelestial(this.gameClock)
     this.interior?.dispose()
     this.interior = null
     const { player } = this
@@ -763,13 +972,26 @@ export class World {
     this.follow.update(this.camera, ground, this.cameraClip ? blockers : [], 1 / 60, this.cameraSnap || this.init.reducedMotion)
     this.cameraSnap = false
 
-    // el sol sigue al jugador, en pasos del tamaño de un píxel de la sombra para que no tiemble
+    // La luz sigue al jugador, con la posición redondeada a texeles para estabilizar las sombras.
     const texel = 68 / this.sun.shadow.mapSize.x
     const sx = Math.round(this.player.x / texel) * texel
     const sz = Math.round(this.player.z / texel) * texel
     this.sun.target.position.set(sx, 0, sz)
-    this.sun.position.set(sx - 38, 62, sz + 26)
+    this.sun.position.set(sx + this.celestial.sunDirection.x * 80, this.celestial.sunDirection.y * 80, sz + this.celestial.sunDirection.z * 80)
+    this.moon.target.position.set(sx, 0, sz)
+    this.moon.position.set(sx + this.celestial.moonDirection.x * 80, this.celestial.moonDirection.y * 80, sz + this.celestial.moonDirection.z * 80)
+    const sunPosition = celestialPosition(this.celestial.sunDirection, { x: sx, z: sz }, 120)
+    const moonPosition = celestialPosition(this.celestial.moonDirection, { x: sx, z: sz }, 120)
+    if (this.sunModel) {
+      this.sunModel.root.position.set(sunPosition.x, sunPosition.y, sunPosition.z)
+      this.sunModel.root.lookAt(this.camera.position)
+    }
+    for (const prop of this.moonModels.values()) {
+      prop.root.position.set(moonPosition.x, moonPosition.y, moonPosition.z)
+      prop.root.lookAt(this.camera.position)
+    }
     this.sun.target.updateMatrixWorld()
+    this.moon.target.updateMatrixWorld()
     renderer.render(this.scene, this.camera)
   }
 
@@ -806,6 +1028,7 @@ export class World {
       prompt: this.prompt,
       subtitle: this.subtitle,
       audio: this.audio.state,
+      gameTime: formatGameClock(this.gameClock),
       diagnostics: this.diagnosticsText(),
     }
   }
@@ -873,6 +1096,23 @@ export class World {
     return {
       state: this.state,
       time: this.time,
+      gameTime: formatGameClock(this.gameClock),
+      clock: {
+        hour: this.celestial.hour,
+        night: this.celestial.night,
+        daylight: this.celestial.daylight,
+        sunAltitude: (this.celestial.sunAltitude * 180) / Math.PI,
+        sunAzimuth: (this.celestial.sunAzimuth * 180) / Math.PI,
+        moonPhase: this.moonPhase,
+        moonIllumination: lunarPhase(this.gameClock).illumination,
+      },
+      streetLights: {
+        active: this.lampLights.filter((light) => light.visible).length,
+        intensity: this.lampLights[0]?.intensity ?? 0,
+        range: this.lampLights[0]?.distance ?? 0,
+        decay: this.lampLights[0]?.decay ?? 0,
+      },
+      waterAnimated: this.water !== null,
       quality: this.quality,
       fps: this.fps,
       device: this.input?.device ?? 'teclado',
@@ -891,7 +1131,15 @@ export class World {
         conversations: chat.dialogue.started,
       })),
       mode: this.inside ? 'interior' : 'calle',
-      scenery: { benches: this.benchGroup !== null, storefront: this.storefront !== null },
+      scenery: {
+        benches: this.benchGroup !== null,
+        storefront: this.storefront !== null,
+        fountain: this.sceneryLoaded.has('fuente'),
+        trees: this.sceneryLoaded.has('arbol'),
+        lamps: this.sceneryLoaded.has('farola'),
+        sun: this.sceneryLoaded.has('sol'),
+        moon: this.sceneryLoaded.has('luna'),
+      },
       transitioning: this.transition !== null,
       door: this.storefront ? { openness: this.storefront.openness, x: this.storefront.door.x, z: this.storefront.door.z } : null,
       cameraYaw: this.follow.yaw,
@@ -965,6 +1213,9 @@ export class World {
     this.storefront?.dispose()
     this.interior?.dispose()
     if (this.benchProp) disposeProp(this.benchProp)
+    for (const prop of this.sceneryProps) disposeProp(prop)
+    this.sceneryProps.length = 0
+    this.sceneryLoaded.clear()
     this.benchGroup?.removeFromParent()
     this.fade?.remove()
     this.observer?.disconnect()

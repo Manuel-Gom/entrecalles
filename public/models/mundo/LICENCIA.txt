@@ -1,4 +1,5 @@
-Modelos del barrio jugable de Entrecalles (banco, fachada del café e interior del café).
+Modelos del barrio jugable de Entrecalles (banco, fachada e interior del café, fuente,
+árbol, farola, sol y las cuatro fases modeladas de la luna).
 
 Creados para este proyecto, desde cero y por código, con Blender (tools/blender/crear_props.py).
 No contienen nada de terceros: ni modelos, ni texturas, ni imágenes (solo colores de material).

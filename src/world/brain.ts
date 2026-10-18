@@ -1,4 +1,4 @@
-import { resolveCircle, type Circle, type Vec2 } from './collision'
+import { resolveCircle, type Box, type Circle, type Vec2 } from './collision'
 import { findPath, makeRng, nearestNode, type CityLayout, type Rng, type Spot } from './layout'
 import { nearestAngle } from './player'
 
@@ -25,6 +25,10 @@ const STUCK_SECONDS = 4
 /** Plaza en un banco: quien se sienta se acerca desde `approach` (en la acera) y se asienta en (x, z) mirando a `yaw`. */
 export interface Seat extends Spot {
   approach: Vec2
+  /** waypoints por los que pasa el personaje para entrar y salir sin atravesar el respaldo */
+  route?: Vec2[]
+  /** colisionador del propio asiento, que solo se puede ignorar al ocupar su volumen final */
+  collider?: Box
   taken: boolean
   /** por dónde se llega: por delante (un banco, de cara a él) o por detrás (una silla con mesa delante) */
   entry: 'delante' | 'detras'
