@@ -133,6 +133,18 @@ describe('readSave', () => {
     expect(readSave().characters[0].spec).toEqual({ cuerpo: 'x', torso: 'ok' })
   })
 
+  it('conserva gafas, barba y colores de tela al leer', () => {
+    const spec = { cuerpo: 'marcos', gafas: 'g1', barba: null, colores: { torso: '#202225', calzado: '#f4f4f0' } }
+    installStorage({ [STORAGE_KEY]: JSON.stringify({ characters: [character('a', { spec })] }) })
+    expect(readSave().characters[0].spec).toEqual(spec)
+  })
+
+  it('descarta colores de tela mal formados', () => {
+    const spec = { cuerpo: 'marcos', colores: { torso: 7, raro: '#fff' } }
+    installStorage({ [STORAGE_KEY]: JSON.stringify({ characters: [character('a', { spec })] }) })
+    expect(readSave().characters[0].spec).toEqual({ cuerpo: 'marcos' })
+  })
+
   it('si localStorage lanza al leer, devuelve el estado inicial', () => {
     vi.stubGlobal('localStorage', { getItem: () => { throw new Error('bloqueado') } })
     expect(readSave()).toEqual(emptySave())

@@ -9,6 +9,7 @@ export type Route =
   | { name: 'ajustes' }
   | { name: 'resumen' }
   | { name: 'pnj' }
+  | { name: 'jugar' }
 
 export const paths = {
   inicio: '#/',
@@ -19,6 +20,7 @@ export const paths = {
   ajustes: '#/ajustes',
   resumen: '#/resumen',
   pnj: '#/pnj',
+  jugar: '#/jugar',
 } as const
 
 export function parseHash(hash: string): Route {
@@ -33,6 +35,7 @@ export function parseHash(hash: string): Route {
   if (parts[0] === 'ajustes') return { name: 'ajustes' }
   if (parts[0] === 'resumen') return { name: 'resumen' }
   if (parts[0] === 'pnj') return { name: 'pnj' }
+  if (parts[0] === 'jugar') return { name: 'jugar' }
   return { name: 'inicio' }
 }
 

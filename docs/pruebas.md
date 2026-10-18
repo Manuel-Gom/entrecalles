@@ -4,8 +4,8 @@ Hay tres capas, de la más rápida a la más completa. `npm run verificar` las e
 
 | Capa | Herramienta | Dónde | Qué protege | Tiempo |
 |---|---|---|---|---|
-| Unitarias | Vitest | `src/**/*.test.ts(x)` | Lógica pura: reglas del aspecto (`normalizeSpec`, `visiblePieces`, tintes), validación y migración de lo guardado, router, componentes accesibles (diálogo, grupos de opciones, interruptores) | < 5 s |
-| Catálogo | Vitest | `tests/catalogo.test.ts`, `tests/npcs.test.ts` | Los modelos generados con Blender: nada falta ni sobra, tamaños, esqueleto, miniaturas, atuendos por defecto, licencias; los 160 PNJ y su generador | < 10 s |
+| Unitarias | Vitest | `src/**/*.test.ts(x)` | Lógica pura: reglas del aspecto (`normalizeSpec`, `visiblePieces`, tintes), validación y migración de lo guardado, router, componentes accesibles (diálogo, grupos de opciones, interruptores); del barrio, `src/world/`: colisiones (con paredes y con personas), ciudad y red de aceras, zancada y sus transiciones, jugador, cámara, comportamiento y evitación de los PNJ, asientos, entrada con mando, diálogos y las partes puras del sonido | < 10 s |
+| Catálogo | Vitest | `tests/catalogo.test.ts`, `tests/npcs.test.ts`, `tests/reparto.test.ts`, `tests/mundo-modelos.test.ts` | Los modelos generados con Blender: nada falta ni sobra, tamaños, esqueleto, miniaturas, atuendos por defecto, licencias; los 160 PNJ y su generador; los modelos de Blender del barrio (peso, triángulos, sin texturas, escala y orientación, y que sus plazas, colisiones y puntos cuadren con el código) | < 10 s |
 | Extremo a extremo | Playwright Test | `e2e/*.spec.ts` | La aplicación real en Chromium: flujos, teclado, accesibilidad (axe), persistencia, 3D y memoria | ~6 min |
 
 ## Comandos
@@ -13,7 +13,7 @@ Hay tres capas, de la más rápida a la más completa. `npm run verificar` las e
 ```bash
 npm run test:unit          # unitarias + catálogo (vitest run)
 npm run test:unit:watch    # modo vigilancia mientras se programa
-npm run test:cobertura     # con cobertura (umbral: 90 % líneas y 80 % ramas en catalog.ts, save.ts y router.ts)
+npm run test:cobertura     # con cobertura (umbral: 90 % líneas y 80 % ramas en catalog.ts, save.ts, router.ts y la lógica pura de src/world/)
 npm run test:catalogo      # solo catálogo y PNJ
 npm run test:e2e           # extremo a extremo (arranca solo el servidor: compila y sirve dist/)
 npm run test:e2e:ui        # visor interactivo de Playwright (depurar paso a paso)
@@ -37,6 +37,10 @@ La primera vez: `npx playwright install chromium`.
 
 ### Ganchos de prueba en el código de la aplicación
 - `window.__avatarStudio()` (`src/avatar/studio.ts`): `stats()` devuelve estado, cuerpo, piezas montadas, tintes aplicados y memoria; `setAvatar()` muestra un aspecto.
+- `window.__world()` (`src/world/world.ts`, solo mientras se está en `#/jugar`): `stats()` (posición y animación del jugador, PNJ y qué hace cada uno, memoria), `advance(segundos)` para simular tiempo sin esperar, `teleport()`, `orbitCamera()` y `inputOverride` para fijar la entrada de movimiento. Las pruebas mueven al jugador con el teclado real y usan `advance` para lo que tardaría demasiado en el 3D por software.
+- Las pruebas de mando (`e2e/mandos.spec.ts`) sustituyen `navigator.getGamepads` por un mando inventado (ejes, botones y eventos de conexión) y lo cambian desde la página. **No sustituyen** probar con un mando real.
+- `window.__world().stats()` también devuelve el estado del sonido (`audio`: estado del contexto, ambiente, cuántos pasos y eventos se han pedido y el último suelo y evento), las charlas (`chats`) y el subtítulo actual. Los pasos y eventos se cuentan aunque el navegador aún no deje sonar, así que las pruebas no dependen de un altavoz.
+- `window.__WORLD_NPC_LIMIT__`: si se define antes de abrir el barrio, limita cuántos PNJ se cargan (el 3D por software es lento).
 - `window.__renderThumbnail()` (`src/avatar/thumbnail.ts`): se carga con `?herramientas` en la URL y sirve para generar los retratos de los PNJ.
 
 ## Qué hacer cuando falla algo
@@ -52,7 +56,7 @@ La primera vez: `npx playwright install chromium`.
 - Piezas nuevas de ropa → no hace falta tocar pruebas: las de catálogo recorren todo el manifest.
 
 ## Herramientas de revisión (no son pruebas)
-`tools/revision/`: `cuerpos.mjs` (todos los cuerpos con su atuendo en el visor del navegador), `retratos.mjs` (retratos de PNJ) y `montaje.mjs` (junta capturas en una hoja de contacto). Las capturas se guardan en `docs/previews/web/`, que no se versiona.
+`tools/revision/rendimiento.mjs` mide los FPS, los tirones, la resolución y la carga de la escena en las tres calidades con la misma ruta (`--ventana` para usar la tarjeta gráfica real). `tools/revision/`: `cuerpos.mjs` (todos los cuerpos con su atuendo en el visor del navegador), `retratos.mjs` (retratos de PNJ), `mundo.mjs` (capturas del barrio: `marcha` = fotogramas de andar y correr, `calle` = vistas generales, `pnj` = vecinos haciendo cosas, `sentado` = el protagonista en un banco, `tienda` = la fachada del café y los bancos, `interior` = el café por dentro) y `montaje.mjs` (junta capturas en una hoja de contacto). Las capturas se guardan en `docs/previews/web/`, que no se versiona.
 
 ## Integración continua
 `.github/workflows/ci.yml` ejecuta en cada push y pull request: instalación, tipos y build, unitarias con cobertura, catálogo y extremo a extremo (informe de Playwright como artefacto si algo falla). Los modelos (`public/models/**`) y los retratos van con Git LFS: el flujo los descarga con `lfs: true`.

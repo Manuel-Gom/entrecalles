@@ -167,7 +167,6 @@ export function SettingsScreen() {
 export function SummaryScreen() {
   const character = useRequireCharacter()
   const { save } = useSave()
-  const notify = useToast()
   if (!character) return null
   const { settings } = save
   const accessibility = [settings.subtitles && 'Subtítulos', settings.highContrast && 'Alto contraste', settings.reducedMotion && 'Movimiento reducido', settings.largeText && 'Texto grande'].filter(Boolean).join(' · ')
@@ -211,14 +210,14 @@ export function SummaryScreen() {
           </div>
           <div className="summary-cta">
             <div className="actions">
-              <button type="button" className="btn btn-large" onClick={() => notify('Tu preparación está guardada. La aventura estará disponible cuando el juego esté listo.')}>
+              <button type="button" className="btn btn-large" onClick={() => navigate(paths.jugar)}>
                 Comenzar aventura <span aria-hidden="true">→</span>
               </button>
               <a className="btn btn-ghost" href={paths.ajustes}>Atrás</a>
             </div>
             <div className="note" style={{ marginTop: '1.25rem' }}>
               <span aria-hidden="true">ⓘ</span>
-              <span>Esta versión incluye el menú y la preparación. El mundo jugable aún no está disponible; tu elección queda guardada.</span>
+              <span>Saldrás a un barrio de prueba: anda, corre y mira qué hace la gente. La historia, la dificultad y los diálogos todavía no están en el juego.</span>
             </div>
           </div>
         </section>

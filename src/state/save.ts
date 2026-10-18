@@ -1,4 +1,4 @@
-import type { AvatarSpec } from '../avatar/catalog'
+import { SLOTS, TINT_SLOTS, type AvatarSpec, type TintSlot } from '../avatar/catalog'
 
 export type Difficulty = 'relajada' | 'equilibrada' | 'intensa'
 
@@ -105,9 +105,17 @@ function parseSpec(raw: Record<string, unknown>): AvatarSpec | null {
   const source = isRecord(raw.spec) ? raw.spec : { cuerpo: raw.model }
   if (typeof source.cuerpo !== 'string') return null
   const spec: AvatarSpec = { cuerpo: source.cuerpo }
-  for (const slot of ['pelo', 'torso', 'piernas', 'conjunto', 'calzado', 'cabeza', 'colorPelo'] as const) {
+  for (const slot of [...SLOTS, 'colorPelo'] as const) {
     const value = source[slot]
     if (typeof value === 'string' || value === null) spec[slot] = value
+  }
+  if (isRecord(source.colores)) {
+    const colors: Partial<Record<TintSlot, string>> = {}
+    for (const slot of TINT_SLOTS) {
+      const color = source.colores[slot]
+      if (typeof color === 'string') colors[slot] = color
+    }
+    if (Object.keys(colors).length > 0) spec.colores = colors
   }
   return spec
 }

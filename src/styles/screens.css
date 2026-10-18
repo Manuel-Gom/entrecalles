@@ -156,3 +156,67 @@
 .npc-thumb { width: 100%; height: auto; aspect-ratio: 4 / 5; }
 .npc-name { font-weight: 700; font-size: var(--fs-small); padding: 0 .25rem; }
 .npc-role { color: var(--muted); font-size: var(--fs-label); padding: 0 .25rem; }
+
+/* ---------- barrio jugable ---------- */
+.world { position: fixed; inset: 0; background: #bcd2e4; color: var(--text); overflow: hidden; }
+.world-view, .world-canvas { position: absolute; inset: 0; }
+.world-bar {
+  position: absolute; top: 12px; left: 12px; right: 12px; display: flex; align-items: center; gap: 12px;
+  pointer-events: none; flex-wrap: wrap;
+}
+.world-bar > * { pointer-events: auto; }
+.world-chip, .world-actions, .world-help span, .world-toast {
+  background: rgba(15, 19, 17, 0.82); border: 1px solid var(--line-2); border-radius: var(--radius);
+  backdrop-filter: blur(6px);
+}
+.world-chip { display: grid; padding: 6px 14px; line-height: 1.2; }
+.world-chip strong { font-family: var(--font-display); font-size: var(--fs-lead); }
+.world-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 14px; }
+.world-quality { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--soft); }
+.world-quality select {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line-3); border-radius: var(--radius-s);
+  min-height: 2.25rem; padding: 0 0.5rem; font: inherit;
+}
+.world-fps { font-family: var(--font-mono); font-size: var(--fs-small); color: var(--lime); min-width: 4.5rem; text-align: right; }
+.world-help {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px;
+  pointer-events: none; font-size: var(--fs-small); color: var(--soft);
+}
+.world-help span { padding: 6px 12px; }
+.world-help kbd {
+  font-family: var(--font-mono); background: var(--panel-3); border: 1px solid var(--line-3); border-radius: 6px;
+  padding: 1px 6px; margin-right: 4px; color: var(--text);
+}
+.world-toast { position: absolute; top: 76px; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: var(--fs-small); }
+.world-overlay {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 1.25rem;
+  background: rgba(15, 19, 17, 0.72); text-align: center; padding: var(--gutter); font-size: var(--fs-lead);
+}
+.world-pause { background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius-xl); padding: 2rem 2.5rem; display: grid; gap: 1.25rem; }
+.world-pause h2 { font-family: var(--font-display); margin: 0; }
+@media (max-width: 640px) { .world-help { display: none; } }
+button.world-fps { background: transparent; border: 0; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: var(--radius-s); }
+button.world-fps:hover { background: var(--panel-3); }
+.world-diagnostics {
+  position: absolute; top: 76px; right: 12px; max-width: min(34rem, calc(100% - 24px)); padding: 12px 14px;
+  background: rgba(15, 19, 17, 0.9); border: 1px solid var(--line-2); border-radius: var(--radius); backdrop-filter: blur(6px);
+}
+.world-diagnostics pre { margin: 0 0 10px; font: var(--fs-small) var(--font-mono); color: var(--soft); white-space: pre-wrap; }
+.world-prompt {
+  position: absolute; left: 50%; bottom: 72px; transform: translateX(-50%); margin: 0; padding: 8px 18px;
+  background: rgba(15, 19, 17, 0.88); border: 1px solid var(--lime); border-radius: var(--radius);
+  font-size: var(--fs-lead); color: var(--text);
+}
+.world-prompt kbd {
+  font-family: var(--font-mono); background: var(--lime); color: var(--lime-ink); border-radius: 6px; padding: 1px 8px; margin: 0 2px;
+}
+.world-subtitle {
+  position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); margin: 0; padding: 8px 18px;
+  max-width: min(42rem, calc(100% - 24px)); text-align: center;
+  background: rgba(0, 0, 0, 0.78); border-radius: var(--radius); font-size: var(--fs-lead); color: #fff;
+}
+.world-subtitle strong { color: var(--lime); }
+.world-sound-hint {
+  position: absolute; top: 76px; left: 50%; transform: translateX(-50%); margin: 0; padding: 6px 14px;
+  background: rgba(15, 19, 17, 0.82); border: 1px solid var(--line-2); border-radius: var(--radius); font-size: var(--fs-small); color: var(--soft);
+}

@@ -75,6 +75,11 @@ export class AvatarAssembly {
     return new AvatarAssembly(cuerpo, root)
   }
 
+  /** Hueso del esqueleto por su nombre (para animarlo desde fuera). */
+  bone(name: string): THREE.Bone | undefined {
+    return this.bones.get(name)
+  }
+
   pieceId(slot: Slot) {
     return this.pieces.get(slot)?.id ?? null
   }

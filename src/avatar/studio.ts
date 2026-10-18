@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { AvatarAssembly } from './assembler'
-import { isOptional, SLOTS, TINT_SLOTS, tintFor, visiblePieces, type AvatarSpec, type Catalog, type Slot } from './catalog'
+import type { AvatarAssembly } from './assembler'
+import { buildAssembly } from './build'
+import { SLOTS, type AvatarSpec, type Catalog } from './catalog'
 
 export type StudioState = 'idle' | 'loading' | 'ready' | 'error' | 'unsupported'
 
@@ -247,43 +248,16 @@ export class AvatarStudio {
     if (!this.renderer) return
     const token = ++this.requestToken
     const isCurrent = () => token === this.requestToken
-    const wanted = visiblePieces(spec, catalog)
-    let next: AvatarAssembly | null = null
     try {
       this.setState('loading')
-      const staging = await AvatarAssembly.create(spec.cuerpo)
-      next = staging
-      staging.setHairColor(spec.colorPelo ?? null)
-      for (const slot of TINT_SLOTS) staging.setPieceColor(slot, tintFor(spec, catalog, slot))
-
-      const results = await Promise.allSettled(
-        SLOTS.map((slot) => staging.setPiece(slot, wanted[slot] ?? null, isCurrent)),
-      )
-      if (!isCurrent()) {
-        next.dispose()
-        return
-      }
-      const failedPiece = results.find((result) => result.status === 'rejected')
-      if (failedPiece?.status === 'rejected') throw failedPiece.reason
-
-      const body = catalog.cuerpos.find((item) => item.id === spec.cuerpo)
-      const requiredSlots: Slot[] = wanted.conjunto
-        ? ['conjunto', 'calzado']
-        : ['piernas', 'calzado', ...(!isOptional('torso', body) ? ['torso' as const] : [])]
-      const missingRequired = requiredSlots.filter((slot) => {
-        const id = wanted[slot]
-        return !id || staging.pieceId(slot) !== id
-      })
-      if (missingRequired.length > 0) {
-        throw new Error(`Faltan prendas obligatorias: ${missingRequired.join(', ')}`)
-      }
+      const staging = await buildAssembly(spec, catalog, isCurrent)
+      if (!staging) return
 
       // Todas las piezas están listas: el intercambio ocurre antes del siguiente fotograma.
       const previous = this.assembly
       const box = new THREE.Box3().setFromObject(staging.root, true)
       this.pivot.add(staging.root)
       this.assembly = staging
-      next = null
       if (this.reducedMotion) this.assembly.pose.reset()
       if (previous) {
         this.pivot.remove(previous.root)
@@ -295,7 +269,6 @@ export class AvatarStudio {
       this.setState('ready')
       this.requestRender()
     } catch (error) {
-      next?.dispose()
       if (isCurrent()) {
         console.error('No se pudo preparar el personaje completo.', error)
         this.setState('error')
@@ -364,7 +337,7 @@ export class AvatarStudio {
     if (!this.renderer) return
     this.yaw += (this.targetYaw - this.yaw) * (this.reducedMotion ? 1 : 0.18)
     this.pivot.rotation.y = this.yaw
-    if (!this.reducedMotion) this.assembly?.pose.idle(this.clock.elapsedTime)
+    if (!this.reducedMotion) this.assembly?.pose.idle(this.clock.getElapsedTime())
     this.renderer.render(this.scene, this.camera)
   }
 

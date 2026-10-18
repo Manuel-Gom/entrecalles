@@ -178,7 +178,8 @@ test.describe('preparación de la partida', () => {
     await expect(page.getByText('Sin red', { exact: true })).toBeVisible()
     await expect(page.getByText('Flechas', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: /Comenzar aventura/ }).click()
-    await expect(page.getByText(/La aventura estará disponible/)).toBeVisible()
+    await expect(page).toHaveURL(/#\/jugar$/)
+    await expect(page.getByRole('heading', { name: /Explorando el barrio con/ })).toBeAttached()
   })
 
   test('las teclas de dificultad se mueven con flechas', async ({ page, sembrar }) => {
