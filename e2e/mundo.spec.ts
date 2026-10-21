@@ -142,14 +142,39 @@ test.describe('el barrio', () => {
   test('Escape pausa el juego y Continuar lo reanuda', async ({ page, sembrar }) => {
     await sembrar(withCharacters)
     await entrar(page)
+    await expect(page.getByRole('heading', { name: 'Explorando el barrio con Marcos' })).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog', { name: 'Pausa' })).toBeVisible()
+    const continuar = page.getByRole('button', { name: 'Continuar' })
+    const volver = page.getByRole('link', { name: 'Volver al menú' })
+    await expect(continuar).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(volver).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(continuar).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(volver).toBeFocused()
     const t0 = (await stats(page)).time
     await page.waitForTimeout(800)
     expect((await stats(page)).time, 'el tiempo de juego se detiene en pausa').toBe(t0)
-    await page.getByRole('button', { name: 'Continuar' }).click()
+    await continuar.click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.waitForFunction((t) => window.__world!()!.stats().time > t, t0, { timeout: 30_000 })
+  })
+
+  test('un catálogo que falla se explica y se puede reintentar', async ({ page, sembrar, ignorarConsola }) => {
+    ignorarConsola(/Failed to load resource|ERR_FAILED/)
+    await sembrar(withCharacters)
+    let requests = 0
+    await page.route('**/models/modular/manifest.json', (route) => {
+      requests += 1
+      if (requests === 1) return route.abort()
+      return route.continue()
+    })
+    await page.goto('/#/jugar')
+    await expect(page.getByText('No se pudo cargar el catálogo de personajes.')).toBeVisible()
+    await page.getByRole('button', { name: 'Reintentar' }).click()
+    await page.waitForFunction(() => window.__world?.()?.stats().state === 'listo', null, { timeout: 120_000 })
   })
 
   test('la calidad se cambia desde la interfaz y se recuerda', async ({ page, sembrar }) => {
@@ -161,6 +186,34 @@ test.describe('el barrio', () => {
     await page.reload()
     await page.waitForFunction(() => window.__world?.()?.stats().state === 'listo', null, { timeout: 120_000 })
     expect((await stats(page)).quality).toBe('baja')
+  })
+
+  test('tras usar un control con el ratón el teclado vuelve al barrio; con el teclado el foco se queda', async ({ page, sembrar }) => {
+    await sembrar(withCharacters)
+    await entrar(page)
+    const lienzo = page.locator('.world-view canvas')
+    const calidad = page.getByLabel('Calidad')
+    const pausa = page.getByRole('button', { name: 'Pausa', exact: true })
+
+    // ratón: elegir la calidad, y pausar y reanudar con clics
+    await calidad.click()
+    await calidad.selectOption('baja')
+    await expect(lienzo).toBeFocused()
+    await pausa.click()
+    await page.getByRole('button', { name: 'Continuar' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(lienzo).toBeFocused()
+
+    // teclado: el foco sigue en el selector y vuelve al botón que abrió la pausa
+    await calidad.focus()
+    await page.keyboard.press('ArrowDown')
+    await expect(calidad).toBeFocused()
+    await pausa.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(pausa).toBeFocused()
   })
 
   test('entrar y salir varias veces no deja el barrio ni su contexto 3D en memoria', async ({ page, sembrar }) => {

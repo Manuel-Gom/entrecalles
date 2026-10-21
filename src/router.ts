@@ -24,7 +24,16 @@ export const paths = {
 } as const
 
 export function parseHash(hash: string): Route {
-  const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent)
+  const rawParts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)
+  const parts: string[] = []
+  for (const raw of rawParts) {
+    try {
+      parts.push(decodeURIComponent(raw))
+    } catch {
+      // La URL se puede escribir o compartir fuera de la aplicación: un % incompleto no debe romper el render.
+      return { name: 'inicio' }
+    }
+  }
   if (parts.length === 0) return { name: 'inicio' }
   if (parts[0] === 'personajes') {
     if (parts.length === 1) return { name: 'personajes' }

@@ -108,6 +108,13 @@ describe('readSave', () => {
     expect(Object.keys(DIFFICULTIES)).toContain(readSave().difficulty)
   })
 
+  it('una dificultad con nombre de propiedad heredada de Object no se acepta', () => {
+    for (const difficulty of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      installStorage({ [STORAGE_KEY]: JSON.stringify({ difficulty }) })
+      expect(readSave().difficulty).toBe('equilibrada')
+    }
+  })
+
   it('limita los volúmenes a 0-100 y usa el valor por defecto si no son números', () => {
     installStorage({ [STORAGE_KEY]: JSON.stringify({ settings: { masterVolume: 500, musicVolume: -20, effectsVolume: 'alto' } }) })
     expect(readSave().settings).toMatchObject({ masterVolume: 100, musicVolume: 0, effectsVolume: 80 })

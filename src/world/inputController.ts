@@ -24,6 +24,15 @@ const ORBIT_KEYS: Record<Controls, Record<string, [number, number]>> = {
 }
 const INTERACT_KEY: Record<Controls, string> = { clasico: 'KeyE', flechas: 'Enter' }
 
+/** ¿Necesita esta tecla el control que tiene el foco (activar un botón, mover un selector)? Entonces el juego la deja pasar. */
+export function controlOwnsKey(target: EventTarget | null, code: string): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  const tag = target.tagName
+  if (tag === 'BUTTON' || tag === 'A') return code === 'Enter'
+  if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return code === 'Enter' || code.startsWith('Arrow')
+  return false
+}
+
 /** Velocidades de giro de la cámara con teclado y con la palanca derecha (rad/s a tope). */
 const KEY_YAW = 1.9
 const KEY_PITCH = 1.0
@@ -104,6 +113,7 @@ export class InputController {
     }
     on('keydown', (event) => {
       if (this.isPaused() || event.ctrlKey || event.metaKey || event.altKey || !isGameKey(event.code)) return
+      if (controlOwnsKey(event.target, event.code)) return
       event.preventDefault()
       this.setDevice('teclado')
       if (event.code === INTERACT_KEY[controls]) {

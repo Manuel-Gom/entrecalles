@@ -168,6 +168,8 @@ export class World {
   private observer: ResizeObserver | null = null
   private frame = 0
   private lastTime = 0
+  /** duración del último fotograma (s): la cámara se suaviza con el tiempo real, no con 60 Hz fijos */
+  private frameDt = 1 / 60
   private disposed = false
   private paused = false
   private state: WorldState = 'cargando'
@@ -231,34 +233,40 @@ export class World {
       this.setState('sin-3d')
       return
     }
-    this.buildScene(this.renderer)
-    this.applyQuality()
-    this.host.appendChild(this.canvas)
-    // capa negra para el fundido al cruzar una puerta
-    this.fade = document.createElement('div')
-    this.fade.style.cssText = 'position:absolute;inset:0;background:#000;opacity:0;pointer-events:none'
-    this.host.appendChild(this.fade)
-    this.input = new InputController(
-      this.canvas,
-      init.controls,
-      { orbit: (yaw, pitch) => this.follow.orbit(yaw, pitch), zoom: (delta) => this.follow.zoom(delta) },
-      () => this.emit(),
-      () => this.paused,
-    )
+    try {
+      this.buildScene(this.renderer)
+      this.applyQuality()
+      this.host.appendChild(this.canvas)
+      // capa negra para el fundido al cruzar una puerta
+      this.fade = document.createElement('div')
+      this.fade.style.cssText = 'position:absolute;inset:0;background:#000;opacity:0;pointer-events:none'
+      this.host.appendChild(this.fade)
+      this.input = new InputController(
+        this.canvas,
+        init.controls,
+        { orbit: (yaw, pitch) => this.follow.orbit(yaw, pitch), zoom: (delta) => this.follow.zoom(delta) },
+        () => this.emit(),
+        () => this.paused,
+      )
 
-    // el navegador solo deja sonar tras un gesto del usuario: se intenta ya (el clic de "Comenzar aventura" cuenta) y en cada tecla o clic
-    this.audio.unlock()
-    for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, this.unlockAudio, true)
-    this.observer = new ResizeObserver(() => this.resize())
-    this.observer.observe(this.host)
-    this.resize()
+      // el navegador solo deja sonar tras un gesto del usuario: se intenta ya (el clic de "Comenzar aventura" cuenta) y en cada tecla o clic
+      this.audio.unlock()
+      for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, this.unlockAudio, true)
+      this.observer = new ResizeObserver(() => this.resize())
+      this.observer.observe(this.host)
+      this.resize()
 
-    this.canvas.addEventListener('webglcontextlost', (event) => {
-      event.preventDefault()
-      this.stop()
-      this.setState('sin-3d')
-    })
-    this.start()
+      this.canvas.addEventListener('webglcontextlost', (event) => {
+        event.preventDefault()
+        this.stop()
+        this.setState('sin-3d')
+      })
+      this.start()
+    } catch (error) {
+      // un fallo a medio montar: se libera lo ya creado (contexto WebGL, escuchas, lienzo) y quien creó el barrio avisa
+      this.dispose()
+      throw error
+    }
     void this.loadPlayer()
   }
 
@@ -595,6 +603,7 @@ export class World {
         if (actions.interact) this.interactPending = true
       }
       this.frameStats.record(raw)
+      this.frameDt = dt || 1 / 60
       this.update(dt)
       this.render()
       this.measureFps(dt)
@@ -969,7 +978,7 @@ export class World {
     const focus = this.focusOverride ?? this.player
     const ground = new THREE.Vector3(focus.x, GROUND, focus.z)
     const blockers = this.inside && this.interior ? this.interior.blockers : this.layout.blockers
-    this.follow.update(this.camera, ground, this.cameraClip ? blockers : [], 1 / 60, this.cameraSnap || this.init.reducedMotion)
+    this.follow.update(this.camera, ground, this.cameraClip ? blockers : [], this.frameDt, this.cameraSnap || this.init.reducedMotion)
     this.cameraSnap = false
 
     // La luz sigue al jugador, con la posición redondeada a texeles para estabilizar las sombras.

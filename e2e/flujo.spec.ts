@@ -96,6 +96,22 @@ test.describe('editor', () => {
     await page.getByRole('button', { name: 'Restablecer' }).click()
     await expect(page.getByRole('radiogroup', { name: 'Cuerpo', exact: true }).getByRole('radio', { checked: true })).toHaveCount(1)
   })
+
+  test('un catálogo que falla se explica y se puede reintentar sin recargar', async ({ page, sembrar, ignorarConsola }) => {
+    ignorarConsola(/Failed to load resource|ERR_FAILED/)
+    await sembrar(withCharacters)
+    let requests = 0
+    await page.route('**/models/modular/manifest.json', (route) => {
+      requests += 1
+      if (requests === 1) return route.abort()
+      return route.continue()
+    })
+    await page.goto('/#/personajes/nuevo')
+    await expect(page.getByRole('alert').filter({ hasText: 'No se pudo cargar el catálogo de personajes.' })).toBeVisible()
+    await page.getByRole('button', { name: 'Reintentar' }).click()
+    await expect(page.getByLabel(/Nombre del personaje/)).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
 })
 
 test.describe('personajes guardados', () => {

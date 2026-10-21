@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { readSave, writeSave, type Character, type Difficulty, type GameSettings, type SaveData, MAX_CHARACTERS } from './save'
+import { readSave, writeSave, STORAGE_KEY, type Character, type Difficulty, type GameSettings, type SaveData, MAX_CHARACTERS } from './save'
 
 interface SaveApi {
   save: SaveData
@@ -27,6 +27,15 @@ export function SaveProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setStorageError(!writeSave(save))
   }, [save])
+
+  // otra pestaña guardó algo: se adopta su estado para no pisarlo con uno anticuado en el siguiente cambio
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY || event.key === null) setSave(readSave())
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   // ajustes de accesibilidad: se aplican a toda la página
   const { highContrast, reducedMotion, largeText } = save.settings

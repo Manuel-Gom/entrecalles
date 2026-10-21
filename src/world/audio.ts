@@ -84,8 +84,10 @@ export class AudioEngine {
   private babbleGain: GainNode | null = null
   private babblePan: StereoPannerNode | null = null
   private white: AudioBuffer | null = null
-  private timers: ReturnType<typeof setTimeout>[] = []
+  private accentTimer: ReturnType<typeof setTimeout> | null = null
   private disposed = false
+  /** en pausa: ni un gesto del usuario debe reanudar el contexto */
+  private held = false
 
   constructor(volumes: Volumes, makeContext?: () => AudioContext | null) {
     this.volumes = volumes
@@ -113,14 +115,18 @@ export class AudioEngine {
       }
       if (this.ctx) this.build(this.ctx)
     }
-    void this.ctx?.resume().catch(() => undefined)
+    // en pausa, un gesto del usuario crea el contexto pero no lo reanuda
+    const action = this.held ? this.ctx?.suspend() : this.ctx?.resume()
+    void action?.catch(() => undefined)
   }
 
   suspend() {
+    this.held = true
     void this.ctx?.suspend().catch(() => undefined)
   }
 
   resume() {
+    this.held = false
     if (this.ctx) void this.ctx.resume().catch(() => undefined)
   }
 
@@ -245,12 +251,11 @@ export class AudioEngine {
     const next = () => {
       if (this.disposed) return
       const delay = rand(3500, 9000)
-      this.timers.push(
-        setTimeout(() => {
-          if (this.state === 'running') (this.environment === 'calle' ? this.chirp() : this.clink())
-          next()
-        }, delay),
-      )
+      this.accentTimer = setTimeout(() => {
+        this.accentTimer = null
+        if (this.state === 'running') (this.environment === 'calle' ? this.chirp() : this.clink())
+        next()
+      }, delay)
     }
     next()
   }
@@ -368,8 +373,8 @@ export class AudioEngine {
 
   dispose() {
     this.disposed = true
-    for (const timer of this.timers) clearTimeout(timer)
-    this.timers.length = 0
+    if (this.accentTimer !== null) clearTimeout(this.accentTimer)
+    this.accentTimer = null
     void this.ctx?.close().catch(() => undefined)
     this.ctx = null
   }

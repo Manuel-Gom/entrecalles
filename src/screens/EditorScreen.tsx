@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CLOTH_COLORS, HAIR_COLORS, TINT_SLOTS, bodyThumbUrl, genderOf, isOptional, normalizeSpec, pieceThumbUrl, piecesFor,
   type AvatarSpec, type Catalog, type CatalogBody, type Genero, type Slot, type TintSlot,
@@ -189,13 +189,19 @@ function Appearance({ catalog, spec, onChange }: { catalog: Catalog; spec: Avata
 
 export function EditorScreen({ editId }: { editId?: string }) {
   const { save, upsertCharacter } = useSave()
-  const { catalog, error } = useCatalog()
+  const { catalog, error, reload: reloadCatalog } = useCatalog()
   const notify = useToast()
   const existing = editId ? save.characters.find((character) => character.id === editId) : undefined
   const [draft, setDraft] = useState<Character | null>(null)
   const [nameError, setNameError] = useState(false)
   const [saving, setSaving] = useState(false)
-
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
   // un personaje que no existe (enlace antiguo o ya borrado)
   useEffect(() => {
     if (editId && !existing) {
@@ -234,6 +240,8 @@ export function EditorScreen({ editId }: { editId?: string }) {
     } catch {
       thumb = undefined
     }
+    // si se salió del editor mientras se generaba el retrato, no se guarda ni se navega por sorpresa
+    if (!mounted.current) return
     const ok = upsertCharacter({ id: draft.id, name, spec, thumb })
     setSaving(false)
     if (!ok) {
@@ -251,7 +259,12 @@ export function EditorScreen({ editId }: { editId?: string }) {
       lead="Una identidad propia, hecha a tu imagen."
       back={{ label: 'Volver a personajes', href: paths.personajes }}
     >
-      {error && <p className="alert-banner" role="alert">No se pudo cargar el catálogo de personajes. Recarga la página.</p>}
+      {error && (
+        <div className="alert-banner" role="alert">
+          <p>No se pudo cargar el catálogo de personajes.</p>
+          <button type="button" className="btn btn-small" onClick={reloadCatalog}>Reintentar</button>
+        </div>
+      )}
       {draft && catalog ? (
         <div className="editor">
           <section className="card editor-panel" aria-label="Opciones de apariencia">

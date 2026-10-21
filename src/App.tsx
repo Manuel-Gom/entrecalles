@@ -1,3 +1,4 @@
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Layout } from './components/Layout'
 import { useRoute } from './router'
 import { CharactersScreen } from './screens/CharactersScreen'
@@ -30,12 +31,14 @@ function Screen() {
 
 export function App() {
   return (
-    <SaveProvider>
-      <CatalogProvider>
-        <ToastProvider>
-          <Screen />
-        </ToastProvider>
-      </CatalogProvider>
-    </SaveProvider>
+    <ErrorBoundary>
+      <SaveProvider>
+        <CatalogProvider>
+          <ToastProvider>
+            <Screen />
+          </ToastProvider>
+        </CatalogProvider>
+      </SaveProvider>
+    </ErrorBoundary>
   )
 }

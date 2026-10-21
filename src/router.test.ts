@@ -27,6 +27,11 @@ describe('parseHash', () => {
     expect(parseHash(paths.editar('a b/ñ'))).toEqual({ name: 'editar', id: 'a b/ñ' })
   })
 
+  it('vuelve al inicio si un fragmento tiene una codificación inválida', () => {
+    expect(parseHash('#/personajes/%')).toEqual({ name: 'inicio' })
+    expect(parseHash('#/%E0%A4')).toEqual({ name: 'inicio' })
+  })
+
   it('cada ruta de paths se interpreta como su pantalla', () => {
     expect(parseHash(paths.inicio).name).toBe('inicio')
     expect(parseHash(paths.personajes).name).toBe('personajes')

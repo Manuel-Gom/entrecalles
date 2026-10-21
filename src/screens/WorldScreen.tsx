@@ -1,5 +1,6 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { loadNpcs, type Npc } from '../avatar/npcs'
+import { useModalFocus } from '../components/useModalFocus'
 import { navigate, paths } from '../router'
 import { useCatalog } from '../state/CatalogProvider'
 import { useSave } from '../state/SaveProvider'
@@ -30,15 +31,21 @@ const PROMPT_TEXT = { sentarse: 'sentarte', levantarse: 'levantarte', entrar: 'e
 
 const messages: Partial<Record<WorldStatus['state'], string>> = {
   cargando: 'Cargando el barrio…',
-  error: 'No se pudo cargar tu personaje. Vuelve al menú e inténtalo de nuevo.',
+  error: 'No se pudo cargar el barrio. Vuelve al menú e inténtalo de nuevo.',
   'sin-3d': 'La vista 3D no está disponible en este navegador.',
 }
 
 /** El barrio jugable: pantalla completa, sin la barra del menú. */
 export function WorldScreen() {
   const { activeCharacter, save } = useSave()
-  const { catalog } = useCatalog()
+  const { catalog, error: catalogError, reload: reloadCatalog } = useCatalog()
   const notify = useToast()
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const viewRef = useRef<HTMLDivElement>(null)
+  const pauseDialogRef = useRef<HTMLDivElement>(null)
+  // ¿se usó el ratón? Entonces, al terminar, el teclado vuelve al barrio; con Tab el foco se queda en el control
+  const qualityByPointer = useRef(false)
+  const resumeToGame = useRef(false)
   const [npcs, setNpcs] = useState<Npc[] | null>(null)
   const [status, setStatus] = useState<WorldStatus>({ state: 'cargando', npcsLoaded: 0, npcsTotal: 0, fps: 0, device: 'teclado', gamepad: null, prompt: null, subtitle: null, audio: 'none', gameTime: '--:--', diagnostics: '' })
   const [quality, setQuality] = useState<Quality>(readQuality)
@@ -55,6 +62,7 @@ export function WorldScreen() {
 
   useEffect(() => {
     document.title = 'Barrio · Entrecalles'
+    titleRef.current?.focus({ preventScroll: true })
     let cancelled = false
     // si la lista de PNJ no se puede leer, se juega igualmente con la calle vacía
     loadNpcs().then((list) => !cancelled && setNpcs(list)).catch(() => !cancelled && setNpcs([]))
@@ -75,6 +83,22 @@ export function WorldScreen() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  /** Devuelve el teclado al barrio (el lienzo, o el título mientras carga). */
+  const focusGame = () => (viewRef.current?.querySelector('canvas') ?? titleRef.current)?.focus({ preventScroll: true })
+
+  // la pausa es modal: lo inerte es el resto de la pantalla del barrio (el diálogo vive dentro de ella)
+  useModalFocus(
+    pauseDialogRef,
+    () => setPaused(false),
+    () => Array.from(pauseDialogRef.current?.parentElement?.children ?? []).filter((element) => element !== pauseDialogRef.current),
+    paused,
+    (opener) => {
+      if (resumeToGame.current) focusGame()
+      else opener?.focus()
+      resumeToGame.current = false
+    },
+  )
+
   const chooseQuality = (value: Quality) => {
     setQuality(value)
     try {
@@ -82,9 +106,17 @@ export function WorldScreen() {
     } catch {
       // la preferencia solo se pierde al cerrar
     }
+    if (qualityByPointer.current) focusGame()
+  }
+
+  /** Un clic de ratón tiene detail > 0; activar el botón con Intro o Espacio, 0. */
+  const afterClick = (event: MouseEvent<HTMLButtonElement>, action: () => void) => {
+    action()
+    if (event.detail > 0) focusGame()
   }
 
   const onStatus = useCallback((next: WorldStatus) => setStatus(next), [])
+  const onFail = useCallback(() => setStatus((current) => ({ ...current, state: 'error' })), [])
   const togglePause = useCallback(() => setPaused((value) => !value), [])
 
   const copyDiagnostics = () => {
@@ -96,7 +128,7 @@ export function WorldScreen() {
 
   if (!activeCharacter) return null
   const arrows = save.settings.controlPreset === 'flechas'
-  const message = messages[status.state]
+  const message = catalogError ? 'No se pudo cargar el catálogo de personajes.' : messages[status.state]
   const settings = save.settings
   const pad = status.gamepad
   const usingPad = status.device === 'mando' && pad !== null
@@ -104,8 +136,9 @@ export function WorldScreen() {
 
   return (
     <div className={`world${settings.highContrast ? ' high-contrast' : ''}`}>
-      <h1 className="sr-only">Explorando el barrio con {activeCharacter.name}</h1>
+      <h1 ref={titleRef} tabIndex={-1} className="sr-only">Explorando el barrio con {activeCharacter.name}</h1>
       <div
+        ref={viewRef}
         className="world-view"
         role="application"
         aria-label={`Barrio de Entrecalles. Controla a ${activeCharacter.name}: ${arrows ? 'flechas' : 'W, A, S y D'} o la palanca izquierda de un mando para moverte, Mayús o el gatillo derecho para correr, el ratón o la palanca derecha para girar la cámara y Escape o el botón de menú para pausar.`}
@@ -121,6 +154,7 @@ export function WorldScreen() {
               quality={quality}
               paused={paused}
               onStatus={onStatus}
+              onFail={onFail}
               onPause={togglePause}
               volumes={{ master: settings.masterVolume, music: settings.musicVolume, effects: settings.effectsVolume }}
               subtitles={settings.subtitles}
@@ -150,14 +184,28 @@ export function WorldScreen() {
         <div className="world-actions">
           <label className="world-quality">
             <span>Calidad</span>
-            <select value={quality} onChange={(event) => chooseQuality(event.target.value as Quality)}>
+            <select
+              value={quality}
+              onPointerDown={() => (qualityByPointer.current = true)}
+              onKeyDown={() => (qualityByPointer.current = false)}
+              onChange={(event) => chooseQuality(event.target.value as Quality)}
+            >
               {QUALITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </label>
-          <button type="button" className="world-fps" aria-expanded={showDiagnostics} onClick={() => setShowDiagnostics((value) => !value)} title="Diagnóstico (F3)">
+          <button type="button" className="world-fps" aria-expanded={showDiagnostics} onClick={(event) => afterClick(event, () => setShowDiagnostics((value) => !value))} title="Diagnóstico (F3)">
             {status.fps || '–'} FPS
           </button>
-          <button type="button" className="btn btn-ghost btn-small" onClick={() => setPaused(true)}>Pausa</button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-small"
+            onClick={(event) => {
+              resumeToGame.current = event.detail > 0
+              setPaused(true)
+            }}
+          >
+            Pausa
+          </button>
         </div>
       </header>
 
@@ -165,8 +213,8 @@ export function WorldScreen() {
         <section className="world-diagnostics" aria-label="Diagnóstico de rendimiento">
           <pre>{status.diagnostics}</pre>
           <div className="actions">
-            <button type="button" className="btn btn-small" onClick={copyDiagnostics}>{copied ? 'Copiado' : 'Copiar'}</button>
-            <button type="button" className="btn btn-ghost btn-small" onClick={() => setShowDiagnostics(false)}>Cerrar</button>
+            <button type="button" className="btn btn-small" onClick={(event) => afterClick(event, copyDiagnostics)}>{copied ? 'Copiado' : 'Copiar'}</button>
+            <button type="button" className="btn btn-ghost btn-small" onClick={(event) => afterClick(event, () => setShowDiagnostics(false))}>Cerrar</button>
           </div>
         </section>
       )}
@@ -211,18 +259,32 @@ export function WorldScreen() {
       {(message || !catalog || !npcs) && (
         <div className="world-overlay" role="status">
           <p>{message ?? 'Cargando el barrio…'}</p>
-          {(status.state === 'error' || status.state === 'sin-3d') && (
+          {catalogError ? (
+            <div className="actions">
+              <button type="button" className="btn" onClick={reloadCatalog}>Reintentar</button>
+              <a className="btn btn-ghost" href={paths.resumen}>Volver al menú</a>
+            </div>
+          ) : (status.state === 'error' || status.state === 'sin-3d') && (
             <a className="btn" href={paths.resumen}>Volver al menú</a>
           )}
         </div>
       )}
 
       {paused && (
-        <div className="world-overlay" role="dialog" aria-modal="true" aria-labelledby="world-pause-title">
+        <div ref={pauseDialogRef} className="world-overlay" role="dialog" aria-modal="true" aria-labelledby="world-pause-title">
           <div className="world-pause">
             <h2 id="world-pause-title">Pausa</h2>
             <div className="actions">
-              <button type="button" className="btn" autoFocus onClick={() => setPaused(false)}>Continuar</button>
+              <button
+                type="button"
+                className="btn"
+                onClick={(event) => {
+                  if (event.detail > 0) resumeToGame.current = true
+                  setPaused(false)
+                }}
+              >
+                Continuar
+              </button>
               <a className="btn btn-ghost" href={paths.resumen}>Volver al menú</a>
             </div>
           </div>

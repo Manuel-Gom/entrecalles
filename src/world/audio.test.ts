@@ -275,4 +275,46 @@ describe('AudioEngine', () => {
     expect(ctx.resume).toHaveBeenCalledTimes(2)
     audio.dispose()
   })
+
+  it('en pausa, una tecla o un clic no reactivan el sonido (el desbloqueo del navegador no lo reanuda)', async () => {
+    const { audio, ctx } = engine()
+    audio.unlock()
+    audio.suspend()
+    await Promise.resolve()
+    audio.unlock()
+    await Promise.resolve()
+    expect(audio.state).toBe('suspended')
+    audio.resume()
+    await Promise.resolve()
+    expect(audio.state).toBe('running')
+    audio.dispose()
+    expect(ctx.close).toHaveBeenCalled()
+  })
+
+  it('si se pausa antes de que exista el contexto, nace suspendido', async () => {
+    const { audio } = engine()
+    audio.suspend()
+    audio.unlock()
+    await Promise.resolve()
+    expect(audio.state).toBe('suspended')
+    audio.resume()
+    await Promise.resolve()
+    expect(audio.state).toBe('running')
+    audio.dispose()
+  })
+
+  it('mantiene un único temporizador de acentos y lo libera al salir', async () => {
+    vi.useFakeTimers()
+    try {
+      const { audio } = engine()
+      audio.unlock()
+      expect(vi.getTimerCount()).toBe(1)
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect(vi.getTimerCount()).toBe(1)
+      audio.dispose()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

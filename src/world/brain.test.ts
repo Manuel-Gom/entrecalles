@@ -255,10 +255,15 @@ describe('evitación entre actores', () => {
   it('12 vecinos a la vez no se atraviesan ni se meten en las paredes', () => {
     const brains = walkers(12, ['pasear', 'correr', 'pasear', 'sentarse', 'esperar', 'escaparate'])
     let closest = Infinity
+    // el peor caso se acumula y se comprueba al final: un expect por paso hace la prueba lenta con cobertura
+    let tightest = { clearance: Infinity, vecino: -1 }
     crowd(brains, 600, [], () => {
       for (let i = 0; i < brains.length; i++) {
         const a = brains[i]
-        if (a.phase === 'camino') expect(clearance(a.x, a.z), `vecino ${i} dentro de un obstáculo`).toBeGreaterThan(0.1)
+        if (a.phase === 'camino') {
+          const room = clearance(a.x, a.z)
+          if (room < tightest.clearance) tightest = { clearance: room, vecino: i }
+        }
         for (let j = i + 1; j < brains.length; j++) {
           const b = brains[j]
           // dos sentados en el mismo banco, o una pareja hablando, están cerca a propósito
@@ -267,6 +272,7 @@ describe('evitación entre actores', () => {
         }
       }
     })
+    expect(tightest.clearance, `vecino ${tightest.vecino} dentro de un obstáculo`).toBeGreaterThan(0.1)
     expect(closest).toBeGreaterThan(0.3)
   })
 

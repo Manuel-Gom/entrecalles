@@ -165,7 +165,7 @@ export function readSave(): SaveData {
     const parsed: unknown = JSON.parse(raw)
     if (!isRecord(parsed)) return emptySave()
     const characters = parseCharacters(parsed.characters)
-    const difficulty = typeof parsed.difficulty === 'string' && parsed.difficulty in DIFFICULTIES ? (parsed.difficulty as Difficulty) : 'equilibrada'
+    const difficulty = typeof parsed.difficulty === 'string' && Object.hasOwn(DIFFICULTIES, parsed.difficulty) ? (parsed.difficulty as Difficulty) : 'equilibrada'
     return {
       version: 2,
       characters,
