@@ -3,16 +3,20 @@
 //   marcha: tira de fotogramas de un paso andando y corriendo (vista de perfil)
 //   calle:  vista general del barrio tras unos minutos de simulación
 //   parque: fuente, árboles y farolas de Blender a escala de juego
-//   ciclo:  vistas del parque de día y de noche con el reloj fijado
+//   ciclo:  vistas del parque de día y de noche con el reloj fijado, y la iluminación cerca, en una calle, a lo lejos
+//           y desde arriba, con el brillo medio de cada vista (--etiqueta=antes añade un sufijo a las capturas)
 //   pnj:    un PNJ de cada actividad (sentado, charlando, mirando un escaparate, esperando...)
 // Las imágenes salen en docs/previews/web/mundo-*.png
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright'
 
-const scenario = process.argv[2] ?? 'calle'
-const body = process.argv[3] ?? 'marcos'
+const posicionales = process.argv.slice(2).filter((a) => !a.startsWith('--'))
+const scenario = posicionales[0] ?? 'calle'
+const body = posicionales[1] ?? 'marcos'
+// --etiqueta=antes: las capturas de ciclo salen con ese sufijo, para comparar antes y después de un cambio
+const etiqueta = process.argv.find((a) => a.startsWith('--etiqueta='))?.split('=')[1]
 const PORT = 4200 + Math.floor(Math.random() * 700)
 const OUT = path.join(process.cwd(), 'docs/previews/web')
 fs.mkdirSync(OUT, { recursive: true })
@@ -145,6 +149,83 @@ if (scenario === 'marcha') {
     w.orbitCamera((w.stats().clock.sunAzimuth * Math.PI) / 180, -1.15, 2.2)
   })
   await shot('ciclo-noche')
+
+  // la iluminación de cerca, a lo largo de una calle, a lo lejos y desde arriba, de día y de noche (con su brillo medio)
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await page.evaluate(() => {
+    const w = window.__world()
+    w.focusOverride = null
+    w.cameraClip = true
+  })
+  const vistas = {
+    // junto a la farola más cercana a la plaza
+    cerca: () => {
+      const w = window.__world()
+      const lamp = [...w.layout.lamps].sort((a, b) => Math.hypot(a.x, a.z - 16.7) - Math.hypot(b.x, b.z - 16.7))[0]
+      w.teleport(lamp.x + 1.4, lamp.z + 1.4, 0)
+      w.orbitCamera(0.8, 0.22, 5)
+    },
+    // desde un cruce, a lo largo de la calle hasta el borde (~45 m)
+    calle: () => {
+      const w = window.__world()
+      w.teleport(20, 20, 0)
+      w.orbitCamera(-Math.PI / 2, 0.12, 5)
+    },
+    // desde la plaza hacia la manzana sur y la calle del borde (~50 m), casi a ras de suelo
+    lejos: () => {
+      const w = window.__world()
+      w.teleport(0, 16.7, 0)
+      w.orbitCamera(Math.PI, 0.05, 4)
+    },
+    general: () => {
+      const w = window.__world()
+      w.cameraClip = false
+      w.teleport(0, 0, 0)
+      w.orbitCamera(0.6, 0.8, 120)
+    },
+  }
+  const brillos = []
+  for (const [momento, hora] of [['dia', '2025-06-21T13:00:00+02:00'], ['noche', '2025-06-21T23:30:00+02:00']]) {
+    for (const [vista, colocar] of Object.entries(vistas)) {
+      await page.evaluate((h) => {
+        const w = window.__world()
+        w.cameraClip = true
+        w.setClockOverride(h)
+      }, hora)
+      await page.evaluate(colocar)
+      // las luces cercanas se recolocan al mover al protagonista
+      await page.evaluate(() => window.__world().advance(0.5))
+      const brillo = await page.evaluate(() => {
+        // se dibuja y se lee en el mismo paso, antes de que el navegador vacíe el lienzo
+        window.__world().renderNow()
+        const source = document.querySelector('.world-canvas canvas')
+        const copy = document.createElement('canvas')
+        copy.width = 160
+        copy.height = 90
+        const context = copy.getContext('2d')
+        context.drawImage(source, 0, 0, copy.width, copy.height)
+        const { data } = context.getImageData(0, 0, copy.width, copy.height)
+        const media = (desde, hasta) => {
+          let sum = 0
+          let n = 0
+          for (let y = Math.floor(copy.height * desde); y < Math.floor(copy.height * hasta); y++) {
+            for (let x = 0; x < copy.width; x++) {
+              const i = (y * copy.width + x) * 4
+              sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
+              n++
+            }
+          }
+          return sum / n
+        }
+        // la franja central es lo que está a media y larga distancia
+        return { total: media(0, 1), franja: media(0.35, 0.65) }
+      })
+      brillos.push({ momento, vista, total: Math.round(brillo.total), franja: Math.round(brillo.franja) })
+      await shot(`ciclo-${vista}-${momento}${etiqueta ? `-${etiqueta}` : ''}`)
+    }
+  }
+  console.table(brillos)
+  fs.writeFileSync(path.join(OUT, `mundo-ciclo-brillo${etiqueta ? `-${etiqueta}` : ''}.json`), JSON.stringify(brillos, null, 2))
 } else if (scenario === 'parque') {
   await page.evaluate(() => {
     const w = window.__world()
@@ -251,7 +332,8 @@ if (scenario === 'marcha') {
 }
 
 await browser.close()
-server.kill()
-spawn('taskkill', ['/pid', String(server.pid), '/T', '/F'], { shell: true })
+// en Windows se mata todo el árbol (npx y vite) antes que nada: matando primero el intérprete, vite quedaba huérfano
+if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(server.pid), '/T', '/F'])
+else server.kill()
 console.log(errors.length ? `Errores:\n${errors.join('\n')}` : 'Sin errores de consola')
 process.exit(0) // el servidor deja tuberías abiertas: sin esto el proceso no termina

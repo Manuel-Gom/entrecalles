@@ -23,15 +23,17 @@ Se usa la Gamepad API del navegador con el mapeo **estándar** del W3C: lo cumpl
 
 Arriba a la derecha se elige la calidad:
 
-| | Resolución | Sombras |
-|---|---|---|
-| Baja | 0,85 × | no |
-| Media (por defecto) | 1 × | sí (1024) |
-| Alta | hasta 2 × | sí (2048) |
+| | Resolución | Sombras | Luces reales de farola (de noche) |
+|---|---|---|---|
+| Baja | 0,85 × | no | 0 |
+| Media (por defecto) | 1 × | sí (1024) | 4 |
+| Alta | hasta 2 × | sí (2048) | 8 |
 
 La elección se recuerda en este dispositivo. El número de FPS de arriba es un botón (o `F3`): abre un **diagnóstico** con los FPS medios, los tirones (el 1 % de fotogramas más lento y el peor), la calidad, la resolución, el dispositivo de entrada, la tarjeta gráfica, los triángulos y las llamadas de dibujo, con un botón **Copiar** para pegarlo al comparar mediciones.
 
-Para medir con el mismo recorrido en las tres calidades: `npm run build && node tools/revision/rendimiento.mjs --ventana` (con `--ventana` usa tu tarjeta gráfica; sin ella dibuja por software y los números no valen). Para comparar entre equipos o versiones, usa siempre el mismo navegador, resolución y número de vecinos, y apunta la tarjeta gráfica que sale en el diagnóstico.
+Para medir con el mismo recorrido en las tres calidades: `npm run build && node tools/revision/rendimiento.mjs --ventana` (con `--ventana` usa tu tarjeta gráfica; sin ella dibuja por software y los números no valen). Para comparar entre equipos o versiones, usa siempre el mismo navegador, resolución y número de vecinos, y apunta la tarjeta gráfica que sale en el diagnóstico. Como el reloj del barrio empieza con la hora del ordenador, fija la hora para que las medidas se puedan repetir: por ejemplo `--ventana --sin-limite --resolucion=1920x1080 --sitios=centro,borde --hora=23:30 --etiqueta=noche` mide de noche en la plaza y en el borde, sin el tope de FPS del monitor, y guarda `docs/previews/web/rendimiento-noche.json` (las opciones están al principio de la herramienta). Sin tope, Chromium da un fotograma lento cada ~150 ms aunque no pase nada: con `--sin-limite` valen los FPS medios, no los tirones. Los tirones se miden sin esa opción; `--anochecer` mide el peor fotograma al encenderse y apagarse las farolas, en frío.
+
+Cambiar **cuántas** luces hay en la escena (sale la luna, se pone el sol, se encienden las farolas) obliga a recompilar todos los materiales: más de un segundo de parón en una gráfica integrada. Por eso el barrio prepara el nuevo estado en segundo plano y cambia cuando está listo; cambiar la **intensidad** de una luz no cuesta nada. Si añades luces, sigue la misma regla.
 
 ## Cómo está hecho
 
@@ -101,7 +103,7 @@ Convenciones (la lee `props.ts`; las comprueba `tests/mundo-modelos.test.ts`):
 - Los **objetos vacíos** son datos: `COL_*` caja de colisión (la escala es la mitad del tamaño; los que empiezan por `COL_pared` tapan además la vista de la cámara), `SEAT_*` plaza (mira hacia donde apunta), `LUZ_*` punto de luz, `ENTRADA`/`SALIDA`/`PUERTA_CENTRO` puntos de referencia. Un objeto llamado `PUERTA_HOJA` es la hoja de una puerta, con la bisagra como origen.
 - Los datos de los modelos se **comprueban contra el código**: las plazas del banco coinciden con las de la ciudad, se puede trazar una ruta libre para cada asiento, cada silla mira a una mesa, y las sillas, taburetes, estantería y planta-lámpara tienen colisión. Los taburetes dejan más espacio frente a la barra y la sala no tiene huecos.
 - La fuente, los árboles y las farolas usan modelos de Blender instanciados; sus colisiones siguen saliendo del diseño del barrio. Edificios y calles aún se generan por código.
-- El reloj empieza con la hora local del ordenador y avanza a **un minuto de juego por cada segundo real**; se muestra como HH:MM en la barra superior y se detiene al pausar. El sol, la iluminación, el cielo y la niebla cambian gradualmente. La fase lunar se calcula con la fecha del juego y selecciona uno de cuatro modelos detallados. Hasta 24 farolas cercanas proyectan luz local de intensidad moderada (18) y alcance de 28 m, con atenuación física inversa al cuadrado; el vidrio de las luminarias también reduce su brillo emisivo por la noche para evitar sobreexponer personajes y edificios. Para mantener el rendimiento, el agua tiene reflejos animados en el shader, no una simulación física de fluidos.
+- El reloj empieza con la hora local del ordenador y avanza a **un minuto de juego por cada segundo real**; se muestra como HH:MM en la barra superior y se detiene al pausar. El sol, la iluminación, el cielo y la niebla cambian gradualmente. La fase lunar se calcula con la fecha del juego y selecciona uno de cuatro modelos detallados. De noche, cada farola pinta un **charco de luz** cálido en el suelo (todos en una sola llamada de dibujo, con niebla), que es lo que deja ver iluminadas las calles lejanas; además, las farolas más cercanas al protagonista (0, 4 u 8 según la calidad) proyectan **luz real** de intensidad moderada (18) y alcance de 28 m, con atenuación física inversa al cuadrado, que se apaga y se enciende con un fundido corto al pasar de una farola a otra. Son pocas a propósito: cada luz real se calcula en cada píxel iluminado y 24 bajaban los FPS a la mitad en una gráfica integrada (ver `src/world/streetLights.ts`). El vidrio de las luminarias también reduce su brillo emisivo por la noche para evitar sobreexponer personajes y edificios. Para mantener el rendimiento, el agua tiene reflejos animados en el shader, no una simulación física de fluidos.
 - La cámara puede inclinarse hacia arriba para mirar el cielo y ver el recorrido de los cuerpos celestes.
 
 ### Vecinos y charlas
@@ -133,4 +135,4 @@ Navegador de escritorio con WebGL 2 y Web Audio (Chrome, Edge, Firefox o Safari 
 - Probar con mandos reales: las pruebas usan un mando simulado (ver [pruebas.md](pruebas.md)); la validación con un mando de Xbox y uno de PlayStation en los navegadores de destino, y las mediciones de rendimiento, las tiene que hacer quien tenga el equipo.
 
 ## Revisar el resultado
-`npm run build && node tools/revision/mundo.mjs <marcha|calle|parque|ciclo|pnj|pnj-sentado|sentado|tienda|interior> [cuerpo]` deja capturas en `docs/previews/web/` (que no se versiona). `parque` saca una vista de detalle y otra general de los modelos de Blender; `ciclo` captura el parque de día y de noche. Ver [pruebas.md](pruebas.md).
+`npm run build && node tools/revision/mundo.mjs <marcha|calle|parque|ciclo|pnj|pnj-sentado|sentado|tienda|interior> [cuerpo]` deja capturas en `docs/previews/web/` (que no se versiona). `parque` saca una vista de detalle y otra general de los modelos de Blender; `ciclo` captura el parque de día y de noche y, además, la iluminación cerca de una farola, a lo largo de una calle, a lo lejos y desde arriba, con el brillo medio de cada vista (`--etiqueta=antes` añade un sufijo a las capturas para comparar antes y después de un cambio). Ver [pruebas.md](pruebas.md).

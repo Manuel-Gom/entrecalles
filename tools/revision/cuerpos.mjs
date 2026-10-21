@@ -1,6 +1,6 @@
 // Muestra en el visor 3D del navegador todos los cuerpos con su atuendo por defecto y genera una hoja de contacto.
 // Uso: npm run build && node tools/revision/cuerpos.mjs [hombre|mujer]
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright'
@@ -51,7 +51,8 @@ for (const body of bodies) {
   console.log(label)
 }
 await browser.close()
-server.kill()
-spawn('taskkill', ['/pid', String(server.pid), '/T', '/F'], { shell: true })
+// en Windows se mata todo el árbol (npx y vite) antes que nada: matando primero el intérprete, vite quedaba huérfano
+if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(server.pid), '/T', '/F'])
+else server.kill()
 console.log(errors.length ? `Errores:\n${errors.join('\n')}` : 'Sin errores de consola')
 fs.writeFileSync(path.join(tmp, 'lista.txt'), files.join('\n'))

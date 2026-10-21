@@ -45,10 +45,12 @@ test.describe('el barrio', () => {
 
     await page.keyboard.down('KeyW')
     await page.waitForFunction(() => window.__world!()!.stats().player.animation === 'anda', null, { timeout: 60_000 })
+    await page.waitForFunction((z) => Math.abs(window.__world!()!.stats().player.z - z) > 1, inicio.player.z, { timeout: 60_000 })
+    // la velocidad de marcha se mide ya lanzado: justo al pasar a «anda» todavía está acelerando
     const andando = await stats(page)
+    expect(andando.player.animation).toBe('anda')
     expect(andando.player.speed).toBeGreaterThan(0.5)
     expect(andando.player.speed).toBeLessThan(1.7)
-    await page.waitForFunction((z) => Math.abs(window.__world!()!.stats().player.z - z) > 1, inicio.player.z, { timeout: 60_000 })
 
     await page.keyboard.down('Shift')
     await page.waitForFunction(() => window.__world!()!.stats().player.animation === 'corre', null, { timeout: 60_000 })
@@ -226,7 +228,9 @@ test.describe('el barrio', () => {
       await page.waitForFunction(() => window.__world?.()?.stats().state === 'listo', null, { timeout: 120_000 })
       await page.getByRole('link', { name: 'Entrecalles, inicio' }).click()
       await expect(page).toHaveURL(/#\/$/)
-      await expect.poll(() => page.evaluate(() => window.__world?.() ?? null)).toBeNull()
+      // solo si existe: devolver el mundo entero obliga a Playwright a serializar toda la escena 3D, y con el equipo
+      // cargado una sola consulta (la de antes de liberarse) agotaba la espera
+      await expect.poll(() => page.evaluate(() => Boolean(window.__world?.())), { message: 'el barrio sigue vivo tras salir' }).toBe(false)
       await expect(page.locator('.world')).toHaveCount(0)
     }
   })

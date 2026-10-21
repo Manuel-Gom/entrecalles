@@ -97,21 +97,130 @@ test.describe('edificios: la puerta del café y su interior', () => {
     })
     expect(day.clock.night).toBe(false)
     expect(day.streetLights.active).toBe(0)
+    expect(day.streetLights.poolsVisible).toBe(false)
 
     const night = await page.evaluate(() => {
       const world = window.__world!()!
       world.setClockOverride('2025-06-21T23:00:00+02:00')
-      return world.stats()
+      return { ...world.stats(), lamps: world.layout.lamps.length }
     })
     expect(night.clock.night).toBe(true)
-    expect(night.streetLights.active).toBeGreaterThan(0)
-    expect(night.streetLights.intensity).toBeGreaterThanOrEqual(18)
-    expect(night.streetLights.intensity).toBeLessThanOrEqual(18)
-    expect(night.streetLights.active).toBeGreaterThanOrEqual(24)
-    expect(night.streetLights.range).toBeGreaterThanOrEqual(28)
+    // calidad media (la de por defecto): 4 luces reales cerca y un charco de luz bajo cada farola
+    expect(night.streetLights.active).toBe(4)
+    expect(night.streetLights.lamps).toHaveLength(4)
+    expect(night.streetLights.pools).toBe(night.lamps)
+    expect(night.streetLights.poolsVisible).toBe(true)
+    // y un resplandor en la fachada de detrás de las farolas que tienen edificio (no las del parque)
+    expect(night.streetLights.facadeGlows).toBeGreaterThan(night.lamps / 2)
+    expect(night.streetLights.facadeGlows).toBeLessThan(night.lamps)
+    expect(night.streetLights.intensity).toBe(18)
+    expect(night.streetLights.range).toBe(28)
     expect(night.streetLights.decay).toBe(2)
     expect(night.waterAnimated).toBe(true)
     expect(night.clock.moonPhase).toBe('menguante')
+  })
+
+  test('de noche, la calidad decide cuántas luces reales hay; los charcos de luz están en todas', async ({ page, sembrar }) => {
+    await sembrar(withCharacters)
+    await entrar(page)
+    const porCalidad = await page.evaluate(() => {
+      const world = window.__world!()!
+      world.setPaused(true)
+      world.setClockOverride('2025-06-21T23:00:00+02:00')
+      return (['baja', 'media', 'alta'] as const).map((quality) => {
+        world.setQuality(quality)
+        const { active, pools, poolsVisible } = world.stats().streetLights
+        return { quality, active, pools, poolsVisible, lamps: world.layout.lamps.length }
+      })
+    })
+    expect(porCalidad.map((q) => q.active)).toEqual([0, 4, 8])
+    for (const q of porCalidad) {
+      expect(q.pools, q.quality).toBe(q.lamps)
+      expect(q.poolsVisible, q.quality).toBe(true)
+    }
+  })
+
+  test('las luces reales acompañan al protagonista: siempre en las farolas más cercanas', async ({ page, sembrar }) => {
+    await sembrar(withCharacters)
+    await entrar(page)
+    for (const [x, z] of [[0, 16.7], [-56.7, -56.7], [56.7, 20]]) {
+      const { lit, nearest } = await page.evaluate(([px, pz]) => {
+        const world = window.__world!()!
+        world.setPaused(true)
+        world.setQuality('alta')
+        world.setClockOverride('2025-06-21T23:00:00+02:00')
+        world.teleport(px, pz, 0)
+        // da tiempo a recalcular las cercanas y a terminar el fundido
+        world.advance(2)
+        const lamps = world.layout.lamps
+        const nearest = lamps
+          .map((lamp, index) => ({ index, distance: Math.hypot(lamp.x - px, lamp.z - pz) }))
+          .sort((a, b) => a.distance - b.distance || a.index - b.index)
+          .slice(0, 8)
+          .map((item) => item.index)
+        return { lit: world.stats().streetLights.lamps, nearest }
+      }, [x, z])
+      expect([...lit].sort((a, b) => a - b), `en ${x}, ${z}`).toEqual([...nearest].sort((a, b) => a - b))
+    }
+  })
+
+  test('de noche los charcos de luz iluminan lo lejano', async ({ page, sembrar }) => {
+    await sembrar(withCharacters)
+    await entrar(page)
+    const brillo = await page.evaluate(() => {
+      const world = window.__world!()!
+      world.setPaused(true)
+      world.setClockOverride('2025-06-21T23:30:00+02:00')
+      // desde la plaza hacia la manzana sur y la calle del borde, casi a ras de suelo
+      world.teleport(0, 16.7, 0)
+      world.orbitCamera(Math.PI, 0.05, 4)
+      world.advance(0.5)
+      // se dibuja y se lee en el mismo paso, antes de que el navegador vacíe el lienzo
+      const medir = () => {
+        world.renderNow()
+        const source = document.querySelector<HTMLCanvasElement>('.world-canvas canvas')!
+        const copy = document.createElement('canvas')
+        copy.width = 160
+        copy.height = 90
+        const context = copy.getContext('2d')!
+        context.drawImage(source, 0, 0, copy.width, copy.height)
+        // la franja central de la imagen: lo que está a media y larga distancia
+        const { data } = context.getImageData(0, Math.floor(copy.height * 0.35), copy.width, Math.floor(copy.height * 0.3))
+        let sum = 0
+        for (let i = 0; i < data.length; i += 4) sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
+        return sum / (data.length / 4)
+      }
+      world.showLightPools = false
+      world.advance(0.05)
+      const sin = medir()
+      world.showLightPools = true
+      world.advance(0.05)
+      const con = medir()
+      return { sin, con }
+    })
+    expect(brillo.con, `con charcos ${brillo.con.toFixed(1)}, sin ${brillo.sin.toFixed(1)}`).toBeGreaterThan(brillo.sin + 1)
+  })
+
+  test('cambiar la calidad de noche no acumula geometrías ni texturas', async ({ page, sembrar }) => {
+    await sembrar(withCharacters)
+    await entrar(page)
+    const memoria = await page.evaluate(() => {
+      const world = window.__world!()!
+      world.setPaused(true)
+      world.setClockOverride('2025-06-21T23:00:00+02:00')
+      const medir = (quality: 'baja' | 'media' | 'alta') => {
+        world.setQuality(quality)
+        world.advance(0.1)
+        world.renderNow()
+        const { geometries, textures } = world.stats()
+        return { geometries, textures }
+      }
+      const antes = medir('media')
+      for (let i = 0; i < 10; i++) medir((['baja', 'alta', 'media'] as const)[i % 3])
+      return { antes, despues: medir('media') }
+    })
+    expect(memoria.despues.geometries).toBeLessThanOrEqual(memoria.antes.geometries)
+    expect(memoria.despues.textures).toBeLessThanOrEqual(memoria.antes.textures)
   })
 
   test('delante de la puerta se ofrece entrar; lejos o de lado, no', async ({ page, sembrar }) => {

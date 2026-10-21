@@ -23,7 +23,12 @@ interface WorldHandle {
     cameraYaw: number
     mode: 'calle' | 'interior'
     transitioning: boolean
-    scenery: { benches: boolean; storefront: boolean }
+    scenery: { benches: boolean; storefront: boolean; fountain: boolean; trees: boolean; lamps: boolean; sun: boolean; moon: boolean }
+    gameTime: string
+    clock: { hour: number; night: boolean; daylight: number; sunAltitude: number; sunAzimuth: number; moonPhase: string; moonIllumination: number }
+    /** luces reales de farola (pocas, las más cercanas) y charcos de luz pintados en el suelo (uno por farola) */
+    streetLights: { active: number; lamps: number[]; intensity: number; range: number; decay: number; pools: number; poolsVisible: boolean; facadeGlows: number }
+    waterAnimated: boolean
     door: { openness: number; x: number; z: number } | null
     npcs: {
       total: number
@@ -37,7 +42,7 @@ interface WorldHandle {
     calls: number
     triangles: number
   }
-  layout: { benches: { x: number; z: number; yaw: number }[]; buildings: { box: { minX: number; maxX: number; minZ: number; maxZ: number } }[]; obstacles: { minX: number; maxX: number; minZ: number; maxZ: number }[] }
+  layout: { lamps: { x: number; z: number }[]; benches: { x: number; z: number; yaw: number }[]; buildings: { box: { minX: number; maxX: number; minZ: number; maxZ: number } }[]; obstacles: { minX: number; maxX: number; minZ: number; maxZ: number }[] }
   advance(seconds: number): void
   teleport(x: number, z: number, yaw?: number): void
   interact(): void
@@ -48,6 +53,10 @@ interface WorldHandle {
   orbitCamera(yaw: number, pitch: number, distance: number): void
   inputOverride: { moveX: number; moveZ: number; run: boolean } | null
   setPaused(paused: boolean): void
+  setClockOverride(isoDate: string | null): void
+  renderNow(): void
+  cameraClip: boolean
+  showLightPools: boolean
 }
 
 interface Window {

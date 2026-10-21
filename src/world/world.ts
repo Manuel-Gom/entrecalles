@@ -19,6 +19,7 @@ import { PairDialogue } from './dialogue'
 import { Interior } from './interior'
 import { Storefront } from './storefront'
 import { disposeProp, instanceProp, loadProp, placementMatrix, type Prop } from './props'
+import { LAMP_HEIGHT, LAMP_LIGHT, LampAssigner, REAL_LAMPS, buildFacadeGlows, buildLightPools, disposeLightPools, facadeGlows, lampHead, lampYaw, nearestLamps } from './streetLights'
 import { SeatSession, findSeat, makeSeatRoute } from './seating'
 import { PLAYER_ID, PLAYER_RADIUS, nearestAngle, newPlayer, stepPlayer, type PlayerInput, type PlayerState } from './player'
 import { advanceGameClock, celestialPosition, celestialState, formatGameClock, lunarPhase, skyColors, type CelestialState, type MoonPhase } from './dayNight'
@@ -106,7 +107,6 @@ const GROUND = 0.025
 const NPC_ANIMATE_DISTANCE = 48
 const NPC_HIDE_DISTANCE = 80
 const SKY = 0xbcd2e4
-const NIGHT_LAMPS = 24
 const MOON_MODELS: Record<MoonPhase, string> = {
   nueva: 'luna_nueva',
   creciente: 'luna_creciente',
@@ -130,6 +130,13 @@ const QUALITY: Record<Quality, { pixelRatio: number; shadows: boolean; shadowSiz
   alta: { pixelRatio: 2, shadows: true, shadowSize: 2048 },
 }
 
+/** Qué luces hay en la escena: el sol (con su sombra), la luna y las luces reales de las farolas. */
+interface LightingState {
+  sun: boolean
+  moon: boolean
+  lamps: boolean
+}
+
 /** El barrio jugable: escena, jugador, PNJ y bucle. Se crea al entrar en la pantalla y se libera al salir. */
 export class World {
   readonly layout: CityLayout
@@ -142,6 +149,13 @@ export class World {
   private readonly sun = new THREE.DirectionalLight(0xfff0d8, 2.6)
   private readonly moon = new THREE.DirectionalLight(0xc5d4f2, 0.25)
   private readonly lampLights: THREE.PointLight[] = []
+  private lampAssigner = new LampAssigner(0)
+  private wantedLamps: number[] = []
+  private lightPools: THREE.InstancedMesh | null = null
+  private facadeGlow: THREE.InstancedMesh | null = null
+  /** qué luces hay en la escena; va por detrás del reloj mientras se preparan los materiales del cambio */
+  private lighting: LightingState = { sun: true, moon: false, lamps: false }
+  private lightingPreparing = false
   private readonly lampMaterials: THREE.MeshStandardMaterial[] = []
   private city: CityMeshes | null = null
   /** todo lo de la calle (ciudad, bancos, fachada y vecinos): se oculta al entrar en un edificio */
@@ -209,6 +223,8 @@ export class World {
   inputOverride: PlayerInput | null = null
   focusOverride: { x: number; z: number } | null = null
   cameraClip = true
+  /** Solo para pruebas: false oculta la luz pintada de las farolas (charcos y resplandores), para comparar cuánto iluminan. */
+  showLightPools = true
   /** Solo para revisión visual: fuerza al protagonista a estar sentado o hablando. */
   playerPoseOverride: { sit: number; talk: number } | null = null
 
@@ -303,8 +319,31 @@ export class World {
 
     this.city = buildCityMeshes(this.layout)
     this.exterior.add(this.city.group)
+    // un charco de luz bajo cada farola: lo que deja ver iluminadas las calles lejanas de noche
+    this.lightPools = buildLightPools(this.layout.lamps)
+    this.exterior.add(this.lightPools)
+    // y un resplandor en la fachada de detrás: las paredes iluminadas se ven desde lejos
+    this.facadeGlow = buildFacadeGlows(facadeGlows(this.layout.lamps, this.layout.buildings))
+    this.exterior.add(this.facadeGlow)
     scene.add(this.exterior)
     this.updateCelestial(this.gameClock)
+  }
+
+  /** Tantas luces reales como pida la calidad, en las farolas más cercanas (ver streetLights.ts). */
+  private syncLampLights() {
+    const count = REAL_LAMPS[this.quality]
+    while (this.lampLights.length < count) {
+      const light = new THREE.PointLight(LAMP_LIGHT.color, LAMP_LIGHT.intensity, LAMP_LIGHT.distance, LAMP_LIGHT.decay)
+      light.visible = false
+      this.exterior.add(light)
+      this.lampLights.push(light)
+    }
+    while (this.lampLights.length > count) this.lampLights.pop()?.removeFromParent()
+    // las luces nuevas toman la visibilidad del estado actual (si ya es de noche, encendidas)
+    this.applyLighting()
+    this.lampAssigner = new LampAssigner(count)
+    this.lampRefresh = 0
+    this.updateNightLighting(0)
   }
 
   private applyQuality() {
@@ -327,6 +366,7 @@ export class World {
         else if (material) material.needsUpdate = true
       })
     }
+    this.syncLampLights()
     this.resize()
   }
 
@@ -429,13 +469,7 @@ export class World {
           })
           this.sceneryProps.push(prop)
           this.sceneryLoaded.add('farola')
-          this.exterior.add(instanceProp(prop, this.layout.lamps.map((lamp, index) => placementMatrix(lamp.x, 0, lamp.z, index % 2 ? Math.PI : 0))))
-          for (let i = 0; i < NIGHT_LAMPS; i++) {
-            const light = new THREE.PointLight(0xffc779, 18, 28, 2)
-            light.visible = false
-            this.exterior.add(light)
-            this.lampLights.push(light)
-          }
+          this.exterior.add(instanceProp(prop, this.layout.lamps.map((lamp, index) => placementMatrix(lamp.x, 0, lamp.z, lampYaw(index)))))
           if (this.city) this.city.lampMesh.visible = false
         })
         .catch(failed('las farolas')),
@@ -858,49 +892,102 @@ export class World {
     if (this.hemi) {
       this.hemi.color.setHex(colors.sky)
       this.hemi.groundColor.setHex(colors.ground)
-      this.hemi.intensity = 0.18 + this.celestial.daylight * 0.72
+      // de noche queda algo de luz de cielo y luna: las siluetas lejanas se leen sin que deje de ser de noche (de día, igual que antes)
+      this.hemi.intensity = 0.28 + this.celestial.daylight * 0.62
     }
-    this.scene.environmentIntensity = 0.12 + this.celestial.daylight * 0.38
+    this.scene.environmentIntensity = 0.16 + this.celestial.daylight * 0.34
+    // aquí solo la intensidad; cuántas luces hay (sol, luna, farolas) lo decide updateLighting
     this.sun.intensity = this.celestial.daylight * 2.6
     this.sun.color.setHex(this.celestial.sunAltitude < 0.12 ? 0xffc18a : 0xfff0d8)
-    this.sun.visible = this.celestial.sunAltitude > -0.08
-    this.sun.castShadow = this.quality !== 'baja' && this.celestial.daylight > 0.08
     const moonAboveHorizon = this.celestial.moonDirection.y > -0.04
-    this.moon.intensity = moonAboveHorizon ? (1 - this.celestial.daylight) * 0.52 : 0
-    this.moon.visible = moonAboveHorizon
-    if (this.sunModel) this.sunModel.root.visible = this.sun.visible
+    // la luna solo se nota de noche: se desvanece del todo antes de quitarla de la escena, para que no se note el cambio
+    this.moon.intensity = moonAboveHorizon ? Math.max(0, 1 - this.celestial.daylight * 2) * 0.52 : 0
+    this.applyLighting()
+    if (this.sunModel) this.sunModel.root.visible = this.celestial.sunAltitude > -0.08
     for (const [phase, prop] of this.moonModels) prop.root.visible = moonAboveHorizon && phase === this.moonPhase
+  }
+
+  /** Pone en la escena las luces del estado aplicado (o del que se está preparando). */
+  private applyLighting(state = this.lighting) {
+    if (this.inside) return
+    this.sun.visible = state.sun
+    this.moon.visible = state.moon
+    for (const light of this.lampLights) light.visible = state.lamps
+  }
+
+  /**
+   * Cambiar cuántas luces hay (sale la luna, se pone el sol, se encienden las farolas) obliga a recompilar todos los
+   * materiales: más de un segundo de parón en el primer fotograma. Jugando, el nuevo estado se compila antes en segundo
+   * plano y se aplica cuando está listo; sin tiempo de por medio (reloj fijado, cambio de calidad) se aplica ya.
+   */
+  private updateLighting(immediate: boolean) {
+    if (this.inside) return
+    const want: LightingState = {
+      sun: this.celestial.sunAltitude > -0.08,
+      moon: this.celestial.moonDirection.y > -0.04 && this.celestial.daylight < 0.5,
+      lamps: this.celestial.night,
+    }
+    if (want.sun === this.lighting.sun && want.moon === this.lighting.moon && want.lamps === this.lighting.lamps) return
+    const renderer = this.renderer
+    if (immediate || !renderer) {
+      this.lighting = want
+      this.applyLighting()
+      return
+    }
+    if (this.lightingPreparing) return
+    this.lightingPreparing = true
+    this.applyLighting(want)
+    // compile() deja compilando (en paralelo, si el navegador lo permite) los materiales con las luces del nuevo estado
+    const pending = renderer.compile(this.scene, this.camera)
+    this.applyLighting()
+    // No se usa compileAsync: falla sin remedio si un material se libera mientras espera (al salir del barrio o del café)
+    let tries = 0
+    const check = () => {
+      if (this.disposed) return
+      for (const material of pending) {
+        const program = (renderer.properties.get(material) as { currentProgram?: { isReady(): boolean } }).currentProgram
+        if (!program || program.isReady()) pending.delete(material)
+      }
+      // con un tope: si algo no llega a estar listo, se cambia igual (como mucho, un tirón como el de antes)
+      if (pending.size > 0 && ++tries < 120) {
+        window.setTimeout(check, 25)
+        return
+      }
+      this.lightingPreparing = false
+      this.lighting = want
+      this.applyLighting()
+    }
+    window.setTimeout(check, 25)
   }
 
   private updateNightLighting(dt: number) {
     this.water?.update(this.time)
     const night = this.celestial.night
     for (const material of this.lampMaterials) material.emissiveIntensity = night ? 1.6 : 0
-    if (!night) {
-      for (const light of this.lampLights) light.visible = false
+    // la luz pintada no cambia cuántas luces hay: se enciende al momento
+    if (this.lightPools) this.lightPools.visible = night && this.showLightPools
+    if (this.facadeGlow) this.facadeGlow.visible = night && this.showLightPools
+    this.updateLighting(dt === 0)
+    if (!this.lighting.lamps) {
+      this.lampAssigner.update(0, [], true)
       this.lampRefresh = 0
       return
     }
 
     this.lampRefresh -= dt
-    if (this.lampRefresh > 0) return
-    this.lampRefresh = 0.45
-    const nearest = this.layout.lamps
-      .map((lamp, index) => {
-        const yaw = index % 2 ? Math.PI : 0
-        const x = lamp.x + Math.cos(yaw) * 0.82
-        const z = lamp.z - Math.sin(yaw) * 0.82
-        return { x, z, distance: Math.hypot(lamp.x - this.player.x, lamp.z - this.player.z) }
-      })
-      .sort((a, b) => a.distance - b.distance)
-    this.lampLights.forEach((light, index) => {
-      const lamp = nearest[index]
-      if (!lamp) {
-        light.visible = false
-        return
-      }
-      light.position.set(lamp.x, 4.1, lamp.z)
-      light.visible = true
+    if (this.lampRefresh <= 0) {
+      this.lampRefresh = 0.45
+      this.wantedLamps = nearestLamps(this.layout.lamps, this.player.x, this.player.z, this.lampLights.length)
+    }
+    // sin tiempo de por medio (al fijar el reloj o cambiar la calidad) se colocan de golpe; andando, con un fundido
+    this.lampAssigner.update(dt, this.wantedLamps, dt === 0)
+    // de noche todas las luces siguen en la escena aunque no tengan farola (a intensidad 0): cambiar cuántas hay recompila
+    this.lampAssigner.slots.forEach((slot, index) => {
+      const light = this.lampLights[index]
+      light.intensity = LAMP_LIGHT.intensity * slot.level
+      if (slot.lamp === null) return
+      const head = lampHead(this.layout.lamps[slot.lamp], slot.lamp)
+      light.position.set(head.x, LAMP_HEIGHT, head.z)
     })
   }
 
@@ -1117,9 +1204,14 @@ export class World {
       },
       streetLights: {
         active: this.lampLights.filter((light) => light.visible).length,
+        /** farolas que tienen ahora una luz real */
+        lamps: this.lampAssigner.slots.flatMap((slot) => (slot.lamp === null ? [] : [slot.lamp])),
         intensity: this.lampLights[0]?.intensity ?? 0,
         range: this.lampLights[0]?.distance ?? 0,
         decay: this.lampLights[0]?.decay ?? 0,
+        pools: this.lightPools?.count ?? 0,
+        poolsVisible: this.lightPools?.visible ?? false,
+        facadeGlows: this.facadeGlow?.count ?? 0,
       },
       waterAnimated: this.water !== null,
       quality: this.quality,
@@ -1237,6 +1329,10 @@ export class World {
     this.npcActors.length = 0
     this.playerActor = null
     this.city?.dispose()
+    if (this.lightPools) disposeLightPools(this.lightPools)
+    this.lightPools = null
+    if (this.facadeGlow) disposeLightPools(this.facadeGlow)
+    this.facadeGlow = null
     this.environment?.dispose()
     this.sun.shadow.map?.dispose()
     this.renderer?.dispose()

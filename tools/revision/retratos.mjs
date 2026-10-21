@@ -1,7 +1,7 @@
 // Genera los retratos de los PNJ (public/npcs/retratos/<id>.webp) con el visor 3D en un Chromium real.
 // Uso: npm run build && node tools/revision/retratos.mjs [--todos] [--limite=N]
 // Por defecto solo crea los que faltan.
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright'
@@ -46,6 +46,7 @@ for (const npc of pending) {
   if (done % 20 === 0) console.log(`${done}/${pending.length}`)
 }
 await browser.close()
-server.kill()
-spawn('taskkill', ['/pid', String(server.pid), '/T', '/F'], { shell: true })
+// en Windows se mata todo el árbol (npx y vite) antes que nada: matando primero el intérprete, vite quedaba huérfano
+if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(server.pid), '/T', '/F'])
+else server.kill()
 console.log(errors.length ? `Errores:\n${errors.join('\n')}` : `Retratos listos (${done})`)
