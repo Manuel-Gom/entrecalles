@@ -32,9 +32,10 @@ const ETIQUETA = valor('etiqueta')
 const CALIDADES = lista('calidades', 'baja,media,alta')
 const [ANCHO, ALTO] = (valor('resolucion') ?? '1280x720').split('x').map(Number)
 // la plaza junto al parque (donde más se ve) y la acera exterior de una manzana del borde (media vista es cielo y niebla)
-const SITIOS = { centro: [0, 16.7], borde: [56.7, 0] }
+// (las coordenadas salen del barrio cargado, ver más abajo)
+const SITIOS = { centro: null, borde: null }
 const sitios = lista('sitios', 'centro')
-for (const sitio of sitios) if (!SITIOS[sitio]) throw new Error(`Sitio desconocido: ${sitio} (usa ${Object.keys(SITIOS).join(', ')})`)
+for (const sitio of sitios) if (!(sitio in SITIOS)) throw new Error(`Sitio desconocido: ${sitio} (usa ${Object.keys(SITIOS).join(', ')})`)
 if (HORA && !/^\d\d:\d\d$/.test(HORA)) throw new Error('--hora debe ser HH:MM')
 // siempre el mismo día y huso, para que la hora signifique lo mismo en cualquier equipo
 const fecha = (hora) => `2025-06-21T${hora}:00+02:00`
@@ -75,6 +76,10 @@ await page.waitForFunction(() => window.__world?.()?.stats().state === 'listo', 
 await page.waitForFunction((n) => { const s = window.__world().stats(); return s.npcs.loaded >= n && s.scenery.lamps }, PNJ, { timeout: 480000 })
 // se deja que las calles se animen un poco antes de medir
 await page.evaluate(() => window.__world().advance(30))
+Object.assign(SITIOS, await page.evaluate(() => {
+  const { spawn, nav } = window.__world().layout
+  return { centro: [spawn.x, spawn.z], borde: [Math.max(...nav.filter((n) => Math.abs(n.z) < 1e-9).map((n) => n.x)), 0] }
+}))
 
 const filas = []
 for (const sitio of sitios) {

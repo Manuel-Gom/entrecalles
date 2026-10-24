@@ -149,6 +149,47 @@ class Grupo:
         bpy.data.meshes.remove(mesh)
         self._anadir(bm)
 
+    def revolucion(self, perfil, centro=(0, 0, 0), segmentos=32, esquina=35.0):
+        """Pieza torneada: gira un perfil [(radio, altura), ...] alrededor del eje Z.
+
+        El perfil se recorre en sentido antihorario (sube por fuera y vuelve por dentro) para que las normales salgan
+        hacia fuera. Un punto con radio 0 es el eje. En las esquinas de más de `esquina` grados el perfil se corta, así
+        los cantos quedan vivos aunque todo se suavice.
+        """
+        bm = bmesh.new()
+        tiras = [[perfil[0]]]
+        for i in range(1, len(perfil)):
+            tiras[-1].append(perfil[i])
+            if i < len(perfil) - 1:
+                a = (perfil[i][0] - perfil[i - 1][0], perfil[i][1] - perfil[i - 1][1])
+                b = (perfil[i + 1][0] - perfil[i][0], perfil[i + 1][1] - perfil[i][1])
+                giro = abs(math.degrees(math.atan2(a[0] * b[1] - a[1] * b[0], a[0] * b[0] + a[1] * b[1])))
+                if giro > esquina:
+                    tiras.append([perfil[i]])
+        for tira in tiras:
+            anillos = []
+            for radio, altura in tira:
+                if radio < 1e-6:
+                    anillos.append([bm.verts.new((centro[0], centro[1], centro[2] + altura))])
+                else:
+                    anillos.append([
+                        bm.verts.new((centro[0] + radio * math.cos(math.tau * j / segmentos), centro[1] + radio * math.sin(math.tau * j / segmentos), centro[2] + altura))
+                        for j in range(segmentos)
+                    ])
+            for i in range(len(anillos) - 1):
+                a, c = anillos[i], anillos[i + 1]
+                for j in range(segmentos):
+                    j2 = (j + 1) % segmentos
+                    if len(a) == 1 and len(c) == 1:
+                        continue
+                    if len(a) == 1:
+                        bm.faces.new((a[0], c[j2], c[j]))
+                    elif len(c) == 1:
+                        bm.faces.new((a[j], a[j2], c[0]))
+                    else:
+                        bm.faces.new((a[j], a[j2], c[j2], c[j]))
+        self._anadir(bm)
+
     def _anadir(self, bm):
         malla = bpy.data.meshes.new("tmp")
         bm.to_mesh(malla)
@@ -442,34 +483,61 @@ def interior():
 
 def fuente():
     reiniciar()
-    piedra = Grupo("piedra_fuente", material("PiedraFuente", "aaa69b", 0.82))
-    borde = Grupo("detalle_piedra", material("PiedraClara", "d0cabe", 0.72))
-    agua = Grupo("agua", material("AguaFuente", "559bb0", 0.24, 0.18))
+    # Tres niveles (pilón, taza grande y taza pequeña) torneados con perfiles. Alturas del agua: 0,40 / 1,325 / 1,655 m;
+    # src/world/water.ts las usa para saber en qué lámina está cada punto, así que no las cambies sin tocarlo.
+    piedra = Grupo("piedra_fuente", material("PiedraFuente", "aaa69b", 0.86))
+    borde = Grupo("detalle_piedra", material("PiedraClara", "d0cabe", 0.78))
+    fondo = Grupo("fondo", material("FondoFuente", "56644f", 0.95))
+    agua = Grupo("agua", material("AguaFuente", "559bb0", 0.12, 0.0))
+    chorro = Grupo("chorros", material("ChorroFuente", "eaf7fb", 0.1, 0.0, 0.55))
     metal = Grupo("detalle_metal", material("BronceFuente", "756b55", 0.4, 0.68))
 
-    piedra.cilindro(1.55, 0.16, (0, 0, 0.08), 48)
-    borde.toro(1.43, 0.045, (0, 0, 0.18), 48, 10)
-    piedra.cilindro(1.38, 0.18, (0, 0, 0.34), 48, 1.26)
-    borde.toro(1.31, 0.055, (0, 0, 0.45), 48, 10)
-    agua.cilindro(1.18, 0.025, (0, 0, 0.47), 48)
+    # pilón: zócalo, pared con moldura, borde grueso y suelo hundido
+    piedra.revolucion([
+        (0, 0.0), (1.52, 0.0), (1.52, 0.10), (1.58, 0.14), (1.58, 0.36), (1.62, 0.40), (1.62, 0.47),
+        (1.56, 0.51), (1.46, 0.51), (1.41, 0.47), (1.41, 0.19), (0, 0.19),
+    ], segmentos=56)
+    borde.toro(1.585, 0.028, (0, 0, 0.375), 56, 6)
+    fondo.cilindro(1.405, 0.01, (0, 0, 0.195), 56)
+    agua.cilindro(1.4, 0.01, (0, 0, 0.395), 56)
 
-    piedra.cilindro(0.27, 0.52, (0, 0, 0.72), 24, 0.2)
-    borde.cilindro(0.42, 0.1, (0, 0, 1.0), 32, 0.34)
-    piedra.cilindro(0.34, 0.13, (0, 0, 1.11), 32, 0.5)
-    borde.toro(0.49, 0.035, (0, 0, 1.18), 32, 8)
-    agua.cilindro(0.43, 0.02, (0, 0, 1.15), 32)
+    # pie torneado y taza grande
+    piedra.revolucion([
+        (0, 0.19), (0.42, 0.19), (0.42, 0.28), (0.30, 0.36), (0.25, 0.50), (0.31, 0.60), (0.23, 0.72),
+        (0.20, 0.92), (0.20, 1.02), (0, 1.02),
+    ], segmentos=40)
+    borde.revolucion([
+        (0, 1.00), (0.21, 1.00), (0.32, 1.05), (0.54, 1.11), (0.72, 1.20), (0.80, 1.28), (0.80, 1.34),
+        (0.76, 1.38), (0.69, 1.38), (0.66, 1.32), (0.64, 1.27), (0, 1.27),
+    ], segmentos=48)
+    fondo.cilindro(0.64, 0.01, (0, 0, 1.275), 40)
+    agua.cilindro(0.655, 0.01, (0, 0, 1.32), 40)
+    metal.toro(0.215, 0.026, (0, 0, 0.97), 28, 6)
 
-    piedra.cilindro(0.14, 0.46, (0, 0, 1.42), 20, 0.11)
-    borde.cilindro(0.23, 0.08, (0, 0, 1.66), 24, 0.18)
-    metal.esfera(0.105, (0, 0, 1.77), (1, 1, 1.2), 2)
+    # columna y taza pequeña
+    piedra.revolucion([(0, 1.27), (0.17, 1.27), (0.12, 1.38), (0.12, 1.46), (0.15, 1.52), (0, 1.52)], segmentos=24)
+    borde.revolucion([
+        (0, 1.50), (0.13, 1.50), (0.20, 1.56), (0.31, 1.63), (0.34, 1.69), (0.34, 1.71), (0.30, 1.71),
+        (0.27, 1.66), (0.25, 1.64), (0, 1.64),
+    ], segmentos=40)
+    agua.cilindro(0.265, 0.01, (0, 0, 1.65), 32)
+    metal.revolucion([(0, 1.64), (0.07, 1.64), (0.05, 1.70), (0.025, 1.73), (0, 1.73)], segmentos=16)
+
+    # agua que cae: dos cortinas por los bordes de las tazas, un chorro central y ocho arcos que caen en la taza grande
+    chorro.revolucion([(0.845, 0.40), (0.815, 1.33)], segmentos=48)
+    chorro.revolucion([(0.375, 1.32), (0.352, 1.70)], segmentos=32)
+    chorro.segmento((0, 0, 1.72), (0, 0, 1.94), 0.026, 0.012, 6)
     for index in range(8):
-        angle = index * math.tau / 8
-        metal.segmento(
-            (math.cos(angle) * 0.2, math.sin(angle) * 0.2, 1.7),
-            (math.cos(angle) * 0.45, math.sin(angle) * 0.45, 1.27),
-            0.018, 0.008, 6,
-        )
-    for group in (piedra, borde, agua, metal):
+        angulo = (index + 0.5) * math.tau / 8
+        puntos = []
+        for paso in range(7):
+            t = paso / 6
+            radio = 0.05 + 0.53 * t
+            puntos.append((math.cos(angulo) * radio, math.sin(angulo) * radio, 1.72 + (1.33 - 1.72) * t + 0.27 * 4 * t * (1 - t)))
+        for inicio, fin in zip(puntos, puntos[1:]):
+            chorro.segmento(inicio, fin, 0.014, 0.014, 5)
+
+    for group in (piedra, borde, fondo, agua, chorro, metal):
         group.crear(suavizar=True)
     exportar("fuente")
 

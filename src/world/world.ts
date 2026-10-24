@@ -11,7 +11,7 @@ import { chooseCast } from './cast'
 import { buildCityMeshes, type CityMeshes } from './cityMesh'
 import { FollowCamera } from './followCamera'
 import { InputController, type Controls, type GamepadInfo, type InputDevice } from './inputController'
-import { generateCity, makeRng, type CityLayout } from './layout'
+import { footHeight, generateCity, groundTop, makeRng, type CityLayout } from './layout'
 import { Locomotor } from './locomotor'
 import { FrameStats, formatDiagnostics } from './perf'
 import { AudioEngine, attenuation, panFor, stepVolume, surfaceAt, type AudioState, type Volumes } from './audio'
@@ -19,11 +19,11 @@ import { PairDialogue } from './dialogue'
 import { Interior } from './interior'
 import { Storefront } from './storefront'
 import { disposeProp, instanceProp, loadProp, placementMatrix, type Prop } from './props'
-import { LAMP_HEIGHT, LAMP_LIGHT, LampAssigner, REAL_LAMPS, buildFacadeGlows, buildLightPools, disposeLightPools, facadeGlows, lampHead, lampYaw, nearestLamps } from './streetLights'
+import { LAMP_HEIGHT, LAMP_LIGHT, LampAssigner, REAL_LAMPS, buildFacadeGlows, buildLightPools, disposeLightPools, facadeGlows, lampHead, nearestLamps } from './streetLights'
 import { SeatSession, findSeat, makeSeatRoute } from './seating'
 import { PLAYER_ID, PLAYER_RADIUS, nearestAngle, newPlayer, stepPlayer, type PlayerInput, type PlayerState } from './player'
 import { advanceGameClock, celestialPosition, celestialState, formatGameClock, lunarPhase, skyColors, type CelestialState, type MoonPhase } from './dayNight'
-import { animateWater, type AnimatedWater } from './water'
+import { dressFountain, skipWaterShadows, type AnimatedWater } from './water'
 
 export type Quality = 'baja' | 'media' | 'alta'
 export type WorldState = 'cargando' | 'listo' | 'error' | 'sin-3d'
@@ -318,7 +318,10 @@ export class World {
     scene.add(this.sun, this.sun.target, this.moon, this.moon.target)
 
     this.city = buildCityMeshes(this.layout)
+    this.city.ground.setQuality(this.quality)
     this.exterior.add(this.city.group)
+    // las texturas del suelo llegan después: mientras, se ve el color plano
+    this.city.ground.load(() => !this.disposed).catch((error) => console.error('No se pudieron cargar las texturas del suelo; se queda el color plano.', error))
     // un charco de luz bajo cada farola: lo que deja ver iluminadas las calles lejanas de noche
     this.lightPools = buildLightPools(this.layout.lamps)
     this.exterior.add(this.lightPools)
@@ -366,6 +369,7 @@ export class World {
         else if (material) material.needsUpdate = true
       })
     }
+    this.city?.ground.setQuality(this.quality)
     this.syncLampLights()
     this.resize()
   }
@@ -415,7 +419,7 @@ export class World {
         .then((prop) => {
           if (this.disposed) return disposeProp(prop)
           this.benchProp = prop
-          this.benchGroup = instanceProp(prop, this.layout.benches.map((bench) => placementMatrix(bench.x, 0, bench.z, bench.yaw)))
+          this.benchGroup = instanceProp(prop, this.layout.benches.map((bench) => placementMatrix(bench.x, groundTop(bench.x, bench.z), bench.z, bench.yaw)))
           this.exterior.add(this.benchGroup)
           if (this.city) this.city.benchMesh.visible = false
         })
@@ -430,17 +434,12 @@ export class World {
       loadProp('fuente')
         .then((prop) => {
           if (this.disposed) return disposeProp(prop)
-          prop.root.traverse((object) => {
-            const mesh = object as THREE.Mesh
-            if (!mesh.isMesh) return
-            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-            for (const material of materials) {
-              if (material.name === 'AguaFuente' && material instanceof THREE.MeshStandardMaterial) this.water = animateWater(material)
-            }
-          })
+          this.water = dressFountain(prop.root)
           this.sceneryProps.push(prop)
           this.sceneryLoaded.add('fuente')
-          this.exterior.add(instanceProp(prop, [placementMatrix(0, 0, 0, 0)]))
+          const fountain = instanceProp(prop, [placementMatrix(0, 0, 0, 0)])
+          skipWaterShadows(fountain)
+          this.exterior.add(fountain)
           if (this.city) this.city.fountainMesh.visible = false
         })
         .catch(failed('la fuente del parque')),
@@ -449,7 +448,7 @@ export class World {
           if (this.disposed) return disposeProp(prop)
           this.sceneryProps.push(prop)
           this.sceneryLoaded.add('arbol')
-          this.exterior.add(instanceProp(prop, this.layout.trees.map((tree, index) => placementMatrix(tree.x, 0, tree.z, index * 2.399963))))
+          this.exterior.add(instanceProp(prop, this.layout.trees.map((tree, index) => placementMatrix(tree.x, groundTop(tree.x, tree.z), tree.z, index * 2.399963))))
           if (this.city) this.city.treeMesh.visible = false
         })
         .catch(failed('los árboles')),
@@ -469,7 +468,7 @@ export class World {
           })
           this.sceneryProps.push(prop)
           this.sceneryLoaded.add('farola')
-          this.exterior.add(instanceProp(prop, this.layout.lamps.map((lamp, index) => placementMatrix(lamp.x, 0, lamp.z, lampYaw(index)))))
+          this.exterior.add(instanceProp(prop, this.layout.lamps.map((lamp) => placementMatrix(lamp.x, groundTop(lamp.x, lamp.z), lamp.z, lamp.yaw))))
           if (this.city) this.city.lampMesh.visible = false
         })
         .catch(failed('las farolas')),
@@ -536,8 +535,11 @@ export class World {
     return { assembly, locomotor: new Locomotor(assembly, seed), group, prevYaw: 0, turn: 0 }
   }
 
-  private placeActor(actor: Actor, x: number, z: number, yaw: number) {
-    actor.group.position.set(x, GROUND, z)
+  /** Coloca al actor sobre el suelo que pisa; con `dt` el cambio de altura (al subir o bajar un bordillo) se suaviza. */
+  private placeActor(actor: Actor, x: number, z: number, yaw: number, dt?: number, inside = false) {
+    const y = inside ? GROUND : footHeight(x, z)
+    const smooth = dt === undefined ? 1 : 1 - Math.exp(-dt / 0.05)
+    actor.group.position.set(x, actor.group.position.y + (y - actor.group.position.y) * smooth, z)
     actor.group.rotation.y = yaw
   }
 
@@ -679,7 +681,7 @@ export class World {
     this.animSpeed += (player.speed - this.animSpeed) * (1 - Math.exp(-14 * dt))
     const actor = this.playerActor
     if (actor) {
-      this.placeActor(actor, player.x, player.z, player.yaw)
+      this.placeActor(actor, player.x, player.z, player.yaw, dt, this.inside)
       actor.locomotor.update(dt, {
         speed: this.animSpeed < 0.05 ? 0 : this.animSpeed,
         sit: this.seating?.sit ?? this.playerPoseOverride?.sit ?? 0,
@@ -705,7 +707,7 @@ export class World {
       this.circles[i + 1].z = npc.brain.z
       const distance = Math.hypot(npc.brain.x - player.x, npc.brain.z - player.z)
       npc.group.visible = !this.inside && distance < NPC_HIDE_DISTANCE
-      this.placeActor(npc, npc.brain.x, npc.brain.z, npc.brain.yaw)
+      this.placeActor(npc, npc.brain.x, npc.brain.z, npc.brain.yaw, dt)
       if (distance < NPC_ANIMATE_DISTANCE) {
         npc.locomotor.update(dt, {
           speed: npc.brain.speed,
@@ -961,7 +963,8 @@ export class World {
   }
 
   private updateNightLighting(dt: number) {
-    this.water?.update(this.time)
+    // con movimiento reducido el agua se queda quieta (sigue reflejando el cielo)
+    if (this.water && this.scene.background instanceof THREE.Color) this.water.update(this.init.reducedMotion ? 0 : this.time, this.scene.background, this.celestial.daylight)
     const night = this.celestial.night
     for (const material of this.lampMaterials) material.emissiveIntensity = night ? 1.6 : 0
     // la luz pintada no cambia cuántas luces hay: se enciende al momento
@@ -986,7 +989,7 @@ export class World {
       const light = this.lampLights[index]
       light.intensity = LAMP_LIGHT.intensity * slot.level
       if (slot.lamp === null) return
-      const head = lampHead(this.layout.lamps[slot.lamp], slot.lamp)
+      const head = lampHead(this.layout.lamps[slot.lamp])
       light.position.set(head.x, LAMP_HEIGHT, head.z)
     })
   }
@@ -1214,6 +1217,7 @@ export class World {
         facadeGlows: this.facadeGlow?.count ?? 0,
       },
       waterAnimated: this.water !== null,
+      groundTextured: this.city?.ground.textured ?? false,
       quality: this.quality,
       fps: this.fps,
       device: this.input?.device ?? 'teclado',

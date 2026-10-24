@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { AudioEngine, attenuation, mixGains, panFor, stepVolume, strikeCount, surfaceAt } from './audio'
+import { BLOCK_PITCH, RING_WALK, STREET_CENTERS } from './layout'
 
 describe('surfaceAt', () => {
   it('dentro de un edificio es baldosa', () => {
@@ -7,9 +8,9 @@ describe('surfaceAt', () => {
   })
 
   it('en la acera que rodea cada manzana es acera, en la calzada es calzada, y el parque es hierba', () => {
-    expect(surfaceAt(0, 16.7, false)).toBe('acera') // la acera del parque
-    expect(surfaceAt(-40 + 16.7, -40, false)).toBe('acera')
-    expect(surfaceAt(20, 20, false)).toBe('calzada') // el cruce entre manzanas
+    expect(surfaceAt(0, RING_WALK, false)).toBe('acera') // la acera del parque
+    expect(surfaceAt(-BLOCK_PITCH + RING_WALK, -BLOCK_PITCH, false)).toBe('acera')
+    expect(surfaceAt(BLOCK_PITCH / 2, BLOCK_PITCH / 2, false)).toBe('calzada') // el cruce entre manzanas
     expect(surfaceAt(8, 8, false)).toBe('hierba')
     expect(surfaceAt(-8, 6, false)).toBe('hierba')
   })
@@ -20,8 +21,8 @@ describe('surfaceAt', () => {
   })
 
   it('fuera de las manzanas, calzada', () => {
-    expect(surfaceAt(62, 0, false)).toBe('calzada')
-    expect(surfaceAt(0, -61, false)).toBe('calzada')
+    expect(surfaceAt(STREET_CENTERS[3], 0, false)).toBe('calzada')
+    expect(surfaceAt(0, STREET_CENTERS[0], false)).toBe('calzada')
   })
 })
 

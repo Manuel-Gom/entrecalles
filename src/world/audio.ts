@@ -1,4 +1,4 @@
-import { BLOCK_CENTERS, BLOCK_HALF, RING_OUTER } from './layout'
+import { groundAt } from './layout'
 
 /* ---------- partes puras (se prueban sin navegador) ---------- */
 
@@ -9,17 +9,8 @@ export type SoundEvent = 'puerta' | 'sentarse' | 'levantarse'
 /** Sobre qué se pisa en un punto de la calle (o 'baldosa' dentro de un edificio). */
 export function surfaceAt(x: number, z: number, inside: boolean): Surface {
   if (inside) return 'baldosa'
-  for (const cx of BLOCK_CENTERS) {
-    for (const cz of BLOCK_CENTERS) {
-      const reach = Math.max(Math.abs(x - cx), Math.abs(z - cz))
-      if (reach > RING_OUTER) continue
-      if (reach >= BLOCK_HALF) return 'acera'
-      // el centro del parque es hierba, salvo los dos paseos que lo cruzan
-      if (cx === 0 && cz === 0) return Math.abs(x) < 1.2 || Math.abs(z) < 1.2 ? 'acera' : 'hierba'
-      return 'acera' // dentro de un edificio no se llega, pero se da un valor
-    }
-  }
-  return 'calzada'
+  const ground = groundAt(x, z)
+  return ground === 'paseo' ? 'acera' : ground // los paseos aún suenan como la acera
 }
 
 /** Pasos que se dan al pasar la fase del ciclo de `prev` a `next`: el pie toca el suelo en 0,25 (izquierdo) y 0,75 (derecho). */

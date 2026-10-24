@@ -1,0 +1,14 @@
+Texturas del suelo del barrio (aceras, césped y paseos del parque).
+
+Origen: ambientCG (https://ambientcg.com), licencia CC0 1.0 (dominio público):
+https://creativecommons.org/publicdomain/zero/1.0/deed.es
+
+| Archivos | Material de ambientCG | Uso |
+|---|---|---|
+| hormigon_color.webp, hormigon_normal.webp | Concrete034 | losas de las aceras |
+| cesped_color.webp, cesped_normal.webp | Grass001 | césped del parque |
+| gravilla_color.webp, gravilla_normal.webp | Gravel023 | paseos del parque |
+
+Se han reducido de 1K a 512 px (el color del césped se queda en 1024 px) y convertido a WebP. Sin más cambios.
+Las juntas de las losas, las manchas, las franjas del césped y la mezcla anti-repetición se hacen en el shader
+(src/world/ground.ts), no en las imágenes.

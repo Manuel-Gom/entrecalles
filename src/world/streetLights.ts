@@ -23,13 +23,17 @@ interface Point {
   z: number
 }
 
-/** Hacia dónde mira cada farola: alternan de lado a lo largo de la acera (igual que al colocar el modelo). */
-export const lampYaw = (index: number) => (index % 2 ? Math.PI : 0)
+/** Una farola: el poste y hacia dónde apunta su brazo (el mismo giro con el que se coloca el modelo). */
+export interface Lamp extends Point {
+  yaw: number
+}
 
-/** Dónde cuelga la luminaria: 0,82 m del poste, hacia el lado al que mira la farola. */
-export function lampHead(lamp: Point, index: number): Point {
-  const yaw = lampYaw(index)
-  return { x: lamp.x + Math.cos(yaw) * 0.82, z: lamp.z - Math.sin(yaw) * 0.82 }
+/** Largo del brazo de la farola: de la base del poste a la luminaria (m). */
+export const LAMP_ARM = 0.82
+
+/** Dónde cuelga la luminaria: a LAMP_ARM del poste, hacia el lado al que apunta el brazo. */
+export function lampHead(lamp: Lamp): Point {
+  return { x: lamp.x + Math.cos(lamp.yaw) * LAMP_ARM, z: lamp.z - Math.sin(lamp.yaw) * LAMP_ARM }
 }
 
 /** Índices de las `count` farolas más cercanas a (x, z), de la más cercana a la más lejana; los empates, por orden. */
@@ -80,7 +84,7 @@ export class LampAssigner {
 /** Radio del charco de luz en el suelo (m). */
 export const POOL_RADIUS = 6.5
 /** Altura del charco: justo por encima de la acera, para que no parpadee con el suelo. */
-export const POOL_HEIGHT = 0.06
+export const POOL_HEIGHT = 0.09
 /** Cuánto ilumina el charco (opacidad máxima de la mezcla aditiva). */
 export const POOL_STRENGTH = 0.55
 
@@ -110,7 +114,7 @@ export function poolTexture(size = 64): THREE.DataTexture {
 }
 
 /** Un charco de luz bajo cada farola, todos en una sola llamada de dibujo. Visible solo de noche. */
-export function buildLightPools(lamps: readonly Point[]): THREE.InstancedMesh {
+export function buildLightPools(lamps: readonly Lamp[]): THREE.InstancedMesh {
   const geometry = new THREE.PlaneGeometry(POOL_RADIUS * 2, POOL_RADIUS * 2).rotateX(-Math.PI / 2)
   const material = new THREE.MeshBasicMaterial({
     map: poolTexture(),
@@ -127,7 +131,7 @@ export function buildLightPools(lamps: readonly Point[]): THREE.InstancedMesh {
   const position = new THREE.Vector3()
   const rotation = new THREE.Quaternion()
   lamps.forEach((lamp, index) => {
-    const head = lampHead(lamp, index)
+    const head = lampHead(lamp)
     // un poco de variedad en el tamaño para que no se note que son iguales
     const size = 0.9 + ((index * 37) % 11) / 50
     matrix.compose(position.set(head.x, POOL_HEIGHT, head.z), rotation, scale.set(size, 1, size))
@@ -156,8 +160,8 @@ interface FacadeBox {
   height: number
 }
 
-/** Hasta qué distancia (m) de la luminaria una fachada recibe su resplandor (la acera mide 2,5 m). */
-export const GLOW_REACH = 4
+/** Hasta qué distancia (m) de la luminaria una fachada recibe su resplandor: la acera mide 4 m y la luminaria cuelga sobre la calzada. */
+export const GLOW_REACH = 6
 /** Tamaño del resplandor en la fachada (m): ancho y alto, centrado a la altura de la luminaria. */
 export const GLOW_WIDTH = 10
 export const GLOW_HEIGHT = 8
@@ -180,10 +184,10 @@ export interface FacadeGlow {
  * Dónde pinta cada farola su resplandor: en la fachada del edificio que tiene justo detrás, si lo hay. Junto al parque
  * o en una esquina sin pared delante no hay resplandor (quedaría flotando en el aire).
  */
-export function facadeGlows(lamps: readonly Point[], buildings: readonly FacadeBox[]): FacadeGlow[] {
+export function facadeGlows(lamps: readonly Lamp[], buildings: readonly FacadeBox[]): FacadeGlow[] {
   const glows: FacadeGlow[] = []
   lamps.forEach((lamp, index) => {
-    const head = lampHead(lamp, index)
+    const head = lampHead(lamp)
     let best: FacadeGlow | null = null
     let bestDistance = GLOW_REACH
     for (const { box, height } of buildings) {

@@ -13,24 +13,67 @@ export function makeRng(seed: number) {
 }
 export type Rng = () => number
 
-/* Medidas del barrio, en metros. Manzanas de 30 × 30 separadas por calles de 10 (6 de calzada y 2 de acera a cada lado). */
-export const BLOCK_PITCH = 40
+/* Medidas del barrio, en metros. Manzanas de 30 × 30 separadas por calles de 16: 8 de calzada (dos carriles) y 4 de acera a cada lado. */
 export const BLOCK_HALF = 15
-export const SIDEWALK = 2.5
+export const SIDEWALK = 4
+export const ROAD_WIDTH = 8
+export const BLOCK_PITCH = 2 * (BLOCK_HALF + SIDEWALK) + ROAD_WIDTH
 /** Mitad del lado de la manzana más su acera: el borde exterior de la acera. */
 export const RING_OUTER = BLOCK_HALF + SIDEWALK
-/** Línea por la que se anda: separada de la fachada para dejar sitio a los bancos. */
-export const RING_WALK = BLOCK_HALF + 1.7
+/** Línea por la que se anda: separada de la fachada para dejar sitio a los bancos y del bordillo para las farolas y los árboles. */
+export const RING_WALK = BLOCK_HALF + 2
 /** Distancia al centro de la manzana de los bancos (pegados a la fachada), de los escaparates y de árboles y farolas (en el bordillo). */
 const BENCH_DISTANCE = BLOCK_HALF + 0.3
 const WINDOW_DISTANCE = BLOCK_HALF + 0.85
-const CURB_DISTANCE = BLOCK_HALF + SIDEWALK - 0.2
+export const CURB_DISTANCE = RING_OUTER - 0.5
 export const BLOCK_CENTERS = [-BLOCK_PITCH, 0, BLOCK_PITCH] as const
 /** Ejes de las calles, entre manzanas y en el perímetro. */
-export const STREET_CENTERS = [-BLOCK_PITCH - 20, -BLOCK_PITCH / 2, BLOCK_PITCH / 2, BLOCK_PITCH + 20] as const
+const OUTER_STREET = BLOCK_PITCH + RING_OUTER + ROAD_WIDTH / 2
+export const STREET_CENTERS = [-OUTER_STREET, -BLOCK_PITCH / 2, BLOCK_PITCH / 2, OUTER_STREET] as const
 /** Mitad del lado del mundo (hasta el borde exterior de las calles perimetrales). */
-export const WORLD_HALF = BLOCK_PITCH + BLOCK_HALF + 10
-export const SIDEWALK_HEIGHT = 0.02
+export const WORLD_HALF = BLOCK_PITCH + RING_OUTER + ROAD_WIDTH
+/** Media anchura de un paso de peatones (m), medida a lo largo de la calle que cruza. Sus bandas van paralelas a la calzada. */
+export const CROSSING_HALF_WIDTH = 1.5
+/** Farolas a lo largo de cada lado de manzana (m desde su centro). Las de enfrente van desfasadas (al tresbolillo). */
+export const LAMP_OFFSETS = { positive: [-11, 4], negative: [-4, 11] } as const
+/** Un árbol como mucho entre cada dos farolas de un lado, a esta distancia mínima de cualquier farola (m). */
+export const TREE_LAMP_GAP = 5
+export const SIDEWALK_HEIGHT = 0.05
+/** Altura del césped y de los paseos del parque, y media anchura de los paseos (m). */
+export const LAWN_HEIGHT = 0.03
+export const PATH_HEIGHT = 0.035
+export const PATH_HALF_WIDTH = 1.2
+
+export type Ground = 'acera' | 'paseo' | 'hierba' | 'calzada'
+
+/** Qué suelo hay en un punto de la calle: la acera que rodea cada manzana, el césped y los paseos del parque o la calzada. */
+export function groundAt(x: number, z: number): Ground {
+  for (const cx of BLOCK_CENTERS) {
+    for (const cz of BLOCK_CENTERS) {
+      const reach = Math.max(Math.abs(x - cx), Math.abs(z - cz))
+      if (reach > RING_OUTER) continue
+      if (reach >= BLOCK_HALF) return 'acera'
+      // el centro del parque es césped, salvo los dos paseos que lo cruzan
+      if (cx === 0 && cz === 0) return Math.abs(x) < PATH_HALF_WIDTH || Math.abs(z) < PATH_HALF_WIDTH ? 'paseo' : 'hierba'
+      return 'acera' // dentro de un edificio no se llega, pero se da un valor
+    }
+  }
+  return 'calzada'
+}
+
+const GROUND_TOP: Record<Ground, number> = { acera: SIDEWALK_HEIGHT, paseo: PATH_HEIGHT, hierba: LAWN_HEIGHT, calzada: 0 }
+/** Altura mínima de los pies: lo que siempre se usó en la calzada, para que las suelas no rocen el asfalto. */
+export const FOOT_MIN = 0.025
+
+/** Altura de la cara de arriba del suelo en un punto de la calle (donde se apoyan los bancos). */
+export function groundTop(x: number, z: number): number {
+  return GROUND_TOP[groundAt(x, z)]
+}
+
+/** Altura a la que van los pies de un personaje en la calle: justo encima del suelo que pisa. */
+export function footHeight(x: number, z: number): number {
+  return Math.max(FOOT_MIN, groundTop(x, z) + 0.005)
+}
 
 export interface Building {
   box: Box
@@ -59,6 +102,11 @@ export interface NavNode {
   links: number[]
 }
 
+/** Un paso de peatones: su centro (en el eje de la calle) y si se cruza a lo largo de x (una calle norte-sur) o de z. */
+export interface Crossing extends Vec2 {
+  alongX: boolean
+}
+
 /** Un sitio donde alguien puede quedarse parado mirando hacia `yaw`. */
 export interface Spot extends Vec2 {
   yaw: number
@@ -75,12 +123,15 @@ export interface CityLayout {
   blockers: Blocker[]
   benches: Bench[]
   trees: Tree[]
-  lamps: Vec2[]
+  /** farolas: el poste en (x, z) y el brazo hacia `yaw` (siempre hacia la calzada; ver lampHead en streetLights.ts) */
+  lamps: Spot[]
   /** zona del parque (hierba) */
   park: Box
   /** todo lo que bloquea el paso */
   obstacles: Box[]
   nav: NavNode[]
+  /** pasos de peatones: donde la red de aceras cruza una calle */
+  crossings: Crossing[]
   /** junto a las fachadas, mirando a los escaparates */
   windows: Spot[]
   /** en las esquinas, esperando para cruzar */
@@ -125,6 +176,9 @@ function buildBlock(cx: number, cz: number, rng: Rng, buildings: Building[]) {
 
 /** Grafo de aceras: cada manzana tiene a su alrededor un anillo de 8 nodos (esquinas y mitades de cada lado),
  * y los anillos vecinos se unen por pasos de peatones. */
+/** Nodos de acera por manzana en la red (los del parque van después). */
+const RING_NODES = 8
+
 function buildNav(): NavNode[] {
   const nodes: NavNode[] = []
   const indexOf = new Map<string, number>()
@@ -149,9 +203,9 @@ function buildNav(): NavNode[] {
   for (let bx = 0; bx < 3; bx++) {
     for (let bz = 0; bz < 3; bz++) {
       for (let k = 0; k < 8; k++) link(indexOf.get(key(bx, bz, k))!, indexOf.get(key(bx, bz, (k + 1) % 8))!)
-      // pasos de peatones hacia el este y el sur: esquina, mitad, esquina
-      if (bx < 2) for (const [a, b] of [[2, 6], [3, 7], [4, 0]]) link(indexOf.get(key(bx, bz, a))!, indexOf.get(key(bx + 1, bz, b))!)
-      if (bz < 2) for (const [a, b] of [[6, 0], [5, 1], [4, 2]]) link(indexOf.get(key(bx, bz, a))!, indexOf.get(key(bx, bz + 1, b))!)
+      // pasos de peatones hacia el este y el sur, solo en las esquinas: cada uno une una esquina con la que tiene enfrente
+      if (bx < 2) for (const [a, b] of [[2, 0], [4, 6]]) link(indexOf.get(key(bx, bz, a))!, indexOf.get(key(bx + 1, bz, b))!)
+      if (bz < 2) for (const [a, b] of [[6, 0], [4, 2]]) link(indexOf.get(key(bx, bz, a))!, indexOf.get(key(bx, bz + 1, b))!)
     }
   }
 
@@ -170,12 +224,27 @@ function buildNav(): NavNode[] {
   return nodes
 }
 
+/** Los enlaces de la red que van de la acera de una manzana a la de otra: ahí se pintan los pasos de peatones. */
+export function streetCrossings(nav: readonly NavNode[]): Crossing[] {
+  const ringCount = BLOCK_CENTERS.length * BLOCK_CENTERS.length * RING_NODES
+  const crossings: Crossing[] = []
+  for (const node of nav.slice(0, ringCount)) {
+    for (const otherId of node.links) {
+      if (otherId < node.id || otherId >= ringCount) continue
+      if (Math.floor(otherId / RING_NODES) === Math.floor(node.id / RING_NODES)) continue
+      const other = nav[otherId]
+      crossings.push({ x: (node.x + other.x) / 2, z: (node.z + other.z) / 2, alongX: Math.abs(other.x - node.x) > Math.abs(other.z - node.z) })
+    }
+  }
+  return crossings
+}
+
 export function generateCity(seed = 20261018): CityLayout {
   const rng = makeRng(seed)
   const buildings: Building[] = []
   const benches: Bench[] = []
   const trees: Tree[] = []
-  const lamps: Vec2[] = []
+  const lamps: Spot[] = []
   const windows: Spot[] = []
   const corners: Spot[] = []
   const talk: Spot[] = []
@@ -237,21 +306,23 @@ export function generateCity(seed = 20261018): CityLayout {
     const radius = 8.5 + rng() * 5
     trees.push({ x: Math.sin(angle) * radius, z: Math.cos(angle) * radius, scale: 0.9 + rng() * 0.5 })
   }
-  // Árboles en el bordillo de las aceras de cada manzana, con farolas entre ellos
+  // Farolas en el bordillo de cada lado de manzana, con el brazo hacia la calzada; y como mucho un árbol entre cada dos
   for (const cx of BLOCK_CENTERS) {
     for (const cz of BLOCK_CENTERS) {
       for (const { dx, dz } of faces) {
-        const at = (offset: number): Vec2 => ({
-          x: cx + dx * CURB_DISTANCE + dz * offset,
-          z: cz + dz * CURB_DISTANCE + dx * offset,
+        // `along` es la coordenada del mundo a lo largo de la acera (x en los lados norte y sur, z en los otros dos), así
+        // las farolas de las dos aceras de una calle quedan desfasadas sin depender de hacia dónde mira cada lado
+        const at = (along: number): Vec2 => ({
+          x: cx + dx * CURB_DISTANCE + Math.abs(dz) * along,
+          z: cz + dz * CURB_DISTANCE + Math.abs(dx) * along,
         })
-        for (const offset of [-10, -3.5, 3.5, 10]) {
-          if (rng() < 0.4) {
-            const p = at(offset)
-            trees.push({ x: p.x, z: p.z, scale: 0.8 + rng() * 0.4 })
-          }
+        const offsets = dx + dz > 0 ? LAMP_OFFSETS.positive : LAMP_OFFSETS.negative
+        const yaw = Math.atan2(-dz, dx)
+        for (const offset of offsets) lamps.push({ ...at(offset), yaw })
+        if (rng() < 0.75) {
+          const p = at((offsets[0] + offsets[1]) / 2)
+          trees.push({ x: p.x, z: p.z, scale: 0.8 + rng() * 0.4 })
         }
-        lamps.push(at(-6.5), at(6.5))
       }
     }
   }
@@ -270,6 +341,7 @@ export function generateCity(seed = 20261018): CityLayout {
   lamps.splice(0, lamps.length, ...keepAway(lamps))
   windows.splice(0, windows.length, ...keepAway(windows))
 
+  const nav = buildNav()
   const obstacles: Box[] = []
   for (const building of buildings) obstacles.push(building.box)
   for (const bench of benches) {
@@ -300,7 +372,8 @@ export function generateCity(seed = 20261018): CityLayout {
     lamps,
     park,
     obstacles,
-    nav: buildNav(),
+    nav,
+    crossings: streetCrossings(nav),
     windows,
     corners,
     talk,

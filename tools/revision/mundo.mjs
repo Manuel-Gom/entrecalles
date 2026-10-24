@@ -77,7 +77,7 @@ if (scenario === 'marcha') {
   for (const [name, run, step] of [['anda', false, 0.13], ['corre', true, 0.085]]) {
     await page.evaluate((r) => {
       const w = window.__world()
-      w.teleport(0, 16.7, 0)
+      w.teleport(0, w.layout.spawn.z, 0) // la acera junto al parque
       w.orbitCamera(0, 0.12, 3.4)
       w.inputOverride = { moveX: 1, moveZ: 0, run: r } // hacia la derecha de la pantalla: se ve de perfil
       w.advance(1.5)
@@ -161,20 +161,23 @@ if (scenario === 'marcha') {
     // junto a la farola más cercana a la plaza
     cerca: () => {
       const w = window.__world()
-      const lamp = [...w.layout.lamps].sort((a, b) => Math.hypot(a.x, a.z - 16.7) - Math.hypot(b.x, b.z - 16.7))[0]
+      const z = w.layout.spawn.z
+      const lamp = [...w.layout.lamps].sort((a, b) => Math.hypot(a.x, a.z - z) - Math.hypot(b.x, b.z - z))[0]
       w.teleport(lamp.x + 1.4, lamp.z + 1.4, 0)
       w.orbitCamera(0.8, 0.22, 5)
     },
     // desde un cruce, a lo largo de la calle hasta el borde (~45 m)
     calle: () => {
       const w = window.__world()
-      w.teleport(20, 20, 0)
+      // el centro de un cruce: los pasos de peatones de las calles norte-sur están en el eje de la calle
+      const half = Math.abs(w.layout.crossings.find((c) => c.alongX).x)
+      w.teleport(half, half, 0)
       w.orbitCamera(-Math.PI / 2, 0.12, 5)
     },
     // desde la plaza hacia la manzana sur y la calle del borde (~50 m), casi a ras de suelo
     lejos: () => {
       const w = window.__world()
-      w.teleport(0, 16.7, 0)
+      w.teleport(0, w.layout.spawn.z, 0) // la acera junto al parque
       w.orbitCamera(Math.PI, 0.05, 4)
     },
     general: () => {
@@ -272,11 +275,18 @@ if (scenario === 'marcha') {
   await page.evaluate(() => {
     const w = window.__world()
     w.advance(90)
-    w.teleport(0, 20, 0)
+    // en el centro de la calle al sur del parque, mirando a lo largo de ella; luego, en un cruce
+    const half = Math.abs(w.layout.crossings.find((c) => c.alongX).x)
+    w.teleport(0, half, 0)
     w.orbitCamera(Math.PI, 0.3, 8)
   })
   await shot('calle-1')
-  await page.evaluate(() => { const w = window.__world(); w.teleport(20, 20, 0); w.orbitCamera(0.8, 0.35, 9) })
+  await page.evaluate(() => {
+    const w = window.__world()
+    const half = Math.abs(w.layout.crossings.find((c) => c.alongX).x)
+    w.teleport(half, half, 0)
+    w.orbitCamera(0.8, 0.35, 9)
+  })
   await shot('calle-2')
   await page.evaluate(() => { const w = window.__world(); w.cameraClip = false; w.teleport(0, 0, 0); w.orbitCamera(0.6, 0.8, 120) })
   await shot('calle-3')

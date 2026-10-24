@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Box } from './collision'
-import { BLOCK_CENTERS, PARK_RING_RADIUS, RING_WALK, findPath, generateCity, makeRng, nearestNode, type NavNode } from './layout'
+import {
+  BLOCK_CENTERS, BLOCK_HALF, BLOCK_PITCH, CROSSING_HALF_WIDTH, CURB_DISTANCE, FOOT_MIN, ROAD_WIDTH, RING_OUTER, SIDEWALK, STREET_CENTERS, TREE_LAMP_GAP, WORLD_HALF, LAWN_HEIGHT, PARK_RING_RADIUS, PATH_HEIGHT, RING_WALK, SIDEWALK_HEIGHT, findPath, footHeight, generateCity, groundAt, groundTop, makeRng,
+  nearestNode, type NavNode,
+} from './layout'
 
 const city = generateCity()
 
@@ -146,7 +149,7 @@ describe('red de aceras', () => {
   })
 
   it('desde la acera se llega andando a cada banco del parque', () => {
-    const from = nearestNode(nodes, RING_WALK + 40, RING_WALK + 40).id // una esquina lejana
+    const from = nearestNode(nodes, RING_WALK + BLOCK_PITCH, RING_WALK + BLOCK_PITCH).id // una esquina lejana
     for (const bench of city.benches.filter((b) => Math.abs(b.x) < 10 && Math.abs(b.z) < 10)) {
       const front = { x: bench.x + Math.sin(bench.yaw) * 1.4, z: bench.z + Math.cos(bench.yaw) * 1.4 }
       expect(findPath(nodes, from, nearestNode(nodes, front.x, front.z).id).length).toBeGreaterThan(1)
@@ -209,5 +212,101 @@ describe('findPath y nearestNode', () => {
       { id: 1, x: 5, z: 0, links: [] },
     ]
     expect(findPath(isolated, 0, 1)).toEqual([])
+  })
+})
+
+describe('suelo de la calle', () => {
+  it('distingue acera, paseo, césped y calzada', () => {
+    expect(groundAt(0, RING_WALK)).toBe('acera') // la acera que rodea el parque
+    expect(groundAt(0.5, 8)).toBe('paseo')
+    expect(groundAt(-9, 0.4)).toBe('paseo')
+    expect(groundAt(8, 8)).toBe('hierba')
+    expect(groundAt(BLOCK_PITCH / 2, BLOCK_PITCH / 2)).toBe('calzada')
+  })
+
+  it('los pies van justo encima de lo que pisan, y nunca por debajo de lo de siempre en la calzada', () => {
+    expect(groundTop(0, RING_WALK)).toBe(SIDEWALK_HEIGHT)
+    expect(footHeight(0, RING_WALK)).toBeCloseTo(SIDEWALK_HEIGHT + 0.005)
+    expect(footHeight(0.5, 8)).toBeCloseTo(PATH_HEIGHT + 0.005)
+    expect(footHeight(8, 8)).toBeCloseTo(LAWN_HEIGHT + 0.005)
+    expect(groundTop(BLOCK_PITCH / 2, BLOCK_PITCH / 2)).toBe(0)
+    expect(footHeight(BLOCK_PITCH / 2, BLOCK_PITCH / 2)).toBe(FOOT_MIN)
+  })
+
+  it('los bancos están sobre acera o paseo, nunca en la calzada', () => {
+    for (const bench of city.benches) expect(['acera', 'paseo']).toContain(groundAt(bench.x, bench.z))
+  })
+})
+
+/** Lado de manzana en el que está algo de la acera: la manzana más cercana y hacia qué lado de ella (p. ej. "0,46,+x"). */
+function faceOf(p: { x: number; z: number }) {
+  const block = { x: Math.round(p.x / BLOCK_PITCH) * BLOCK_PITCH, z: Math.round(p.z / BLOCK_PITCH) * BLOCK_PITCH }
+  const dx = p.x - block.x
+  const dz = p.z - block.z
+  const onX = Math.abs(dx) > Math.abs(dz)
+  return { key: `${block.x},${block.z},${onX ? `${Math.sign(dx)}x` : `${Math.sign(dz)}z`}`, onX }
+}
+
+describe('calles', () => {
+  it('acera de 4 m y calzada de 8 m entre manzanas y en el perímetro, con la raya central en medio', () => {
+    expect(SIDEWALK).toBe(4)
+    expect(ROAD_WIDTH).toBe(8)
+    expect(BLOCK_PITCH - 2 * RING_OUTER).toBe(ROAD_WIDTH)
+    expect(WORLD_HALF - (BLOCK_PITCH + RING_OUTER)).toBe(ROAD_WIDTH)
+    expect(STREET_CENTERS).toEqual([-(WORLD_HALF - ROAD_WIDTH / 2), -BLOCK_PITCH / 2, BLOCK_PITCH / 2, WORLD_HALF - ROAD_WIDTH / 2])
+    for (const c of STREET_CENTERS) expect(groundAt(c, c)).toBe('calzada')
+  })
+
+  it('los pasos de peatones están solo en las esquinas, cruzando recto la calle, junto al cruce y no dentro', () => {
+    // 3 × 2 pares de manzanas vecinas en cada sentido, con un paso en cada una de sus dos esquinas
+    expect(city.crossings).toHaveLength(24)
+    for (const crossing of city.crossings) {
+      const [walk, lateral] = crossing.alongX ? [crossing.x, crossing.z] : [crossing.z, crossing.x]
+      // en el eje de la calle que cruza
+      expect(STREET_CENTERS.some((c) => Math.abs(walk - c) < 1e-9)).toBe(true)
+      // a lo largo de la calle, frente a la esquina de las manzanas: sin entrar en la intersección
+      const block = Math.round(lateral / BLOCK_PITCH) * BLOCK_PITCH
+      expect(Math.abs(lateral - block)).toBeCloseTo(RING_WALK)
+      expect(Math.abs(lateral - block) + CROSSING_HALF_WIDTH).toBeLessThanOrEqual(RING_OUTER)
+      expect(Math.abs(lateral - block) - CROSSING_HALF_WIDTH).toBeGreaterThanOrEqual(BLOCK_HALF)
+    }
+  })
+
+  it('las farolas de cada lado de manzana miran igual, y las de las dos aceras de una calle van al tresbolillo', () => {
+    const yaws = new Map<string, number>()
+    for (const lamp of city.lamps) {
+      const { key } = faceOf(lamp)
+      if (yaws.has(key)) expect(lamp.yaw).toBeCloseTo(yaws.get(key)!)
+      else yaws.set(key, lamp.yaw)
+    }
+    // en una misma calle, ninguna farola queda justo enfrente de otra
+    let facing = 0
+    for (const a of city.lamps) {
+      for (const b of city.lamps) {
+        if (a === b || faceOf(a).onX !== faceOf(b).onX) continue
+        const across = faceOf(a).onX ? Math.abs(a.x - b.x) : Math.abs(a.z - b.z)
+        const along = faceOf(a).onX ? Math.abs(a.z - b.z) : Math.abs(a.x - b.x)
+        if (Math.abs(across - (ROAD_WIDTH + 2 * (RING_OUTER - CURB_DISTANCE))) > 1e-9 || along > BLOCK_HALF) continue
+        facing++
+        expect(along).toBeGreaterThan(5)
+      }
+    }
+    expect(facing).toBeGreaterThan(50)
+  })
+
+  it('los árboles de las aceras quedan lejos de las farolas: como mucho uno entre cada dos', () => {
+    const street = city.trees.filter((tree) => groundAt(tree.x, tree.z) === 'acera')
+    expect(street.length).toBeGreaterThan(10)
+    for (const tree of street) {
+      const nearest = Math.min(...city.lamps.map((lamp) => Math.hypot(lamp.x - tree.x, lamp.z - tree.z)))
+      expect(nearest, `árbol en (${tree.x}, ${tree.z})`).toBeGreaterThanOrEqual(TREE_LAMP_GAP)
+    }
+    // como cada lado tiene dos farolas, un lado no puede tener más de un árbol
+    const perFace = new Map<string, number>()
+    for (const tree of street) {
+      const { key } = faceOf(tree)
+      perFace.set(key, (perFace.get(key) ?? 0) + 1)
+    }
+    for (const count of perFace.values()) expect(count).toBe(1)
   })
 })

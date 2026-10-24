@@ -1,9 +1,9 @@
 import * as THREE from 'three'
 import { describe, expect, it, vi } from 'vitest'
-import { generateCity } from './layout'
+import { BLOCK_PITCH, CURB_DISTANCE, RING_OUTER, RING_WALK, generateCity, groundAt } from './layout'
 import {
   GLOW_GAP, GLOW_HEIGHT, GLOW_REACH, LAMP_FADE, LampAssigner, POOL_HEIGHT, REAL_LAMPS, buildFacadeGlows, buildLightPools, disposeLightPools, facadeGlows,
-  lampHead, nearestLamps, poolFalloff, poolTexture,
+  LAMP_ARM, lampHead, nearestLamps, poolFalloff, poolTexture,
 } from './streetLights'
 
 const city = generateCity()
@@ -27,11 +27,37 @@ describe('nearestLamps', () => {
   })
 
   it('en el barrio real elige farolas a menos distancia que las que deja fuera', () => {
-    const chosen = nearestLamps(city.lamps, 0, 16.7, 8)
-    const distance = (i: number) => Math.hypot(city.lamps[i].x, city.lamps[i].z - 16.7)
+    const chosen = nearestLamps(city.lamps, 0, RING_WALK, 8)
+    const distance = (i: number) => Math.hypot(city.lamps[i].x, city.lamps[i].z - RING_WALK)
     const farthestChosen = Math.max(...chosen.map(distance))
     const others = city.lamps.map((_, i) => i).filter((i) => !chosen.includes(i))
     expect(Math.min(...others.map(distance))).toBeGreaterThanOrEqual(farthestChosen)
+  })
+})
+
+describe('lampHead', () => {
+  it('todas las luminarias cuelgan sobre la calzada, a un brazo del poste, que está en el bordillo', () => {
+    for (const lamp of city.lamps) {
+      const head = lampHead(lamp)
+      expect(groundAt(lamp.x, lamp.z)).toBe('acera')
+      expect(groundAt(head.x, head.z), `farola en (${lamp.x}, ${lamp.z})`).toBe('calzada')
+      expect(Math.hypot(head.x - lamp.x, head.z - lamp.z)).toBeCloseTo(LAMP_ARM)
+      // el brazo es perpendicular al bordillo: sale recto hacia la calle, alejándose de su manzana
+      const block = { x: Math.round(lamp.x / BLOCK_PITCH) * BLOCK_PITCH, z: Math.round(lamp.z / BLOCK_PITCH) * BLOCK_PITCH }
+      const reach = (p: { x: number; z: number }) => Math.max(Math.abs(p.x - block.x), Math.abs(p.z - block.z))
+      expect(reach(lamp)).toBeCloseTo(CURB_DISTANCE)
+      expect(reach(head)).toBeCloseTo(CURB_DISTANCE + LAMP_ARM)
+    }
+  })
+
+  it('sigue el giro de cada farola', () => {
+    const flat = lampHead({ x: 0, z: 0, yaw: 0 })
+    expect(flat.x).toBeCloseTo(LAMP_ARM)
+    expect(flat.z).toBeCloseTo(0)
+    const head = lampHead({ x: 1, z: 2, yaw: Math.PI / 2 })
+    expect(head.x).toBeCloseTo(1)
+    expect(head.z).toBeCloseTo(2 - LAMP_ARM)
+    expect(CURB_DISTANCE + LAMP_ARM).toBeGreaterThan(RING_OUTER)
   })
 })
 
@@ -123,7 +149,7 @@ describe('charcos de luz', () => {
     city.lamps.forEach((lamp, index) => {
       pools.getMatrixAt(index, matrix)
       position.setFromMatrixPosition(matrix)
-      const head = lampHead(lamp, index)
+      const head = lampHead(lamp)
       expect(position.x).toBeCloseTo(head.x)
       expect(position.z).toBeCloseTo(head.z)
       expect(position.y).toBeCloseTo(POOL_HEIGHT)
@@ -153,7 +179,7 @@ describe('charcos de luz', () => {
     expect(glows.length).toBeGreaterThan(city.lamps.length / 2)
     expect(glows.length).toBeLessThan(city.lamps.length)
     for (const glow of glows) {
-      const head = lampHead(city.lamps[glow.lamp], glow.lamp)
+      const head = lampHead(city.lamps[glow.lamp])
       // la normal apunta de la pared a la luminaria, y la luminaria está cerca
       const toLamp = { x: head.x - glow.x, z: head.z - glow.z }
       expect(toLamp.x * glow.normal.x + toLamp.z * glow.normal.z).toBeGreaterThan(0)

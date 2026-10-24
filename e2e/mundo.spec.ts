@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
+import { BLOCK_PITCH, WORLD_HALF } from '../src/world/layout'
 import { emptySave, expect, settings, test, withCharacters } from './fixtures'
 
 /** Abre el barrio y espera a que el protagonista esté en escena. */
@@ -76,7 +77,7 @@ test.describe('el barrio', () => {
   test('no se pueden atravesar los edificios ni salir del mundo', async ({ page, sembrar }) => {
     await sembrar(withCharacters)
     await entrar(page)
-    const resultado = await page.evaluate(() => {
+    const resultado = await page.evaluate(([calle, borde]) => {
       const world = window.__world!()!
       const fuera: string[] = []
       const dentro = (x: number, z: number) => world.layout.obstacles.some((b) => x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ)
@@ -102,15 +103,15 @@ test.describe('el barrio', () => {
       }
       // hacia cada borde del mundo
       for (const [moveX, moveZ] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        world.teleport(0, 20)
+        world.teleport(0, calle)
         world.inputOverride = { moveX, moveZ, run: true }
         world.advance(40)
         const { x, z } = world.stats().player
-        if (Math.abs(x) > 66 || Math.abs(z) > 66) fuera.push(`fuera del mundo en (${x.toFixed(1)}, ${z.toFixed(1)})`)
+        if (Math.abs(x) > borde || Math.abs(z) > borde) fuera.push(`fuera del mundo en (${x.toFixed(1)}, ${z.toFixed(1)})`)
       }
       world.inputOverride = null
       return fuera
-    })
+    }, [BLOCK_PITCH / 2, WORLD_HALF + 1])
     expect(resultado).toEqual([])
   })
 

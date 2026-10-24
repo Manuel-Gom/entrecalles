@@ -1,11 +1,14 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import { describe, expect, it } from 'vitest'
 import { makeSeat, seatsFor } from '../src/world/brain'
 import { generateCity } from '../src/world/layout'
 import { CHAIR_APPROACH, STOOL_APPROACH } from '../src/world/interior'
 import { markerFromMatrix, worldBox, type Marker } from '../src/world/props'
 import { makeSeatRoute } from '../src/world/seating'
+import { FOUNTAIN_LEVELS, FOUNTAIN_RADII } from '../src/world/water'
 
 /** Comprueba los modelos de Blender del mundo (public/models/mundo/): peso, triángulos, datos y que cuadren con el código. */
 
@@ -90,7 +93,7 @@ describe.each([
   ['banco', { kb: 60, triangles: 1200 }],
   ['fachada_cafe', { kb: 120, triangles: 2500 }],
   ['cafe_interior', { kb: 200, triangles: 5000 }],
-  ['fuente', { kb: 120, triangles: 6000 }],
+  ['fuente', { kb: 120, triangles: 8000 }],
   ['arbol', { kb: 120, triangles: 3500 }],
   ['farola', { kb: 80, triangles: 1800 }],
   ['sol', { kb: 80, triangles: 4000 }],
@@ -136,6 +139,43 @@ describe('modelos del parque', () => {
     expect(size.y).toBeGreaterThan(1.6)
     expect(size.y).toBeLessThan(2)
     expect(bounds.min.y).toBeCloseTo(0, 2)
+  })
+
+  it('la fuente trae los materiales que viste el código del agua y la piedra', () => {
+    const { gltf } = readGlb('fuente')
+    const names = (gltf.materials as { name: string }[]).map((m) => m.name)
+    for (const name of ['PiedraFuente', 'PiedraClara', 'FondoFuente', 'AguaFuente', 'ChorroFuente', 'BronceFuente']) expect(names).toContain(name)
+  })
+
+  it('las tres láminas de agua están a la altura y con el radio que espera el shader (src/world/water.ts)', async () => {
+    const buffer = readFileSync(`${DIR}/fuente.glb`)
+    const loader = new GLTFLoader()
+    loader.setMeshoptDecoder(MeshoptDecoder)
+    const gltf = await loader.parseAsync(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength), '')
+    let water: THREE.Mesh | null = null
+    gltf.scene.traverse((object) => {
+      const mesh = object as THREE.Mesh
+      if (mesh.isMesh && (mesh.material as THREE.Material).name === 'AguaFuente') water = mesh
+    })
+    expect(water).not.toBeNull()
+    const position = (water as unknown as THREE.Mesh).geometry.getAttribute('position')
+    // cada lámina es un disco muy fino: se agrupan los vértices por altura y se mira la cara de arriba y el radio de cada grupo
+    const discs: { top: number; radius: number }[] = []
+    const sorted = Array.from({ length: position.count }, (_, i) => ({ y: position.getY(i), r: Math.hypot(position.getX(i), position.getZ(i)) })).sort((a, b) => a.y - b.y)
+    for (const { y, r } of sorted) {
+      const disc = discs[discs.length - 1]
+      if (disc && y - disc.top < 0.05) {
+        disc.top = y
+        disc.radius = Math.max(disc.radius, r)
+      } else discs.push({ top: y, radius: r })
+    }
+    expect(discs).toHaveLength(3)
+    const expected = [FOUNTAIN_LEVELS.lower, FOUNTAIN_LEVELS.middle, FOUNTAIN_LEVELS.top]
+    const radii = [FOUNTAIN_RADII.lower, FOUNTAIN_RADII.middle, FOUNTAIN_RADII.top]
+    discs.forEach((disc, index) => {
+      expect(Math.abs(disc.top - expected[index])).toBeLessThan(0.011)
+      expect(Math.abs(disc.radius - radii[index])).toBeLessThan(0.011)
+    })
   })
 
   it('el árbol tiene copa con volumen y un tronco de más de tres metros', () => {

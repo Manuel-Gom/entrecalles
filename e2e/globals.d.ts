@@ -29,6 +29,8 @@ interface WorldHandle {
     /** luces reales de farola (pocas, las más cercanas) y charcos de luz pintados en el suelo (uno por farola) */
     streetLights: { active: number; lamps: number[]; intensity: number; range: number; decay: number; pools: number; poolsVisible: boolean; facadeGlows: number }
     waterAnimated: boolean
+    /** las texturas del suelo (aceras, césped, paseos) ya están puestas */
+    groundTextured: boolean
     door: { openness: number; x: number; z: number } | null
     npcs: {
       total: number
@@ -42,7 +44,7 @@ interface WorldHandle {
     calls: number
     triangles: number
   }
-  layout: { lamps: { x: number; z: number }[]; benches: { x: number; z: number; yaw: number }[]; buildings: { box: { minX: number; maxX: number; minZ: number; maxZ: number } }[]; obstacles: { minX: number; maxX: number; minZ: number; maxZ: number }[] }
+  layout: { lamps: { x: number; z: number; yaw: number }[]; benches: { x: number; z: number; yaw: number }[]; buildings: { box: { minX: number; maxX: number; minZ: number; maxZ: number } }[]; obstacles: { minX: number; maxX: number; minZ: number; maxZ: number }[] }
   advance(seconds: number): void
   teleport(x: number, z: number, yaw?: number): void
   interact(): void

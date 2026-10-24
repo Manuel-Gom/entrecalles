@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { BLOCK_PITCH, RING_WALK } from '../src/world/layout'
 import { expect, test, withCharacters } from './fixtures'
 
 /** Abre el barrio sin vecinos y espera a que estén el protagonista y los modelos de Blender. */
@@ -19,7 +20,8 @@ async function entrar(page: Page) {
           s.scenery.trees &&
           s.scenery.lamps &&
           s.scenery.sun &&
-          s.scenery.moon,
+          s.scenery.moon &&
+          s.groundTextured,
       )
     },
     null,
@@ -143,7 +145,9 @@ test.describe('edificios: la puerta del café y su interior', () => {
   test('las luces reales acompañan al protagonista: siempre en las farolas más cercanas', async ({ page, sembrar }) => {
     await sembrar(withCharacters)
     await entrar(page)
-    for (const [x, z] of [[0, 16.7], [-56.7, -56.7], [56.7, 20]]) {
+    // junto al parque, en la esquina de una manzana del borde y en la acera exterior de otra
+    const corner = BLOCK_PITCH + RING_WALK
+    for (const [x, z] of [[0, RING_WALK], [-corner, -corner], [corner, BLOCK_PITCH / 2]]) {
       const { lit, nearest } = await page.evaluate(([px, pz]) => {
         const world = window.__world!()!
         world.setPaused(true)
@@ -167,12 +171,12 @@ test.describe('edificios: la puerta del café y su interior', () => {
   test('de noche los charcos de luz iluminan lo lejano', async ({ page, sembrar }) => {
     await sembrar(withCharacters)
     await entrar(page)
-    const brillo = await page.evaluate(() => {
+    const brillo = await page.evaluate((acera) => {
       const world = window.__world!()!
       world.setPaused(true)
       world.setClockOverride('2025-06-21T23:30:00+02:00')
       // desde la plaza hacia la manzana sur y la calle del borde, casi a ras de suelo
-      world.teleport(0, 16.7, 0)
+      world.teleport(0, acera, 0)
       world.orbitCamera(Math.PI, 0.05, 4)
       world.advance(0.5)
       // se dibuja y se lee en el mismo paso, antes de que el navegador vacíe el lienzo
@@ -197,8 +201,23 @@ test.describe('edificios: la puerta del café y su interior', () => {
       world.advance(0.05)
       const con = medir()
       return { sin, con }
-    })
+    }, RING_WALK)
     expect(brillo.con, `con charcos ${brillo.con.toFixed(1)}, sin ${brillo.sin.toFixed(1)}`).toBeGreaterThan(brillo.sin + 1)
+  })
+
+  test('el parque tiene el suelo con texturas y la fuente con agua, también con movimiento reducido', async ({ page, sembrar }) => {
+    await sembrar({ ...withCharacters, settings: { ...withCharacters.settings, reducedMotion: true } })
+    await entrar(page)
+    const parque = await page.evaluate(() => {
+      const world = window.__world!()!
+      world.setPaused(true)
+      world.setClockOverride('2025-06-21T13:00:00+02:00')
+      world.advance(2)
+      world.renderNow()
+      return world.stats()
+    })
+    expect(parque.groundTextured).toBe(true)
+    expect(parque.waterAnimated).toBe(true)
   })
 
   test('cambiar la calidad de noche no acumula geometrías ni texturas', async ({ page, sembrar }) => {

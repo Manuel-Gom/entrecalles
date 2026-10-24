@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { BLOCK_PITCH, RING_WALK } from '../src/world/layout'
 import { expect, settings, test, withCharacters } from './fixtures'
 
 /** Abre el barrio con `pnj` vecinos y espera a que estén cargados. */
@@ -23,7 +24,7 @@ test.describe('sonido', () => {
   test('cada paso suena: andando y corriendo, con el suelo que se pisa', async ({ page, sembrar }) => {
     await sembrar(withCharacters)
     await entrar(page)
-    const resultado = await page.evaluate(() => {
+    const resultado = await page.evaluate(([acera, calle]) => {
       const w = window.__world!()!
       const pasos = () => w.stats().audio.steps
       const mover = (x: number, z: number, run: boolean, segundos: number) => {
@@ -37,10 +38,10 @@ test.describe('sonido', () => {
         return { pasos: pasos() - antes, suelo: w.stats().audio.lastSurface }
       }
       return {
-        andando: mover(-10, 16.7, false, 6), // acera
-        corriendo: mover(-10, 16.7, true, 3),
+        andando: mover(-10, acera, false, 6), // acera
+        corriendo: mover(-10, acera, true, 3),
         hierba: mover(-10, 8, false, 3), // el parque
-        calzada: mover(-9, 20, false, 3), // la calle entre manzanas
+        calzada: mover(-9, calle, false, 3), // la calle entre manzanas, por el centro
         parado: (() => {
           w.advance(1) // termina de frenar
           const antes = pasos()
@@ -48,7 +49,7 @@ test.describe('sonido', () => {
           return pasos() - antes
         })(),
       }
-    })
+    }, [RING_WALK, BLOCK_PITCH / 2])
     // andando: unos 115 pasos por minuto → ~11 en 6 s; corriendo: unos 185 → ~9 en 3 s
     expect(resultado.andando.pasos).toBeGreaterThanOrEqual(8)
     expect(resultado.andando.pasos).toBeLessThanOrEqual(15)
