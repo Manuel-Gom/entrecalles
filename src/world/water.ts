@@ -12,6 +12,8 @@ export interface AnimatedWater {
  */
 export const FOUNTAIN_LEVELS = { lower: 0.4, middle: 1.32, top: 1.65 } as const
 export const FOUNTAIN_RADII = { lower: 1.4, middle: 0.655, top: 0.265 } as const
+/** Radios (m) donde cae el agua: la cascada de la taza de arriba en cada lámina y el anillo de arcos de la taza media. */
+export const FOUNTAIN_FALLS = { lower: 0.83, middle: 0.365, arcs: 0.58 } as const
 
 const NOISE = NOISE_GLSL
 
@@ -85,8 +87,8 @@ function animateWater(material: THREE.MeshStandardMaterial, uniforms: FxUniforms
       float fxRadius = fxLower ? ${FOUNTAIN_RADII.lower.toFixed(3)} : (fxTop ? ${FOUNTAIN_RADII.top.toFixed(3)} : ${FOUNTAIN_RADII.middle.toFixed(3)});
       float fxRim = clamp(fxR / fxRadius, 0.0, 1.0);
       // dónde cae la cascada de la taza de arriba (y los arcos), en cada lámina
-      float fxFall = fxLower ? 0.83 : (fxTop ? -1.0 : 0.365);
-      float fxArcs = (!fxLower && !fxTop) ? 0.58 : -1.0;
+      float fxFall = fxLower ? ${FOUNTAIN_FALLS.lower.toFixed(3)} : (fxTop ? -1.0 : ${FOUNTAIN_FALLS.middle.toFixed(3)});
+      float fxArcs = (!fxLower && !fxTop) ? ${FOUNTAIN_FALLS.arcs.toFixed(3)} : -1.0;
       float fxNearFall = max(1.0 - smoothstep(0.0, 0.1, abs(fxR - fxFall)), (1.0 - smoothstep(0.0, 0.07, abs(fxR - fxArcs))) * 0.6);
       float fxDeep = smoothstep(1.0, 0.1, fxRim);
       diffuseColor.rgb = mix(vec3(0.075, 0.30, 0.36), vec3(0.008, 0.07, 0.10), fxDeep);

@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { EXTERIOR_WALL, FLOOR_HEIGHT, GROUND_FLOOR_Y, PORTAL_OPENING, SHOP_OPENING, casetonBox, levelY, patioBoxes, roofY, subtractBoxes } from './buildingPlan'
 import { createGroundMaterials, flatColor, type GroundMaterials } from './ground'
 import {
-  BLOCK_CENTERS, BLOCK_HALF, BLOCK_PITCH, CROSSING_HALF_WIDTH, LAWN_HEIGHT, PATH_HALF_WIDTH, PATH_HEIGHT, RING_OUTER, RING_WALK, ROAD_WIDTH, SIDEWALK_HEIGHT,
+  BLOCK_CENTERS, BLOCK_HALF, BLOCK_PITCH, CROSSING_HALF_WIDTH, FOUNTAIN_RADIUS, LAWN_HEIGHT, PATH_HALF_WIDTH, PATH_HEIGHT, RING_OUTER, RING_WALK, ROAD_WIDTH, SIDEWALK_HEIGHT,
   STREET_CENTERS, WORLD_HALF, type Building, type CityLayout,
 } from './layout'
 
@@ -377,8 +377,13 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
   for (const mark of roadMarkings(layout)) props.floor(mark.minX, mark.minZ, mark.maxX, mark.maxZ, MARKING_HEIGHT, MARKING)
 
   // parque: césped, dos paseos de gravilla que se cruzan en la fuente y un borde de piedra que los separa del césped
+  // el césped son cuatro cuadrantes que llegan hasta el borde de piedra: debajo de los paseos no hay césped que pintar dos
+  // veces (y que parpadee con ellos visto desde lejos, a solo 5 mm)
   const park = layout.park
-  lawn.floor(park.minX, park.minZ, park.maxX, park.maxZ, LAWN_HEIGHT, flatColor('lawn'), true)
+  const lawnInner = PATH_HALF_WIDTH + EDGING_WIDTH
+  for (const [x0, x1] of [[park.minX, -lawnInner], [lawnInner, park.maxX]]) {
+    for (const [z0, z1] of [[park.minZ, -lawnInner], [lawnInner, park.maxZ]]) lawn.floor(x0, z0, x1, z1, LAWN_HEIGHT, flatColor('lawn'), true)
+  }
   const pathColor = flatColor('path')
   paths.floor(-PATH_HALF_WIDTH, -park.maxZ, PATH_HALF_WIDTH, park.maxZ, PATH_HEIGHT, pathColor, true) // paseo norte-sur
   paths.floor(-park.maxX, -PATH_HALF_WIDTH, park.maxX, PATH_HALF_WIDTH, PATH_HEIGHT, pathColor, true) // paseo este-oeste
@@ -395,8 +400,9 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
       sidewalks.slab(bx0, bz0, bx1, bz1, EDGING_HEIGHT, sidewalkColor)
     }
   }
-  fountain.box(-1.7, 0, -1.7, 1.7, 0.45, 1.7, 0x9a9a95)
-  fountain.floor(-1.45, -1.45, 1.45, 1.45, 0.38, 0x5fa3c4)
+  const f = FOUNTAIN_RADIUS
+  fountain.box(-f, 0, -f, f, 0.45, f, 0x9a9a95)
+  fountain.floor(-f + 0.25, -f + 0.25, f - 0.25, f - 0.25, 0.46, 0x5fa3c4)
   fountain.box(-0.2, 0, -0.2, 0.2, 1.3, 0.2, 0x8c8c88)
 
   // edificios: fachadas con ventanas y los huecos de portal y local, azotea con antepecho y casetón

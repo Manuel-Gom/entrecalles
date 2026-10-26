@@ -21,7 +21,7 @@ import { AudioEngine, attenuation, panFor, stepVolume, surfaceAt, type AudioStat
 import { PairDialogue } from './dialogue'
 import { Interior } from './interior'
 import { Storefront } from './storefront'
-import { disposeProp, instanceProp, loadProp, placementMatrix, type Prop } from './props'
+import { disposeProp, frontSidesOnly, instanceProp, loadProp, placementMatrix, type Prop } from './props'
 import { LAMP_HEIGHT, LAMP_LIGHT, LampAssigner, REAL_LAMPS, buildFacadeGlows, buildLightPools, disposeLightPools, facadeGlows, lampHead, nearestLamps } from './streetLights'
 import { SeatSession, findSeat, makeSeatRoute } from './seating'
 import { PLAYER_ID, PLAYER_RADIUS, nearestAngle, newPlayer, stepPlayer, type PlayerInput, type PlayerState } from './player'
@@ -501,6 +501,7 @@ export class World {
         .then((prop) => {
           if (this.disposed) return disposeProp(prop)
           this.benchProp = prop
+          frontSidesOnly(prop.root)
           this.benchGroup = instanceProp(prop, this.layout.benches.map((bench) => placementMatrix(bench.x, groundTop(bench.x, bench.z), bench.z, bench.yaw)))
           this.exterior.add(this.benchGroup)
           if (this.city) this.city.benchMesh.visible = false
@@ -518,6 +519,7 @@ export class World {
         .then((prop) => {
           if (this.disposed) return disposeProp(prop)
           this.water = dressFountain(prop.root)
+          frontSidesOnly(prop.root, ['AguaFuente', 'ChorroFuente'])
           this.sceneryProps.push(prop)
           this.sceneryLoaded.add('fuente')
           const fountain = instanceProp(prop, [placementMatrix(0, 0, 0, 0)])
@@ -531,7 +533,8 @@ export class World {
           if (this.disposed) return disposeProp(prop)
           this.sceneryProps.push(prop)
           this.sceneryLoaded.add('arbol')
-          this.exterior.add(instanceProp(prop, this.layout.trees.map((tree, index) => placementMatrix(tree.x, groundTop(tree.x, tree.z), tree.z, index * 2.399963))))
+          frontSidesOnly(prop.root)
+          this.exterior.add(instanceProp(prop, this.layout.trees.map((tree, index) => placementMatrix(tree.x, groundTop(tree.x, tree.z), tree.z, index * 2.399963, tree.scale))))
           if (this.city) this.city.treeMesh.visible = false
         })
         .catch(failed('los árboles')),
@@ -551,6 +554,7 @@ export class World {
           })
           this.sceneryProps.push(prop)
           this.sceneryLoaded.add('farola')
+          frontSidesOnly(prop.root, ['CristalLechoso'])
           this.exterior.add(instanceProp(prop, this.layout.lamps.map((lamp) => placementMatrix(lamp.x, groundTop(lamp.x, lamp.z), lamp.z, lamp.yaw))))
           if (this.city) this.city.lampMesh.visible = false
         })

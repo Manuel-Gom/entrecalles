@@ -164,6 +164,16 @@ export const STOREFRONT_OFFSET = 0.03
 export const PARK_RING_RADIUS = 4.6
 /** Franja (rad) a cada lado de las diagonales del parque que se deja sin árboles, para que se pueda pasar. */
 const PARK_CLEAR_ANGLE = 0.16
+/** Distancia mínima entre dos árboles del parque (m): más cerca se ven como un árbol con dos troncos. */
+export const PARK_TREE_GAP = 3
+/** Radio del pilón de la fuente (m), el de su borde de piedra en tools/blender/crear_props.py. */
+export const FOUNTAIN_RADIUS = 1.62
+
+/** Si un ángulo del parque cae fuera de las franjas libres alrededor de ejes y diagonales (múltiplos de 45°). */
+function clearOfParkLanes(angle: number): boolean {
+  const rest = angle % (Math.PI / 4)
+  return Math.min(rest, Math.PI / 4 - rest) > PARK_CLEAR_ANGLE
+}
 
 const FACADE_COLORS = [0xc9b8a2, 0xb7a58f, 0xd7cdbd, 0xa89887, 0xc4a79a, 0xb2b7ad, 0xcfc2a0, 0x9fa6a8]
 
@@ -321,13 +331,15 @@ export function generateCity(seed = 20261018): CityLayout {
   for (let i = 0; i < 10; i++) {
     // el ángulo se repite hasta caer fuera de las franjas libres alrededor de ejes y diagonales (múltiplos de 45°)
     let angle = rng() * Math.PI * 2
-    for (let tries = 0; tries < 20; tries++) {
-      const rest = angle % (Math.PI / 4)
-      if (Math.min(rest, Math.PI / 4 - rest) > PARK_CLEAR_ANGLE) break
-      angle = rng() * Math.PI * 2
-    }
+    for (let tries = 0; tries < 20 && !clearOfParkLanes(angle); tries++) angle = rng() * Math.PI * 2
     const radius = 8.5 + rng() * 5
-    trees.push({ x: Math.sin(angle) * radius, z: Math.cos(angle) * radius, scale: 0.9 + rng() * 0.5 })
+    const scale = 0.9 + rng() * 0.5
+    // si pisa a otro árbol del parque, se corre por su círculo hasta un hueco libre (sin más tiradas: el resto del barrio
+    // sale igual que siempre)
+    const at = (a: number) => ({ x: Math.sin(a) * radius, z: Math.cos(a) * radius })
+    const free = (a: number) => clearOfParkLanes(a) && trees.every((tree) => Math.hypot(tree.x - at(a).x, tree.z - at(a).z) >= PARK_TREE_GAP)
+    for (let step = 0; step < 126 && !free(angle); step++) angle += 0.05
+    trees.push({ ...at(angle), scale })
   }
   // Farolas en el bordillo de cada lado de manzana, con el brazo hacia la calzada; y como mucho un árbol entre cada dos
   for (const cx of BLOCK_CENTERS) {
@@ -394,7 +406,10 @@ export function generateCity(seed = 20261018): CityLayout {
   }
   for (const tree of trees) obstacles.push(boxAt(tree.x, tree.z, 0.4, 0.4))
   for (const lamp of lamps) obstacles.push(boxAt(lamp.x, lamp.z, 0.5, 0.5))
-  obstacles.push(boxAt(0, 0, 3.4, 3.4)) // fuente
+  // la fuente es redonda: tres cajas (dos en cruz y una cuadrada) se acercan al círculo a unos 20 cm, frente a los 78 de
+  // una sola caja que la rodee
+  const r = FOUNTAIN_RADIUS
+  obstacles.push(boxAt(0, 0, 2 * r, r), boxAt(0, 0, r, 2 * r), boxAt(0, 0, 1.6 * r, 1.6 * r))
   // límites del mundo: cuatro paredes más allá de la calle perimetral
   const wall = WORLD_HALF + 1
   obstacles.push(

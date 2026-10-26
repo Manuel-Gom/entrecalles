@@ -69,9 +69,9 @@ export function worldBox(collider: Marker, placement: THREE.Matrix4): { box: Box
   return { box: { minX, maxX, minZ, maxZ }, minY, maxY }
 }
 
-/** Matriz que coloca un modelo en el mundo: su posición y hacia dónde mira. */
-export function placementMatrix(x: number, y: number, z: number, yaw: number): THREE.Matrix4 {
-  return new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(1, 1, 1))
+/** Matriz que coloca un modelo en el mundo: su posición, hacia dónde mira y su tamaño (los árboles no son todos iguales). */
+export function placementMatrix(x: number, y: number, z: number, yaw: number, scale = 1): THREE.Matrix4 {
+  return new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(scale, scale, scale))
 }
 
 /** Separa los vacíos de datos del resto del modelo. Es independiente del cargador para poder probarse. */
@@ -139,6 +139,23 @@ export function disposeProp(prop: Prop | THREE.Object3D) {
   root.removeFromParent()
 }
 
+/**
+ * Los modelos de Blender salen con las dos caras de cada material. En los sólidos cerrados (copas, troncos, piedra, hierro)
+ * las de atrás nunca se ven, pero se pintan igual, también en el mapa de sombras: junto a la fuente, con los árboles
+ * llenando la pantalla, quitarlas da un 15 % más de FPS. `keep` son los materiales que sí necesitan las dos (láminas de agua).
+ */
+export function frontSidesOnly(root: THREE.Object3D, keep: readonly string[] = []) {
+  root.traverse((object) => {
+    const mesh = object as THREE.Mesh
+    if (!mesh.isMesh) return
+    for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      if (keep.includes(material.name)) continue
+      material.side = THREE.FrontSide
+      material.needsUpdate = true
+    }
+  })
+}
+
 /** Dibuja el mismo modelo muchas veces con pocas llamadas: una malla instanciada por cada malla del modelo. */
 export function instanceProp(prop: Prop, placements: readonly THREE.Matrix4[]): THREE.Group {
   const group = new THREE.Group()
@@ -155,7 +172,8 @@ export function instanceProp(prop: Prop, placements: readonly THREE.Matrix4[]): 
     instanced.instanceMatrix.needsUpdate = true
     instanced.castShadow = true
     instanced.receiveShadow = true
-    instanced.frustumCulled = false
+    // se recorta con la esfera que abarca todos sus ejemplares (three la calcula la primera vez): la fuente, que es
+    // una sola, deja de dibujarse (y de dar sombra) cuando no se ve
     group.add(instanced)
   })
   return group
