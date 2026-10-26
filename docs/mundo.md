@@ -42,7 +42,12 @@ Para medir con el mismo recorrido en las tres calidades: `npm run build && node 
 | Borde | Media | 218 (218, 227, 197) | 212 (212, 202, 218) | −3,0 % |
 | Borde | Alta | 135 (135, 143, 133) | 131 (131, 135, 131) | −3,2 % |
 
-De día, la iluminación nocturna cuesta menos del 5 % pedido. El peor fotograma al anochecer y al amanecer es de 10–20 ms (el límite era 100 ms), con la iluminación y también con los edificios explorables. Los edificios explorables sí bajan los FPS (ver «Qué falta»).
+De día, la iluminación nocturna cuesta menos del 5 % pedido. El peor fotograma al anochecer y al amanecer es de 10–20 ms (el límite era 100 ms), con la iluminación y también con los edificios explorables.
+
+**Qué se hizo para no perder FPS** (mismo equipo y condiciones; antes = `60f95e2`, con los edificios explorables, y después, tres pasadas intercaladas): en la plaza, de 104 a 175 FPS en media y de 106 a 175 en alta; en el borde, de 112 a 213 en media y de 85 a 105 en alta. Los triángulos por fotograma bajan de ~830.000 a ~330.000–440.000 y las llamadas de dibujo, de ~200 a ~100–150.
+- **Sombra del sol** (`world.ts`, `SHADOW_HZ`): el mapa de sombras ya no se rehace en cada fotograma. La caja de sombras se recoloca a saltos de 4 m, el sol se reorienta al girar más de 0,17° y, entre medias, el mapa se rehace como mucho 60 veces por segundo (por los personajes y las puertas que se mueven).
+- **Personajes** (`ACTOR_BOUNDS_MARGIN`): son lo que más triángulos tiene (unos 22.000 el cuerpo, más ropa y pelo) y se dibujaban todos siempre, también en el mapa de sombras. Ahora cada malla tiene su esfera y three.js no dibuja a quien queda fuera de cámara, ni en la sombra a quien queda fuera de la caja de sombras.
+- **Edificios** (`buildings.ts`): una copia oculta de todos los muebles y materiales de dentro (`warmup`) se compila en segundo plano al cargar, al cambiar la calidad y al cambiar las luces, así que montar un edificio o subir a una planta con muebles nuevos ya no compila nada en el momento (se llegó a ver un parón de 3,8 s). Entre dos edificios vecinos se cambia solo si la otra puerta está 3 m más cerca, y el último interior soltado se guarda por si se vuelve a él. Portales, escaparates y rótulos no dan sombra, y dentro solo se dibujan la planta actual y las dos de debajo.
 
 Cambiar **cuántas** luces hay en la escena (sale la luna, se pone el sol, se encienden las farolas) obliga a recompilar todos los materiales: más de un segundo de parón en una gráfica integrada. Por eso el barrio prepara el nuevo estado en segundo plano y cambia cuando está listo; cambiar la **intensidad** de una luz no cuesta nada. Si añades luces, sigue la misma regla.
 
@@ -167,7 +172,7 @@ Navegador de escritorio con WebGL 2 y Web Audio (Chrome, Edge, Firefox o Safari 
 - Controles táctiles; reasignar teclas.
 - Los vecinos no entran en los edificios ni viven en los pisos; el café sigue siendo una sala aparte (con fundido).
 - Desde fuera, las ventanas de los pisos están pintadas: no se ve el interior a través de ellas.
-- Rendimiento con los edificios explorables (medido el 26 oct 2026, Radeon integrada, 1920×1080, calidad media): con la cámara quieta en el borde del barrio, 133 FPS frente a 150 en el commit anterior (−12 %); los portales y escaparates de las fachadas cuestan ~0,4 ms y el interior montado otros ~0,3 ms. Corriendo en círculos, la caída medida es mayor (−25 a −40 %), pero esas medidas varían mucho entre pasadas. Lo que más cuesta en todas las versiones: la sombra del sol, que se vuelve a dibujar en cada fotograma con toda la ciudad (sin actualizarla, +25 % de FPS), y la malla de la ciudad. Al acercarse a un portal se vio una vez un fotograma de 3,8 s.
+- Rendimiento: lo que más cuesta ahora son los píxeles (las fachadas y el suelo con sus texturas, a pantalla completa) y los personajes. Las mallas de la ciudad apenas tienen triángulos (las fachadas y azoteas, unos 2.700), así que trocearlas no ayudaría.
 - Vehículos, ciclo de día y noche, música, y todo lo que da sentido al juego: historia, misiones, diálogos del juego, dificultad.
 - Los 160 PNJ a la vez: harían falta modelos más sencillos para los lejanos.
 - Probar con mandos reales: las pruebas usan un mando simulado (ver [pruebas.md](pruebas.md)); la validación con un mando de Xbox y uno de PlayStation en los navegadores de destino, y las mediciones de rendimiento, las tiene que hacer quien tenga el equipo.

@@ -86,25 +86,32 @@ export function resolveCircles(position: Vec2, radius: number, others: readonly 
 
 /** Fracción (0-1) del segmento a→b en la que entra en la caja, o null si no la toca. */
 export function segmentEntry(ax: number, az: number, bx: number, bz: number, box: Box): number | null {
-  let tMin = 0
-  let tMax = 1
-  const dx = bx - ax
-  const dz = bz - az
-  const slabs: [number, number, number, number][] = [
-    [ax, dx, box.minX, box.maxX],
-    [az, dz, box.minZ, box.maxZ],
-  ]
-  for (const [origin, direction, low, high] of slabs) {
-    if (Math.abs(direction) < 1e-9) {
-      if (origin < low || origin > high) return null
-      continue
-    }
+  // la cámara lo llama con cada pared en cada fotograma: sin crear arrays (eje x y luego eje z)
+  const x = slab(ax, bx - ax, box.minX, box.maxX, 0, 1)
+  if (x === null) return null
+  const z = slab(az, bz - az, box.minZ, box.maxZ, x.tMin, x.tMax)
+  return z === null ? null : z.tMin
+}
+
+const span = { tMin: 0, tMax: 1 }
+
+/** Recorta [tMin, tMax] a la franja low-high de un eje (null si el segmento no la cruza). */
+function slab(origin: number, direction: number, low: number, high: number, tMin: number, tMax: number): typeof span | null {
+  if (Math.abs(direction) < 1e-9) {
+    if (origin < low || origin > high) return null
+  } else {
     let t1 = (low - origin) / direction
     let t2 = (high - origin) / direction
-    if (t1 > t2) [t1, t2] = [t2, t1]
+    if (t1 > t2) {
+      const swap = t1
+      t1 = t2
+      t2 = swap
+    }
     tMin = Math.max(tMin, t1)
     tMax = Math.min(tMax, t2)
     if (tMin > tMax) return null
   }
-  return tMin
+  span.tMin = tMin
+  span.tMax = tMax
+  return span
 }

@@ -157,6 +157,23 @@ const INTERIOR_LIGHT = { color: 0xffe0b5, intensity: 7, distance: 9, decay: 2 } 
 const INTERIOR_LIGHTS_REACH = 9
 /** Distancia máxima de la cámara dentro de un edificio. */
 const INDOOR_CAMERA = 3.6
+/**
+ * La sombra del sol. Volver a dibujar el mapa de sombras (toda la ciudad, otra vez) costaba casi un tercio de cada
+ * fotograma: ahora la caja de sombras (68 m) solo se recoloca cuando el protagonista se aleja de su centro más de
+ * SHADOW_RECENTER, el sol se reorienta cuando gira más de SHADOW_TURN (rad) y, mientras tanto, el mapa se rehace como
+ * mucho SHADOW_HZ veces por segundo (por lo que se mueve: personas, puertas, el ascensor).
+ */
+const SHADOW_SPAN = 68
+const SHADOW_RECENTER = 4
+const SHADOW_TURN = 0.003
+const SHADOW_HZ = 60
+/**
+ * Los personajes son lo que más triángulos tiene (unos 22.000 el cuerpo, más ropa y pelo) y el cargador de avatares no
+ * los recorta (en el editor, con otras poses, no hace falta). En el barrio sí: cada malla con su esfera, calculada con la
+ * pose de salida y este margen (m) para las poses de andar, correr o sentarse. Así no se dibuja quien está fuera de
+ * cámara, y en el mapa de sombras, quien está fuera de la caja de sombras.
+ */
+const ACTOR_BOUNDS_MARGIN = 0.4
 
 /** El barrio jugable: escena, jugador, PNJ y bucle. Se crea al entrar en la pantalla y se libera al salir. */
 export class World {
@@ -218,6 +235,10 @@ export class World {
   private lastTime = 0
   /** duración del último fotograma (s): la cámara se suaviza con el tiempo real, no con 60 Hz fijos */
   private frameDt = 1 / 60
+  /** dónde está centrada la caja de sombras y hacia dónde apuntaba el sol al dibujarla (null: hay que rehacerla) */
+  private shadowFrame: { x: number; z: number; texel: number; sun: { x: number; y: number; z: number } } | null = null
+  private shadowClock = 0
+  private readonly cameraTarget = new THREE.Vector3()
   private disposed = false
   private paused = false
   private state: WorldState = 'cargando'
@@ -330,6 +351,8 @@ export class World {
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.0
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    // el mapa de sombras se rehace cuando hace falta (ver SHADOW_HZ), no en cada fotograma
+    renderer.shadowMap.autoUpdate = false
 
     scene.background = new THREE.Color(SKY)
     scene.fog = new THREE.Fog(SKY, 80, 190)
@@ -420,6 +443,17 @@ export class World {
     this.city?.ground.setQuality(this.quality)
     this.syncLampLights()
     this.resize()
+    // con otras luces o sombras, los materiales de dentro de los edificios son otros: se preparan ya, antes de verlos
+    this.prewarmBuildings()
+  }
+
+  /**
+   * Deja compilando, en segundo plano, los materiales de dentro de los edificios con las luces de ahora (ver
+   * BuildingManager.warmup): si no, se compilarían al verlos por primera vez, con parones de hasta varios segundos.
+   */
+  private prewarmBuildings() {
+    if (this.disposed || !this.renderer || !this.buildings.ready) return
+    this.renderer.compile(this.buildings.warmup, this.camera, this.scene)
   }
 
   setQuality(quality: Quality) {
@@ -472,7 +506,7 @@ export class World {
           if (this.city) this.city.benchMesh.visible = false
         })
         .catch(failed('los bancos')),
-      this.buildings.load(() => !this.disposed).catch(failed('los edificios')),
+      this.buildings.load(() => !this.disposed).then(() => this.prewarmBuildings()).catch(failed('los edificios')),
       Storefront.load(this.layout.storefront)
         .then((storefront) => {
           if (this.disposed) return storefront.dispose()
@@ -581,6 +615,17 @@ export class World {
     const group = new THREE.Group()
     group.add(assembly.root)
     parent.add(group)
+    group.updateMatrixWorld(true)
+    assembly.root.traverse((object) => {
+      const mesh = object as THREE.SkinnedMesh
+      if (!mesh.isMesh) return
+      // ver ACTOR_BOUNDS_MARGIN (las mallas son copias propias de este personaje: el editor no se entera)
+      if (mesh.isSkinnedMesh) {
+        mesh.computeBoundingSphere()
+        mesh.boundingSphere.radius += ACTOR_BOUNDS_MARGIN
+      }
+      mesh.frustumCulled = true
+    })
     return { assembly, locomotor: new Locomotor(assembly, seed), group, prevYaw: 0, turn: 0 }
   }
 
@@ -1073,8 +1118,9 @@ export class World {
         const program = (renderer.properties.get(material) as { currentProgram?: { isReady(): boolean } }).currentProgram
         if (!program || program.isReady()) pending.delete(material)
       }
-      // con un tope: si algo no llega a estar listo, se cambia igual (como mucho, un tirón como el de antes)
-      if (pending.size > 0 && ++tries < 120) {
+      // con un tope: si algo no llega a estar listo, se cambia igual (como mucho, un tirón como el de antes). Con los
+      // interiores de los edificios hay muchos más materiales y en una gráfica integrada 3 s se quedaban cortos
+      if (pending.size > 0 && ++tries < 320) {
         window.setTimeout(check, 25)
         return
       }
@@ -1219,21 +1265,41 @@ export class World {
     const focus = this.focusOverride ?? this.player
     // la cámara sigue la altura suavizada del personaje (la de los peldaños, sin saltos)
     const height = this.inside ? GROUND : (this.playerActor?.group.position.y ?? this.playerY)
-    const ground = new THREE.Vector3(focus.x, this.focusOverride ? GROUND : height, focus.z)
+    const ground = this.cameraTarget.set(focus.x, this.focusOverride ? GROUND : height, focus.z)
     const blockers = this.inside && this.interior ? this.interior.blockers : this.buildings.blockers(this.layout.blockers, this.player.x, this.player.z, this.playerY)
     this.follow.update(this.camera, ground, this.cameraClip ? blockers : [], this.frameDt, this.cameraSnap || this.init.reducedMotion)
+    const snapped = this.cameraSnap
     this.cameraSnap = false
 
-    // La luz sigue al jugador, con la posición redondeada a texeles para estabilizar las sombras.
-    const texel = 68 / this.sun.shadow.mapSize.x
-    const sx = Math.round(this.player.x / texel) * texel
-    const sz = Math.round(this.player.z / texel) * texel
-    this.sun.target.position.set(sx, 0, sz)
-    this.sun.position.set(sx + this.celestial.sunDirection.x * 80, this.celestial.sunDirection.y * 80, sz + this.celestial.sunDirection.z * 80)
+    // La luz sigue al jugador a saltos (ver SHADOW_RECENTER), con la posición redondeada a texeles para estabilizar las sombras.
+    const texel = SHADOW_SPAN / this.sun.shadow.mapSize.x
+    let frame = this.shadowFrame
+    const recenter = !frame || frame.texel !== texel || snapped || Math.hypot(this.player.x - frame.x, this.player.z - frame.z) > SHADOW_RECENTER
+    const sun = this.celestial.sunDirection
+    const turned = frame ? Math.acos(Math.min(1, frame.sun.x * sun.x + frame.sun.y * sun.y + frame.sun.z * sun.z)) > SHADOW_TURN : true
+    if (!frame || recenter || turned) {
+      const x = recenter || !frame ? Math.round(this.player.x / texel) * texel : frame.x
+      const z = recenter || !frame ? Math.round(this.player.z / texel) * texel : frame.z
+      frame = this.shadowFrame = { x, z, texel, sun: { ...sun } }
+      this.sun.target.position.set(x, 0, z)
+      this.sun.position.set(x + frame.sun.x * 80, frame.sun.y * 80, z + frame.sun.z * 80)
+      renderer.shadowMap.needsUpdate = true
+      this.shadowClock = 0
+    } else {
+      this.shadowClock += this.frameDt
+      if (this.shadowClock >= 1 / SHADOW_HZ) {
+        renderer.shadowMap.needsUpdate = true
+        this.shadowClock = Math.min(this.shadowClock - 1 / SHADOW_HZ, 1 / SHADOW_HZ)
+      }
+    }
+    const sx = frame.x
+    const sz = frame.z
     this.moon.target.position.set(sx, 0, sz)
     this.moon.position.set(sx + this.celestial.moonDirection.x * 80, this.celestial.moonDirection.y * 80, sz + this.celestial.moonDirection.z * 80)
-    const sunPosition = celestialPosition(this.celestial.sunDirection, { x: sx, z: sz }, 120)
-    const moonPosition = celestialPosition(this.celestial.moonDirection, { x: sx, z: sz }, 120)
+    // el sol y la luna del cielo siguen al protagonista sin saltos (la caja de sombras va a saltos de varios metros)
+    const sky = { x: this.player.x, z: this.player.z }
+    const sunPosition = celestialPosition(this.celestial.sunDirection, sky, 120)
+    const moonPosition = celestialPosition(this.celestial.moonDirection, sky, 120)
     if (this.sunModel) {
       this.sunModel.root.position.set(sunPosition.x, sunPosition.y, sunPosition.z)
       this.sunModel.root.lookAt(this.camera.position)
@@ -1443,6 +1509,8 @@ export class World {
 
   /** Dibuja un fotograma ahora mismo (con el bucle en pausa, para las capturas). */
   renderNow() {
+    // en las capturas, la sombra siempre al día
+    this.shadowFrame = null
     this.render()
   }
 

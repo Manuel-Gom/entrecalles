@@ -534,20 +534,24 @@ export class BuildingInterior {
     data.furniture = null
   }
 
-  /** Qué se ve: la planta actual y la de abajo (con muebles), las de más abajo solo con sus muros, y nada por encima. */
+  /**
+   * Qué se ve: la planta actual y la de abajo (con muebles), la de debajo de esa solo con sus muros, y nada por encima.
+   * Las de más abajo no se dibujan: el suelo de la planta las tapa y por el hueco de la escalera no se llegan a ver (en
+   * un 8.º se dibujaban los muros de las ocho plantas).
+   */
   setView(level: number, inside: boolean) {
     this.view = { level, inside }
     const top = inside ? level : 0
     for (let i = 0; i < this.levels.length; i++) {
       const data = this.levels[i]
-      const shellWanted = i <= top
+      const shellWanted = i <= top && i >= top - 2
       const furnitureWanted = inside ? i === level || i === level - 1 : i === 0
       if (shellWanted && !data.shell) this.buildShell(i)
       // los muebles de las plantas de al lado se montan ya (para subir o bajar sin esperas) y los lejanos se sueltan
       if ((furnitureWanted || (inside && Math.abs(i - level) <= 1)) && !data.furniture) this.buildFurniture(i)
       if (data.furniture && Math.abs(i - level) > 2) this.releaseFurniture(i)
       if (data.shell) data.shell.visible = shellWanted
-      if (data.ceiling) data.ceiling.visible = inside ? i < level : i === 0
+      if (data.ceiling) data.ceiling.visible = inside ? i < level && i >= level - 2 : i === 0
       if (data.furniture) data.furniture.visible = furnitureWanted
     }
     if (this.elevator?.cabin) this.elevator.cabin.visible = this.elevator.y <= levelY(top) + 1

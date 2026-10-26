@@ -95,7 +95,9 @@ export class InstancedProp {
   }
 
   setOpen(index: number, amount: number) {
-    if (Math.abs(this.open[index] - amount) < 1e-4) return
+    // cerrada o abierta del todo se guarda exacta: con la tolerancia, una hoja podía quedarse en 0,00005 y ya no contaba
+    // como cerrada (y al volver a abrirse no sonaba)
+    if (this.open[index] === amount || (amount !== 0 && amount !== 1 && Math.abs(this.open[index] - amount) < 1e-4)) return
     this.open[index] = amount
     for (const leaf of this.leaves) {
       this.writeLeaf(leaf, index)

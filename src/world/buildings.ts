@@ -14,9 +14,16 @@ const FIXTURES = [
   'rotulo_tienda', 'rotulo_farmacia', 'rotulo_panaderia', 'rotulo_peluqueria',
 ] as const
 const SIGNED: Exclude<ShopKind, 'cafe'>[] = ['tienda', 'farmacia', 'panaderia', 'peluqueria']
+/** Los modelos que se dibujan instanciados por dentro (sus hojas se abren solas): su variante del shader es otra. */
+const INSTANCED_INSIDE = ['puerta_interior', 'puerta_piso', 'ascensor_puerta'] as const
 /** Un edificio se monta por dentro al acercarse a menos de esto de una de sus puertas, y se suelta al alejarse más de lo otro. */
 const ACTIVATE_DISTANCE = 14
 const RELEASE_DISTANCE = 20
+/**
+ * Entre dos edificios vecinos, se cambia al otro solo si su puerta está esto más cerca que la del montado: sin margen, al
+ * andar entre las dos puertas se montaba y se soltaba uno y otro una y otra vez.
+ */
+const SWITCH_MARGIN = 3
 /** A cuántos metros se abren solas las puertas de la calle. */
 const STREET_DOOR_REACH = 2.2
 
@@ -38,16 +45,26 @@ export class BuildingManager {
   readonly exterior = new THREE.Group()
   /** el interior del edificio activo: va aparte (la calle se sigue viendo desde dentro) */
   readonly interiors = new THREE.Group()
+  /**
+   * Una copia oculta de cada modelo y material de dentro. No se dibuja nunca, pero compilar la escena (al cargar y cada
+   * vez que cambian las luces, ver updateLighting en world.ts) también compila sus materiales: así, al montar un edificio
+   * o subir a una planta con muebles nuevos no hay que compilar nada en el momento (eran parones de segundos).
+   */
+  readonly warmup = new THREE.Group()
   ready = false
   private readonly layout: CityLayout
   private readonly props = new Map<string, Prop>()
   private readonly materials = createInteriorMaterials()
   private portals: InstancedProp | null = null
   private shops: InstancedProp | null = null
+  private readonly warmupProps: InstancedProp[] = []
+  private readonly warmupPlane = new THREE.PlaneGeometry(1, 1)
   /** índice de la copia del escaparate de cada edificio (−1 si no tiene: el del café) */
   private readonly shopSlot: number[] = []
   private backing: DoorBackings | null = null
   private active: Active | null = null
+  /** el último interior soltado, guardado (oculto) por si se vuelve a él enseguida */
+  private parked: { building: Building; interior: BuildingInterior } | null = null
   private view = { level: -1, inside: false }
   private combinedObstacles: { source: readonly Box[]; list: Box[] } | null = null
   private combinedBlockers: { source: readonly Blocker[]; list: Blocker[] } | null = null
@@ -75,7 +92,29 @@ export class BuildingManager {
     if (!isAlive() || this.disposed) return
     this.dressMaterials()
     this.buildFacades()
+    this.buildWarmup()
     this.ready = true
+  }
+
+  private buildWarmup() {
+    const { warmup } = this
+    warmup.visible = false
+    // no se dibuja ni se mueve: que tampoco se recalculen sus matrices en cada fotograma
+    warmup.matrixAutoUpdate = false
+    warmup.matrixWorldAutoUpdate = false
+    for (const prop of this.props.values()) warmup.add(prop.root.clone())
+    const origin = [new THREE.Matrix4()]
+    for (const name of INSTANCED_INSIDE) {
+      const prop = this.props.get(name)
+      if (!prop) continue
+      const instanced = new InstancedProp(prop, origin, false)
+      this.warmupProps.push(instanced)
+      warmup.add(instanced.group)
+    }
+    for (const material of Object.values(this.materials)) {
+      if (material instanceof THREE.Material) warmup.add(new THREE.Mesh(this.warmupPlane, material))
+    }
+    this.interiors.add(warmup)
   }
 
   /** Las bombillas y pantallas de los modelos brillan (el resto, tal cual llegan de Blender). */
@@ -98,24 +137,31 @@ export class BuildingManager {
     }
   }
 
+  /**
+   * Portales, escaparates y rótulos de todos los edificios. Están metidos en el hueco de la fachada y no dan una sombra
+   * que se note: no se dibujan otra vez en el mapa de sombras (eran ~60 llamadas de dibujo más en cada actualización).
+   */
   private buildFacades() {
     const buildings = this.layout.buildings
     const portal = this.props.get('portal')
     if (portal) {
-      this.portals = new InstancedProp(portal, buildings.map((b) => placementMatrix(b.portal.x, 0, b.portal.z, b.portal.yaw)))
+      this.portals = new InstancedProp(portal, buildings.map((b) => placementMatrix(b.portal.x, 0, b.portal.z, b.portal.yaw)), false)
       this.exterior.add(this.portals.group)
     }
     const withShop = buildings.filter((b) => b.shop.kind !== 'cafe')
     for (const b of buildings) this.shopSlot.push(withShop.indexOf(b))
     const front = this.props.get('fachada_local')
     if (front) {
-      this.shops = new InstancedProp(front, withShop.map((b) => placementMatrix(b.shop.door.x, 0, b.shop.door.z, b.shop.door.yaw)))
+      this.shops = new InstancedProp(front, withShop.map((b) => placementMatrix(b.shop.door.x, 0, b.shop.door.z, b.shop.door.yaw)), false)
       this.exterior.add(this.shops.group)
     }
     for (const kind of SIGNED) {
       const sign = this.props.get(`rotulo_${kind}`)
       const spots = withShop.filter((b) => b.shop.kind === kind).map((b) => b.shop.door)
-      if (sign && spots.length) this.exterior.add(instanceProp(sign, spots.map((s) => placementMatrix(s.x, 0, s.z, s.yaw))))
+      if (!sign || !spots.length) continue
+      const signs = instanceProp(sign, spots.map((s) => placementMatrix(s.x, 0, s.z, s.yaw)))
+      signs.traverse((object) => (object.castShadow = false))
+      this.exterior.add(signs)
     }
     // detrás de cada hueco, un fondo oscuro: mientras el edificio no está montado por dentro, no se ve a través
     const openings: { spot: Spot; width: number; height: number }[] = []
@@ -148,11 +194,26 @@ export class BuildingManager {
     return Math.min(portal, Math.hypot(x - building.shop.door.x, z - building.shop.door.z))
   }
 
+  /** ¿Se queda montado el edificio activo aunque `next` sea el más cercano? (ver SWITCH_MARGIN) */
+  private keeps(next: Building, x: number, z: number) {
+    const active = this.active
+    if (!active || inBox(next.box, x, z)) return false
+    return this.doorDistance(active.building, x, z) < this.doorDistance(next, x, z) + SWITCH_MARGIN
+  }
+
   private activate(building: Building) {
+    // el guardado se recoge antes de soltar el activo (que pasa a ser el guardado)
+    const parked = this.parked?.building === building ? this.parked.interior : null
+    if (parked) this.parked = null
     this.deactivate()
-    const plan = planBuilding(building)
-    const interior = new BuildingInterior(plan, this.props as PropLibrary, this.materials)
-    this.interiors.add(interior.group)
+    let interior: BuildingInterior
+    if (parked) {
+      interior = parked
+      interior.group.visible = true
+    } else {
+      interior = new BuildingInterior(planBuilding(building), this.props as PropLibrary, this.materials)
+      this.interiors.add(interior.group)
+    }
     this.active = {
       building,
       interior,
@@ -174,7 +235,10 @@ export class BuildingManager {
     if (this.shopSlot[i] >= 0) this.shops?.setOpen(this.shopSlot[i], 0)
     this.backing?.show(i * 2, true)
     this.backing?.show(i * 2 + 1, true)
-    active.interior.dispose()
+    // se guarda oculto (y se suelta el que estuviera guardado): volver a él enseguida no cuesta nada
+    this.parked?.interior.dispose()
+    active.interior.group.visible = false
+    this.parked = { building: active.building, interior: active.interior }
     this.active = null
   }
 
@@ -189,7 +253,7 @@ export class BuildingManager {
     const inside = this.inside(x, z)
     if (!inside) {
       const next = this.pick(x, z)
-      if (next && next !== this.active?.building) this.activate(next)
+      if (next && next !== this.active?.building && !this.keeps(next, x, z)) this.activate(next)
       else if (!next && this.active && this.doorDistance(this.active.building, x, z) > RELEASE_DISTANCE) this.deactivate()
     }
     const active = this.active
@@ -279,6 +343,11 @@ export class BuildingManager {
   dispose() {
     this.disposed = true
     this.deactivate()
+    this.parked?.interior.dispose()
+    this.parked = null
+    for (const prop of this.warmupProps) prop.dispose()
+    this.warmupPlane.dispose()
+    this.warmup.clear()
     this.portals?.dispose()
     this.shops?.dispose()
     this.backing?.dispose()
