@@ -148,7 +148,7 @@ export interface CityLayout {
   crossings: Crossing[]
   /** junto a las fachadas, mirando a los escaparates */
   windows: Spot[]
-  /** en las esquinas, esperando para cruzar */
+  /** en las esquinas con paso de peatones, esperando para cruzar */
   corners: Spot[]
   /** a lo largo de las aceras, para charlar */
   talk: Spot[]
@@ -257,19 +257,56 @@ function buildNav(): NavNode[] {
   return nodes
 }
 
-/** Los enlaces de la red que van de la acera de una manzana a la de otra: ahí se pintan los pasos de peatones. */
-export function streetCrossings(nav: readonly NavNode[]): Crossing[] {
+/** Los enlaces de la red que van de la acera de una manzana a la de otra (cruzan una calle), como pares de nodos. */
+export function crossingLinks(nav: readonly NavNode[]): [NavNode, NavNode][] {
   const ringCount = BLOCK_CENTERS.length * BLOCK_CENTERS.length * RING_NODES
-  const crossings: Crossing[] = []
+  const links: [NavNode, NavNode][] = []
   for (const node of nav.slice(0, ringCount)) {
     for (const otherId of node.links) {
       if (otherId < node.id || otherId >= ringCount) continue
       if (Math.floor(otherId / RING_NODES) === Math.floor(node.id / RING_NODES)) continue
-      const other = nav[otherId]
-      crossings.push({ x: (node.x + other.x) / 2, z: (node.z + other.z) / 2, alongX: Math.abs(other.x - node.x) > Math.abs(other.z - node.z) })
+      links.push([node, nav[otherId]])
     }
   }
-  return crossings
+  return links
+}
+
+/** Los pasos de peatones: uno en cada enlace que cruza una calle. */
+export function streetCrossings(nav: readonly NavNode[]): Crossing[] {
+  return crossingLinks(nav).map(([node, other]) => ({
+    x: (node.x + other.x) / 2,
+    z: (node.z + other.z) / 2,
+    alongX: Math.abs(other.x - node.x) > Math.abs(other.z - node.z),
+  }))
+}
+
+/**
+ * Esquinas donde se espera para cruzar: solo las que tienen algún paso, mirando hacia él (con dos, hacia el cruce, entre
+ * los dos). Las cuatro esquinas del mundo dan a las calles perimetrales, que no tienen pasos, y no cuentan.
+ */
+function waitingCorners(nav: readonly NavNode[]): Spot[] {
+  const toward = new Map<string, Vec2>()
+  for (const [a, b] of crossingLinks(nav)) {
+    for (const [from, to] of [[a, b], [b, a]]) {
+      const key = `${from.x},${from.z}`
+      const sum = toward.get(key) ?? { x: 0, z: 0 }
+      toward.set(key, { x: sum.x + Math.sign(to.x - from.x), z: sum.z + Math.sign(to.z - from.z) })
+    }
+  }
+  const corners: Spot[] = []
+  for (const cx of BLOCK_CENTERS) {
+    for (const cz of BLOCK_CENTERS) {
+      for (const sx of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          const x = cx + sx * RING_WALK
+          const z = cz + sz * RING_WALK
+          const dir = toward.get(`${x},${z}`)
+          if (dir) corners.push({ x, z, yaw: Math.atan2(dir.x, dir.z) })
+        }
+      }
+    }
+  }
+  return corners
 }
 
 export function generateCity(seed = 20261018): CityLayout {
@@ -279,7 +316,6 @@ export function generateCity(seed = 20261018): CityLayout {
   const trees: Tree[] = []
   const lamps: Spot[] = []
   const windows: Spot[] = []
-  const corners: Spot[] = []
   const talk: Spot[] = []
 
   const park = boxAt(0, 0, BLOCK_HALF * 2, BLOCK_HALF * 2)
@@ -314,12 +350,6 @@ export function generateCity(seed = 20261018): CityLayout {
         }
         const mid = along(0, RING_WALK)
         talk.push({ ...mid, yaw: outwardYaw })
-      }
-      // esquinas, mirando hacia la esquina de enfrente
-      for (const sx of [-1, 1]) {
-        for (const sz of [-1, 1]) {
-          corners.push({ x: cx + sx * RING_WALK, z: cz + sz * RING_WALK, yaw: Math.atan2(sx, sz) })
-        }
       }
     }
   }
@@ -433,7 +463,7 @@ export function generateCity(seed = 20261018): CityLayout {
     nav,
     crossings: streetCrossings(nav),
     windows,
-    corners,
+    corners: waitingCorners(nav),
     talk,
     spawn: { x: 0, z: RING_WALK, yaw: Math.PI },
     storefront,

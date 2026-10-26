@@ -5,6 +5,7 @@ import {
   BLOCK_CENTERS, BLOCK_HALF, BLOCK_PITCH, CROSSING_HALF_WIDTH, FOUNTAIN_RADIUS, LAWN_HEIGHT, PATH_HALF_WIDTH, PATH_HEIGHT, RING_OUTER, RING_WALK, ROAD_WIDTH, SIDEWALK_HEIGHT,
   STREET_CENTERS, WORLD_HALF, type Building, type CityLayout,
 } from './layout'
+import { LAMP_HEIGHT, lampHead } from './streetLights'
 
 /** Acumula cajas y cuadriláteros con color por vértice para fusionarlos en una sola malla (una sola llamada de dibujo). */
 class GeometryBuilder {
@@ -435,10 +436,13 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
     }
   }
 
-  // farolas
+  // farolas de relleno: poste, brazo y luminaria sobre la calzada, donde están la luz real y el charco
   for (const lamp of layout.lamps) {
-    lamps.box(lamp.x - 0.06, 0, lamp.z - 0.06, lamp.x + 0.06, 4.5, lamp.z + 0.06, 0x2c2f33)
-    lamps.box(lamp.x - 0.3, 4.5, lamp.z - 0.12, lamp.x + 0.3, 4.65, lamp.z + 0.12, 0x2c2f33)
+    const head = lampHead(lamp)
+    const top = LAMP_HEIGHT + 0.2
+    lamps.box(lamp.x - 0.06, 0, lamp.z - 0.06, lamp.x + 0.06, top, lamp.z + 0.06, 0x2c2f33)
+    lamps.box(Math.min(lamp.x, head.x) - 0.04, top - 0.08, Math.min(lamp.z, head.z) - 0.04, Math.max(lamp.x, head.x) + 0.04, top, Math.max(lamp.z, head.z) + 0.04, 0x2c2f33)
+    lamps.box(head.x - 0.15, LAMP_HEIGHT - 0.05, head.z - 0.15, head.x + 0.15, top, head.z + 0.15, 0x2c2f33)
   }
 
   // árboles
