@@ -1,3 +1,4 @@
+import { buildingDoors, buildingHeight, lotFrame, shopKindFor, type LotFrame } from './buildingPlan'
 import { boxAt, type Box, type Vec2 } from './collision'
 
 /** Generador pseudoaleatorio con semilla (mulberry32): el mismo número da siempre el mismo barrio. */
@@ -75,11 +76,24 @@ export function footHeight(x: number, z: number): number {
   return Math.max(FOOT_MIN, groundTop(x, z) + 0.005)
 }
 
+export type ShopKind = 'tienda' | 'farmacia' | 'panaderia' | 'peluqueria' | 'cafe'
+
 export interface Building {
   box: Box
+  /** altura de la fachada: las plantas (de FLOOR_HEIGHT) más el antepecho de la azotea */
   height: number
   /** color de la fachada (RGB hexadecimal) */
   color: number
+  /** plantas sobre rasante, contando la baja (la azotea va encima) */
+  floors: number
+  /** posición en `buildings`: semilla de su interior */
+  index: number
+  /** marco del solar (ver buildingPlan.ts): dónde están sus fachadas y medianeras */
+  frame: LotFrame
+  /** la puerta del portal: centro del hueco sobre la fachada, mirando a la calle */
+  portal: Spot
+  /** el local de la planta baja y su escaparate (el del café es la fachada del café) */
+  shop: { kind: ShopKind; door: Spot }
 }
 
 export interface Bench {
@@ -156,7 +170,10 @@ const FACADE_COLORS = [0xc9b8a2, 0xb7a58f, 0xd7cdbd, 0xa89887, 0xc4a79a, 0xb2b7a
 const BENCH_LENGTH = 1.6
 const BENCH_DEPTH = 0.5
 
-function buildBlock(cx: number, cz: number, rng: Rng, buildings: Building[]) {
+/** Un edificio a medio hacer: las puertas y el marco se ponen cuando se sabe cuál es el del café. */
+type Lot = Pick<Building, 'box' | 'height' | 'color' | 'floors'> & { streetX: number; streetZ: number }
+
+function buildBlock(cx: number, cz: number, rng: Rng, buildings: Lot[]) {
   // dos cortes (uno por eje) dividen la manzana en cuatro solares de distinto tamaño
   const splitX = cx + (rng() - 0.5) * 12
   const splitZ = cz + (rng() - 0.5) * 12
@@ -165,10 +182,16 @@ function buildBlock(cx: number, cz: number, rng: Rng, buildings: Building[]) {
   for (let i = 0; i < 2; i++) {
     for (let j = 0; j < 2; j++) {
       const box: Box = { minX: xs[i], maxX: xs[i + 1], minZ: zs[j], maxZ: zs[j + 1] }
+      // de 3 a 8 plantas, y una de cada cinco veces 3 más (con las mismas tiradas que cuando solo había alturas)
+      const floors = 3 + Math.floor(rng() * 6) + (rng() < 0.2 ? 3 : 0)
       buildings.push({
         box,
-        height: 8 + Math.floor(rng() * 6) * 3 + (rng() < 0.2 ? 9 : 0),
+        floors,
+        height: buildingHeight(floors),
         color: FACADE_COLORS[Math.floor(rng() * FACADE_COLORS.length)],
+        // todos los solares hacen esquina: estas son sus dos fachadas a la calle
+        streetX: i === 0 ? -1 : 1,
+        streetZ: j === 0 ? -1 : 1,
       })
     }
   }
@@ -241,7 +264,7 @@ export function streetCrossings(nav: readonly NavNode[]): Crossing[] {
 
 export function generateCity(seed = 20261018): CityLayout {
   const rng = makeRng(seed)
-  const buildings: Building[] = []
+  const lots: Lot[] = []
   const benches: Bench[] = []
   const trees: Tree[] = []
   const lamps: Spot[] = []
@@ -253,7 +276,7 @@ export function generateCity(seed = 20261018): CityLayout {
   for (const cx of BLOCK_CENTERS) {
     for (const cz of BLOCK_CENTERS) {
       if (cx === 0 && cz === 0) continue
-      buildBlock(cx, cz, rng, buildings)
+      buildBlock(cx, cz, rng, lots)
     }
   }
 
@@ -329,8 +352,8 @@ export function generateCity(seed = 20261018): CityLayout {
 
   // El café: en el solar de la manzana sur del parque que da a la plaza y está más cerca del eje central.
   // La puerta queda en el centro de su fachada (los solares miden al menos 9 m, y el módulo de la fachada, unos 5).
-  const cafeLot = buildings
-    .filter((building) => building.box.minZ === BLOCK_PITCH - BLOCK_HALF)
+  const cafeLot = lots
+    .filter((lot) => lot.box.minZ === BLOCK_PITCH - BLOCK_HALF)
     .sort((a, b) => Math.abs((a.box.minX + a.box.maxX) / 2) - Math.abs((b.box.minX + b.box.maxX) / 2))[0]
   const storefront: Spot = { x: (cafeLot.box.minX + cafeLot.box.maxX) / 2, z: cafeLot.box.minZ - STOREFRONT_OFFSET, yaw: Math.PI }
   // nada se pone delante de la puerta: ni bancos, ni árboles, ni farolas, ni gente mirando escaparates
@@ -340,6 +363,26 @@ export function generateCity(seed = 20261018): CityLayout {
   trees.splice(0, trees.length, ...keepAway(trees))
   lamps.splice(0, lamps.length, ...keepAway(lamps))
   windows.splice(0, windows.length, ...keepAway(windows))
+
+  // portales y locales: el del café tiene el portal en la otra fachada (la del café es la de la calle en z)
+  const buildings = lots.map(({ streetX, streetZ, ...lot }, index): Building => {
+    const cafe = lot.box === cafeLot.box
+    const frame = lotFrame(lot.box, streetX, streetZ, cafe)
+    const doors = buildingDoors(frame, lot.floors)
+    return { ...lot, index, frame, portal: doors.portal, shop: cafe ? { kind: 'cafe', door: storefront } : { kind: shopKindFor(index), door: doors.shop } }
+  })
+  // ni bancos ni gente mirando escaparates delante de un portal o de un local (las farolas y los árboles, en el bordillo, no estorban)
+  const doorSpots = buildings.flatMap((building) => [building.portal, ...(building.shop.kind === 'cafe' ? [] : [building.shop.door])])
+  const blocksDoor = (x: number, z: number) =>
+    doorSpots.some((door) => {
+      const outX = Math.sin(door.yaw)
+      const outZ = Math.cos(door.yaw)
+      const along = (x - door.x) * outZ - (z - door.z) * outX
+      const out = (x - door.x) * outX + (z - door.z) * outZ
+      return Math.abs(along) < 3.2 && out > -0.5 && out < 2.5
+    })
+  benches.splice(0, benches.length, ...benches.filter((bench) => !blocksDoor(bench.x, bench.z)))
+  windows.splice(0, windows.length, ...windows.filter((spot) => !blocksDoor(spot.x, spot.z)))
 
   const nav = buildNav()
   const obstacles: Box[] = []

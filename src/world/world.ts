@@ -2,6 +2,9 @@ import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import type { AvatarAssembly } from '../avatar/assembler'
 import { buildAssembly } from '../avatar/build'
+import { BuildingManager } from './buildings'
+import type { BuildingSound } from './buildingInterior'
+import type { PlanLight } from './buildingPlan'
 import { normalizeSpec, type AvatarSpec, type Catalog } from '../avatar/catalog'
 import type { Npc } from '../avatar/npcs'
 import { NPC_RADIUS, NpcBrain, TalkPair, seatsFor, ACTIVITY_LABELS, type Activity, type Seat } from './brain'
@@ -29,7 +32,14 @@ export type Quality = 'baja' | 'media' | 'alta'
 export type WorldState = 'cargando' | 'listo' | 'error' | 'sin-3d'
 export type { Controls, GamepadInfo, InputDevice }
 /** Lo que haría ahora la tecla de interactuar. */
-export type Prompt = 'sentarse' | 'levantarse' | 'entrar' | 'salir'
+export type Prompt = 'sentarse' | 'levantarse' | 'entrar' | 'salir' | 'ascensor'
+
+/** El panel del ascensor abierto: cuántas paradas hay, en cuál está la cabina y cuál se ha elegido. */
+export interface ElevatorPanel {
+  stops: number
+  current: number
+  selected: number
+}
 
 export interface WorldInit {
   host: HTMLElement
@@ -69,6 +79,8 @@ export interface WorldStatus {
   audio: AudioState
   /** hora del barrio (cada segundo real equivale a un minuto de juego) */
   gameTime: string
+  /** el panel del ascensor, si está abierto */
+  elevator: ElevatorPanel | null
   /** texto con FPS, tirones, resolución, calidad y tarjeta gráfica, para copiar */
   diagnostics: string
 }
@@ -130,12 +142,21 @@ const QUALITY: Record<Quality, { pixelRatio: number; shadows: boolean; shadowSiz
   alta: { pixelRatio: 2, shadows: true, shadowSize: 2048 },
 }
 
-/** Qué luces hay en la escena: el sol (con su sombra), la luna y las luces reales de las farolas. */
+/** Qué luces hay en la escena: el sol (con su sombra), la luna, las luces reales de las farolas y las de dentro de un edificio. */
 interface LightingState {
   sun: boolean
   moon: boolean
   lamps: boolean
+  interior: boolean
 }
+
+/** Luces reales dentro de los edificios, por calidad (en las lámparas de techo más cercanas; las demás solo brillan). */
+const INTERIOR_LIGHTS: Record<Quality, number> = { baja: 0, media: 2, alta: 4 }
+const INTERIOR_LIGHT = { color: 0xffe0b5, intensity: 7, distance: 9, decay: 2 } as const
+/** A qué distancia de una puerta se preparan las luces de dentro (se compilan antes de entrar, para que no haya tirón). */
+const INTERIOR_LIGHTS_REACH = 9
+/** Distancia máxima de la cámara dentro de un edificio. */
+const INDOOR_CAMERA = 3.6
 
 /** El barrio jugable: escena, jugador, PNJ y bucle. Se crea al entrar en la pantalla y se libera al salir. */
 export class World {
@@ -154,7 +175,7 @@ export class World {
   private lightPools: THREE.InstancedMesh | null = null
   private facadeGlow: THREE.InstancedMesh | null = null
   /** qué luces hay en la escena; va por detrás del reloj mientras se preparan los materiales del cambio */
-  private lighting: LightingState = { sun: true, moon: false, lamps: false }
+  private lighting: LightingState = { sun: true, moon: false, lamps: false, interior: false }
   private lightingPreparing = false
   private readonly lampMaterials: THREE.MeshStandardMaterial[] = []
   private city: CityMeshes | null = null
@@ -163,6 +184,19 @@ export class World {
   private hemi: THREE.HemisphereLight | null = null
   private storefront: Storefront | null = null
   private interior: Interior | null = null
+  /** los edificios en los que se entra andando (el café es aparte: `interior`) */
+  private readonly buildings: BuildingManager
+  /** altura de los pies del protagonista (sube por las escaleras y en el ascensor) */
+  private playerY = 0
+  /** 0 en la calle, 1 dentro de un edificio (suaviza el cambio de luz ambiente) */
+  private indoorBlend = 0
+  private readonly interiorLights: THREE.PointLight[] = []
+  private interiorAssigner = new LampAssigner(0)
+  private interiorLightSource: readonly PlanLight[] = []
+  private interiorRefresh = 0
+  private wantedInterior: number[] = []
+  /** el panel del ascensor abierto: la parada elegida y el último sentido pulsado (para no saltar varias de golpe) */
+  private elevatorPanel: { selected: number; axis: number; repeat: number } | null = null
   private interiorLoading: Promise<void> | null = null
   private inside = false
   private transition: Transition | null = null
@@ -237,6 +271,8 @@ export class World {
     this.audio = new AudioEngine(init.volumes)
     const { spawn } = this.layout
     this.player = newPlayer(spawn.x, spawn.z, spawn.yaw)
+    this.playerY = footHeight(spawn.x, spawn.z)
+    this.buildings = new BuildingManager(this.layout)
     // la cámara empieza detrás del personaje
     this.follow = new FollowCamera(spawn.yaw + Math.PI)
 
@@ -328,7 +364,9 @@ export class World {
     // y un resplandor en la fachada de detrás: las paredes iluminadas se ven desde lejos
     this.facadeGlow = buildFacadeGlows(facadeGlows(this.layout.lamps, this.layout.buildings))
     this.exterior.add(this.facadeGlow)
+    this.exterior.add(this.buildings.exterior)
     scene.add(this.exterior)
+    scene.add(this.buildings.interiors)
     this.updateCelestial(this.gameClock)
   }
 
@@ -342,6 +380,16 @@ export class World {
       this.lampLights.push(light)
     }
     while (this.lampLights.length > count) this.lampLights.pop()?.removeFromParent()
+    const inner = INTERIOR_LIGHTS[this.quality]
+    while (this.interiorLights.length < inner) {
+      const light = new THREE.PointLight(INTERIOR_LIGHT.color, 0, INTERIOR_LIGHT.distance, INTERIOR_LIGHT.decay)
+      light.visible = false
+      this.scene.add(light)
+      this.interiorLights.push(light)
+    }
+    while (this.interiorLights.length > inner) this.interiorLights.pop()?.removeFromParent()
+    this.interiorAssigner = new LampAssigner(inner)
+    this.interiorRefresh = 0
     // las luces nuevas toman la visibilidad del estado actual (si ya es de noche, encendidas)
     this.applyLighting()
     this.lampAssigner = new LampAssigner(count)
@@ -399,7 +447,7 @@ export class World {
         return
       }
       this.playerActor = this.addActor(assembly, 0.37)
-      this.placeActor(this.playerActor, this.player.x, this.player.z, this.player.yaw)
+      this.placeActor(this.playerActor, this.player.x, this.player.z, this.player.yaw, undefined, this.playerY)
       this.gameClock = new Date()
       this.updateCelestial(this.gameClock)
       this.setState('listo')
@@ -424,6 +472,7 @@ export class World {
           if (this.city) this.city.benchMesh.visible = false
         })
         .catch(failed('los bancos')),
+      this.buildings.load(() => !this.disposed).catch(failed('los edificios')),
       Storefront.load(this.layout.storefront)
         .then((storefront) => {
           if (this.disposed) return storefront.dispose()
@@ -535,9 +584,9 @@ export class World {
     return { assembly, locomotor: new Locomotor(assembly, seed), group, prevYaw: 0, turn: 0 }
   }
 
-  /** Coloca al actor sobre el suelo que pisa; con `dt` el cambio de altura (al subir o bajar un bordillo) se suaviza. */
-  private placeActor(actor: Actor, x: number, z: number, yaw: number, dt?: number, inside = false) {
-    const y = inside ? GROUND : footHeight(x, z)
+  /** Coloca al actor sobre el suelo que pisa (o a `floor`); con `dt` el cambio de altura (un bordillo, un peldaño) se suaviza. */
+  private placeActor(actor: Actor, x: number, z: number, yaw: number, dt?: number, floor?: number) {
+    const y = floor ?? footHeight(x, z)
     const smooth = dt === undefined ? 1 : 1 - Math.exp(-dt / 0.05)
     actor.group.position.set(x, actor.group.position.y + (y - actor.group.position.y) * smooth, z)
     actor.group.rotation.y = yaw
@@ -670,18 +719,28 @@ export class World {
     const { player } = this
     this.advanceTransition(dt)
     this.storefront?.update(dt, player.x, player.z)
+    if (!this.inside) this.buildings.update(dt, player.x, player.z, this.playerY, this.buildingSound)
     this.updateInteraction(dt)
-    // con la pose forzada (revisión visual), sentado o cruzando una puerta, el protagonista no se mueve por su cuenta
-    if (this.playerPoseOverride || this.seating || this.transition) {
+    const riding = this.elevatorPanel !== null || (this.buildings.elevator?.moving === true && this.buildings.elevator.contains(player.x, player.z, this.playerY))
+    // con la pose forzada (revisión visual), sentado, cruzando una puerta o en el ascensor, el protagonista no se mueve por su cuenta
+    if (this.playerPoseOverride || this.seating || this.transition || riding) {
       player.speed = 0
       player.vx = player.vz = 0
     } else stepPlayer(player, this.inputOverride ?? this.move, this.follow.yaw, dt, this.activeObstacles, this.inside ? [] : this.circles)
     this.circles[0].x = player.x
     this.circles[0].z = player.z
+    // altura: la de la sala del café, la del edificio (escalera, ascensor, plantas) o la de la calle
+    this.playerY = this.inside ? GROUND : (this.buildings.height(player.x, player.z, this.playerY) ?? footHeight(player.x, player.z))
+    const indoors = !this.inside && this.buildings.inside(player.x, player.z)
+    this.indoorBlend += ((indoors ? 1 : 0) - this.indoorBlend) * (1 - Math.exp(-4 * dt))
+    if (!this.inside) {
+      this.follow.maxDistance = indoors ? INDOOR_CAMERA : Infinity
+      this.audio.setEnvironment(indoors ? 'edificio' : 'calle')
+    }
     this.animSpeed += (player.speed - this.animSpeed) * (1 - Math.exp(-14 * dt))
     const actor = this.playerActor
     if (actor) {
-      this.placeActor(actor, player.x, player.z, player.yaw, dt, this.inside)
+      this.placeActor(actor, player.x, player.z, player.yaw, dt, this.playerY)
       actor.locomotor.update(dt, {
         speed: this.animSpeed < 0.05 ? 0 : this.animSpeed,
         sit: this.seating?.sit ?? this.playerPoseOverride?.sit ?? 0,
@@ -693,7 +752,7 @@ export class World {
       if (actor.locomotor.strikes > 0 && !this.seating && !this.transition) {
         const running = this.animSpeed > 3
         for (let i = 0; i < actor.locomotor.strikes; i++) {
-          this.audio.step(surfaceAt(player.x, player.z, this.inside), running, stepVolume(this.animSpeed))
+          this.audio.step(this.buildings.surface(player.x, player.z, this.playerY) ?? surfaceAt(player.x, player.z, this.inside), running, stepVolume(this.animSpeed))
         }
       }
     }
@@ -730,6 +789,9 @@ export class World {
     }
   }
 
+  /** Sonidos de los edificios (puertas de la calle y de los pisos, ascensor). */
+  private readonly buildingSound = (sound: BuildingSound) => this.audio.event(sound)
+
   /** Pulsa "interactuar" por código (pruebas). */
   interact() {
     this.interactPending = true
@@ -748,7 +810,8 @@ export class World {
       const distance = Math.hypot((a.brain.x + b.brain.x) / 2 - player.x, (a.brain.z + b.brain.z) / 2 - player.z)
       if (!nearest || distance < nearest.distance) nearest = { chat, distance, line }
     }
-    const audible = !this.inside && nearest !== null && nearest.distance < CHAT_RANGE ? nearest : null
+    // las charlas de la calle no se oyen desde un piso
+    const audible = !this.inside && this.playerY < 1.5 && nearest !== null && nearest.distance < CHAT_RANGE ? nearest : null
     if (audible) {
       const [a, b] = audible.chat.members
       const dx = (a.brain.x + b.brain.x) / 2 - player.x
@@ -769,18 +832,21 @@ export class World {
 
   /** Datos del lugar en el que se está: la calle o el interior de un edificio. */
   private get activeObstacles(): readonly Box[] {
-    return this.inside && this.interior ? this.interior.obstacles : this.layout.obstacles
+    return this.inside && this.interior ? this.interior.obstacles : this.buildings.obstacles(this.layout.obstacles, this.playerY)
   }
 
   private get activeSeats(): readonly Seat[] {
-    return this.inside && this.interior ? this.interior.seats : this.seats
+    if (this.inside && this.interior) return this.interior.seats
+    return this.buildings.seats(this.player.x, this.player.z, this.playerY) ?? this.seats
   }
 
   /** Lo que haría ahora la tecla de interactuar, según dónde está el protagonista. */
   private promptNow(): Prompt | null {
-    if (this.transition || this.playerPoseOverride) return null
+    if (this.transition || this.playerPoseOverride || this.elevatorPanel) return null
     if (this.seating) return this.seating.phase === 'sentado' ? 'levantarse' : null
     const { player } = this
+    const elevator = this.buildings.elevator
+    if (!this.inside && elevator && !elevator.moving && elevator.contains(player.x, player.z, this.playerY)) return 'ascensor'
     if (this.inside) {
       if (this.interior?.canExit(player.x, player.z)) return 'salir'
     } else if (this.storefront?.canEnter(player.x, player.z)) {
@@ -795,7 +861,9 @@ export class World {
     const wantsInteract = this.interactPending
     this.interactPending = false
     const move = this.inputOverride ?? this.move
-    if (this.seating) {
+    if (this.elevatorPanel) {
+      this.updateElevatorPanel(dt, move, wantsInteract)
+    } else if (this.seating) {
       const session = this.seating
       const stood = wantsInteract ? session.standUp() : Math.hypot(move.moveX, move.moveZ) > 0.5 && session.pushToStand()
       if (stood) this.audio.event('levantarse')
@@ -811,11 +879,15 @@ export class World {
       const action = this.promptNow()
       if (action === 'entrar') this.startTransition('entrar')
       else if (action === 'salir') this.startTransition('salir')
+      else if (action === 'ascensor' && this.buildings.elevator) {
+        this.elevatorPanel = { selected: this.buildings.elevator.level, axis: 0, repeat: 0 }
+        this.emit()
+      }
       else if (action === 'sentarse') {
         const seat = findSeat(this.activeSeats, player.x, player.z)
         if (seat) {
           const from = { x: player.x, z: player.z }
-          const route = this.interior ? makeSeatRoute(seat, this.interior.obstacles, seat.collider, from) : undefined
+          const route = this.interior ? makeSeatRoute(seat, this.interior.obstacles, seat.collider, from) : this.buildingSeatRoute(seat, from)
           this.seating = new SeatSession(seat, player.yaw, from, route)
           this.audio.event('sentarse')
           player.vx = player.vz = 0
@@ -825,6 +897,51 @@ export class World {
     const next = this.promptNow()
     if (next !== this.prompt) {
       this.prompt = next
+      this.emit()
+    }
+  }
+
+  /** Ruta para sentarse en una plaza de un edificio (sofás, sillas, camas); si no se encuentra una libre, se va derecho. */
+  private buildingSeatRoute(seat: Seat, from: { x: number; z: number }) {
+    if (!this.buildings.inside(this.player.x, this.player.z)) return undefined
+    try {
+      return makeSeatRoute(seat, this.activeObstacles, seat.collider, from)
+    } catch {
+      return [from, seat.approach, { x: seat.x, z: seat.z }]
+    }
+  }
+
+  /**
+   * El panel del ascensor: arriba y abajo eligen la planta, la tecla de interactuar manda la cabina (o cierra el panel si
+   * es la misma planta) y a los lados se cierra sin moverse.
+   */
+  private updateElevatorPanel(dt: number, move: PlayerInput, interact: boolean) {
+    const panel = this.elevatorPanel
+    const elevator = this.buildings.elevator
+    if (!panel || !elevator || !elevator.contains(this.player.x, this.player.z, this.playerY)) {
+      this.elevatorPanel = null
+      this.emit()
+      return
+    }
+    if (Math.abs(move.moveX) > 0.6) {
+      this.elevatorPanel = null
+      this.emit()
+      return
+    }
+    const axis = move.moveZ > 0.5 ? 1 : move.moveZ < -0.5 ? -1 : 0
+    panel.repeat -= dt
+    if (axis !== 0 && (axis !== panel.axis || panel.repeat <= 0)) {
+      const selected = Math.max(0, Math.min(elevator.plan.stops - 1, panel.selected + axis))
+      if (selected !== panel.selected) {
+        panel.selected = selected
+        this.emit()
+      }
+      panel.repeat = axis === panel.axis ? 0.18 : 0.45
+    }
+    panel.axis = axis
+    if (interact) {
+      if (panel.selected !== elevator.level) elevator.go(panel.selected)
+      this.elevatorPanel = null
       this.emit()
     }
   }
@@ -897,9 +1014,12 @@ export class World {
       // de noche queda algo de luz de cielo y luna: las siluetas lejanas se leen sin que deje de ser de noche (de día, igual que antes)
       this.hemi.intensity = 0.28 + this.celestial.daylight * 0.62
     }
-    this.scene.environmentIntensity = 0.16 + this.celestial.daylight * 0.34
+    // dentro de un edificio llega menos luz de cielo; sin sombras (calidad baja) el sol también se atenúa, porque no lo tapa nada
+    const indoor = this.indoorBlend
+    if (this.hemi) this.hemi.intensity *= 1 - 0.35 * indoor
+    this.scene.environmentIntensity = (0.16 + this.celestial.daylight * 0.34) * (1 - 0.3 * indoor)
     // aquí solo la intensidad; cuántas luces hay (sol, luna, farolas) lo decide updateLighting
-    this.sun.intensity = this.celestial.daylight * 2.6
+    this.sun.intensity = this.celestial.daylight * 2.6 * (QUALITY[this.quality].shadows ? 1 : 1 - 0.85 * indoor)
     this.sun.color.setHex(this.celestial.sunAltitude < 0.12 ? 0xffc18a : 0xfff0d8)
     const moonAboveHorizon = this.celestial.moonDirection.y > -0.04
     // la luna solo se nota de noche: se desvanece del todo antes de quitarla de la escena, para que no se note el cambio
@@ -915,6 +1035,7 @@ export class World {
     this.sun.visible = state.sun
     this.moon.visible = state.moon
     for (const light of this.lampLights) light.visible = state.lamps
+    for (const light of this.interiorLights) light.visible = state.interior
   }
 
   /**
@@ -928,8 +1049,10 @@ export class World {
       sun: this.celestial.sunAltitude > -0.08,
       moon: this.celestial.moonDirection.y > -0.04 && this.celestial.daylight < 0.5,
       lamps: this.celestial.night,
+      // las luces de dentro se preparan al acercarse a una puerta, antes de entrar
+      interior: this.interiorLights.length > 0 && this.buildings.distanceToDoor(this.player.x, this.player.z) < INTERIOR_LIGHTS_REACH,
     }
-    if (want.sun === this.lighting.sun && want.moon === this.lighting.moon && want.lamps === this.lighting.lamps) return
+    if (want.sun === this.lighting.sun && want.moon === this.lighting.moon && want.lamps === this.lighting.lamps && want.interior === this.lighting.interior) return
     const renderer = this.renderer
     if (immediate || !renderer) {
       this.lighting = want
@@ -971,6 +1094,7 @@ export class World {
     if (this.lightPools) this.lightPools.visible = night && this.showLightPools
     if (this.facadeGlow) this.facadeGlow.visible = night && this.showLightPools
     this.updateLighting(dt === 0)
+    this.updateInteriorLights(dt)
     if (!this.lighting.lamps) {
       this.lampAssigner.update(0, [], true)
       this.lampRefresh = 0
@@ -991,6 +1115,33 @@ export class World {
       if (slot.lamp === null) return
       const head = lampHead(this.layout.lamps[slot.lamp])
       light.position.set(head.x, LAMP_HEIGHT, head.z)
+    })
+  }
+
+  /** Las pocas luces reales de dentro, en las lámparas más cercanas de la planta en la que se está. */
+  private updateInteriorLights(dt: number) {
+    if (!this.lighting.interior || this.interiorLights.length === 0) {
+      this.interiorAssigner.update(0, [], true)
+      return
+    }
+    const source = this.buildings.lights(this.playerY)
+    // al cambiar de planta (o de edificio) los índices son de otra lista: se recolocan de golpe
+    const instant = dt === 0 || source !== this.interiorLightSource
+    if (source !== this.interiorLightSource) {
+      this.interiorLightSource = source
+      this.interiorRefresh = 0
+    }
+    this.interiorRefresh -= dt
+    if (this.interiorRefresh <= 0) {
+      this.interiorRefresh = 0.3
+      this.wantedInterior = nearestLamps(source, this.player.x, this.player.z, this.interiorLights.length)
+    }
+    this.interiorAssigner.update(dt, this.wantedInterior, instant)
+    this.interiorAssigner.slots.forEach((slot, index) => {
+      const light = this.interiorLights[index]
+      light.intensity = INTERIOR_LIGHT.intensity * slot.level
+      const spot = slot.lamp === null ? null : source[slot.lamp]
+      if (spot) light.position.set(spot.x, spot.y, spot.z)
     })
   }
 
@@ -1066,8 +1217,10 @@ export class World {
     const { renderer } = this
     if (!renderer) return
     const focus = this.focusOverride ?? this.player
-    const ground = new THREE.Vector3(focus.x, GROUND, focus.z)
-    const blockers = this.inside && this.interior ? this.interior.blockers : this.layout.blockers
+    // la cámara sigue la altura suavizada del personaje (la de los peldaños, sin saltos)
+    const height = this.inside ? GROUND : (this.playerActor?.group.position.y ?? this.playerY)
+    const ground = new THREE.Vector3(focus.x, this.focusOverride ? GROUND : height, focus.z)
+    const blockers = this.inside && this.interior ? this.interior.blockers : this.buildings.blockers(this.layout.blockers, this.player.x, this.player.z, this.playerY)
     this.follow.update(this.camera, ground, this.cameraClip ? blockers : [], this.frameDt, this.cameraSnap || this.init.reducedMotion)
     this.cameraSnap = false
 
@@ -1128,6 +1281,9 @@ export class World {
       subtitle: this.subtitle,
       audio: this.audio.state,
       gameTime: formatGameClock(this.gameClock),
+      elevator: this.elevatorPanel && this.buildings.elevator
+        ? { stops: this.buildings.elevator.plan.stops, current: this.buildings.elevator.level, selected: this.elevatorPanel.selected }
+        : null,
       diagnostics: this.diagnosticsText(),
     }
   }
@@ -1222,7 +1378,8 @@ export class World {
       fps: this.fps,
       device: this.input?.device ?? 'teclado',
       gamepad: this.input?.gamepad ?? null,
-      player: { x: this.player.x, z: this.player.z, yaw: this.player.yaw, speed: this.player.speed, animation, seated: this.seating?.phase === 'sentado', dims: this.playerActor?.locomotor.dims ?? null },
+      building: { ...this.buildings.stats(), indoors: this.buildings.inside(this.player.x, this.player.z), elevatorLevel: this.buildings.elevator?.level ?? null },
+      player: { x: this.player.x, z: this.player.z, y: this.playerY, yaw: this.player.yaw, speed: this.player.speed, animation, seated: this.seating?.phase === 'sentado', dims: this.playerActor?.locomotor.dims ?? null },
       prompt: this.prompt,
       subtitle: this.subtitle,
       audio: {
@@ -1297,10 +1454,11 @@ export class World {
     this.cameraSnap = true
   }
 
-  /** Coloca al jugador (pruebas). */
-  teleport(x: number, z: number, yaw = this.player.yaw) {
+  /** Coloca al jugador (pruebas); `y` sirve para ponerlo en una planta de un edificio. */
+  teleport(x: number, z: number, yaw = this.player.yaw, y?: number) {
     this.player.x = x
     this.player.z = z
+    this.playerY = y ?? footHeight(x, z)
     this.player.yaw = yaw
     this.player.vx = this.player.vz = 0
     this.cameraSnap = true
@@ -1317,6 +1475,8 @@ export class World {
     this.seating?.release()
     this.storefront?.dispose()
     this.interior?.dispose()
+    this.buildings.dispose()
+    for (const light of this.interiorLights) light.removeFromParent()
     if (this.benchProp) disposeProp(this.benchProp)
     for (const prop of this.sceneryProps) disposeProp(prop)
     this.sceneryProps.length = 0

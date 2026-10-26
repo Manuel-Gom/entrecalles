@@ -1,6 +1,6 @@
 # El barrio jugable
 
-«Comenzar aventura» (en `#/resumen`) abre `#/jugar`: un barrio de prueba con tu protagonista, que anda y corre, vecinos que hacen sus cosas y charlan, bancos donde sentarse y un café en el que se puede entrar. No hay historia, misiones ni diálogos del juego todavía: es el escenario sobre el que se construirá.
+«Comenzar aventura» (en `#/resumen`) abre `#/jugar`: un barrio de prueba con tu protagonista, que anda y corre, vecinos que hacen sus cosas y charlan, bancos donde sentarse, un café y **todos los edificios explorables por dentro**: portal, escalera, ascensor, pisos amueblados, locales y azotea. No hay historia, misiones ni diálogos del juego todavía: es el escenario sobre el que se construirá.
 
 ## Controles
 
@@ -10,7 +10,7 @@
 | Correr | `Mayús` | `Mayús` | gatillo derecho (RT / R2) o pulsar la palanca izquierda |
 | Girar la cámara | arrastrar con el ratón, o `← →` y `↑ ↓` | arrastrar con el ratón, o `A D` y `W S` | palanca derecha |
 | Acercar o alejar la cámara | rueda del ratón | rueda del ratón | LB / RB |
-| Interactuar (sentarse, levantarse, entrar, salir) | `E` | `Intro` | `A` (Xbox) / Cruz ✕ (PlayStation) |
+| Interactuar (sentarse, levantarse, entrar, salir, usar el ascensor) | `E` | `Intro` | `A` (Xbox) / Cruz ✕ (PlayStation) |
 | Pausa | `Esc` | `Esc` | Menú (Xbox) / Options (PlayStation) |
 | Diagnóstico | `F3` o clic en el contador de FPS | igual | igual |
 
@@ -42,10 +42,13 @@ Todo vive en `src/world/`. Se carga bajo demanda (no pesa en el menú) y al sali
 | Archivo | Qué hace |
 |---|---|
 | `world.ts` | La escena, el bucle y la carga de personajes y modelos. Une todo lo demás. |
-| `layout.ts` | Genera el barrio (determinista): 3×3 manzanas de 30 m con calles de 16 m (acera de 4 m a cada lado y calzada de 8 m, dos carriles), el parque en el centro, 32 edificios, bancos, árboles y farolas. Devuelve las **colisiones**, la **red de aceras** (80 nodos y `findPath`), los **pasos de peatones** (`crossings`), los **sitios de actividad** y la puerta del café. |
+| `layout.ts` | Genera el barrio (determinista): 3×3 manzanas de 30 m con calles de 16 m (acera de 4 m a cada lado y calzada de 8 m, dos carriles), el parque en el centro, 32 edificios (con sus plantas, su portal y su local), bancos, árboles y farolas. Devuelve las **colisiones**, la **red de aceras** (80 nodos y `findPath`), los **pasos de peatones** (`crossings`), los **sitios de actividad** y la puerta del café. |
 | `cityMesh.ts` | Convierte ese diseño en geometría fusionada (pocas llamadas de dibujo). Edificios, calles, árboles y farolas se generan por código; los bancos de relleno solo se ven si falla la carga del modelo de Blender. |
 | `props.ts` | Carga los modelos de Blender (GLB), separa sus **datos** (colisiones, plazas, luces, puntos) y dibuja el mismo modelo muchas veces con pocas llamadas (`instanceProp`). |
 | `storefront.ts`, `interior.ts` | La fachada del café (con la puerta que se abre sola) y su interior, que solo se carga mientras se está dentro. |
+| `buildingPlan.ts` | El plano de cada edificio, sin Three.js: núcleo de escalera y ascensor, portal, local, pisos con sus estancias, azotea, huecos de puertas y ventanas, colocación de muebles, y la altura en la escalera (`heightAt`). |
+| `buildingInterior.ts`, `buildings.ts` | El interior del edificio más cercano (mallas por planta, colisiones, plazas, puertas y ascensor) y el gestor que lo monta y lo suelta, con los portales y escaparates de todas las fachadas. |
+| `doors.ts`, `interiorMaterials.ts` | Modelos instanciados con hojas de puerta que se abren por separado; y los acabados de suelos y paredes (parqué, baldosa, terrazo, azulejo, pintura) dibujados por shader. |
 | `gait.ts`, `locomotor.ts` | La zancada: ángulos de cada articulación (`gait.ts`, sin Three.js) y su aplicación a los huesos (`locomotor.ts`). |
 | `player.ts`, `followCamera.ts` | Movimiento del jugador (aceleración, giro, colisiones con paredes y personas) y cámara en tercera persona que se acerca si un edificio se interpone. |
 | `input.ts`, `inputController.ts` | Entrada: la lectura del mando (zona muerta, botones, tipo de mando) es pura y se prueba sin navegador; el controlador junta teclado, ratón y mando. |
@@ -74,6 +77,17 @@ Una sola tecla (o botón) hace lo que corresponda donde estés, y un aviso en pa
 - **Bancos y sillas**: cada banco tiene dos plazas, también los del parque (a los que llegan los vecinos por unas diagonales de la red de aceras). Se llega por delante en los bancos y **por detrás** en las sillas con mesa y los taburetes. Sentarse y levantarse recorren el mismo camino en sentidos opuestos, desde la posición real del jugador; se calculan rutas laterales que respetan las colisiones de mesas y muebles, en vez de cambiar de sitio al empezar o acabar. La transición adapta gradualmente la altura del asiento (46 cm el banco, 67 cm el taburete), la pelvis y las piernas, y apoya las manos sobre los muslos. La postura se calcula sobre el esqueleto y los marcadores del modelo, sin simulación física rígida. Si te sientas, ningún vecino ocupa tu plaza. Estando sentado, `E` o empujar una dirección te levanta.
 - **El café**: delante de su puerta se ofrece entrar. Hay un fundido a negro, la calle desaparece y apareces en la sala (con luces de interior, ambiente de café y suelo de baldosa). La sala no se puede abandonar andando (la puerta tiene colisión y la cámara no la atraviesa): se sale junto a la puerta con la misma tecla, a la calle y de cara a ella. El interior se carga al entrar y se **libera al salir**. Con «movimiento reducido» no hay fundido.
 
+### Edificios por dentro
+Los 32 edificios se visitan enteros, de la planta baja a la azotea, y la altura de fuera es la de dentro: plantas de 3 m (`FLOOR_HEIGHT`) más el antepecho, con las ventanas pintadas de la fachada en el mismo sitio que las de verdad. El plano (`buildingPlan.ts`) sale del solar, de las plantas y de una semilla, así que es siempre el mismo:
+
+- **Planta baja**: el portal (buzones, felpudo, planta) llega hasta el núcleo, en el rincón de las medianeras; el resto es un **local** con su escaparate y su puerta a la otra calle (tienda de alimentación, farmacia, panadería o peluquería, cada uno con sus muebles y su rótulo) y, si es largo, un almacén al fondo. En el edificio del café, esa zona es el café (que sigue siendo aparte, con fundido).
+- **Escalera** de ida y vuelta en todos: dos tramos de 10 peldaños (15 × 27 cm) y meseta. Se sube andando: la altura sigue la línea de las huellas y, de las plantas posibles, se toma la más cercana a la actual, así que nunca salta. **Ascensor** en los de 5 plantas o más: se llama solo al acercarse a su puerta, y dentro `E` abre el panel (arriba y abajo eligen la planta, `E` va, a los lados se cierra).
+- **Plantas de pisos**: 1, 2 o 3 pisos según la superficie, con puerta al rellano, que se alarga como pasillo común; detrás queda un patio de luces. Cada piso tiene recibidor y pasillo, salón (en la esquina, con dos fachadas en el de la esquina), cocina, de 1 a 3 dormitorios y 1 o 2 baños; los pequeños tienen la cocina en el salón. Los dormitorios y salones van a la fachada; los baños pueden ser interiores.
+- **Azotea**: casetón de la escalera, barandilla alrededor del patio, depósito, antenas, tendedero y máquinas de aire.
+- **Muebles**: cada estancia se amuebla con reglas (contra las paredes, sin tapar puertas ni ventanas, con paso libre delante de cada puerta). Se puede sentar en sofás, sillones, sillas y en el borde de la cama.
+
+Cómo funciona: solo hay un edificio montado a la vez, el de la puerta más cercana (a menos de 14 m) o en el que se está. Las colisiones, plazas y luces de todas sus plantas se calculan al montarlo; las mallas, solo de la planta actual y las de al lado. Los muros, suelos y techos se generan por código y los muebles de una planta se **fusionan por material** (unas pocas decenas de llamadas de dibujo por planta). Se entra andando, sin fundido: la fachada tiene huecos de verdad para el portal y el local, y por las ventanas se ve la calle (la carcasa de fuera no se ve desde dentro). Dentro se ven la planta actual y la de abajo, y nada por encima (como un corte), así que la cámara puede mirar desde arriba; los muros de fachada no la dejan salir. Las luces de dentro (0, 2 o 4 según la calidad) se compilan al acercarse a una puerta, con el mismo mecanismo que las farolas, para que entrar no dé un tirón. Las puertas se abren solas al acercarse.
+
 ### Modelos de Blender
 `tools/blender/crear_props.py` genera, por código y sin nada de terceros (CC0), los modelos de `public/models/mundo/`:
 
@@ -92,9 +106,13 @@ Una sola tecla (o botón) hace lo que corresponda donde estés, y un aviso en pa
 | `luna_llena.glb` | Disco completo brillante con cráteres en relieve | ~38 KB | ~4.570 |
 | `luna_menguante.glb` | Cuarto menguante con la iluminación en el lado opuesto | ~28 KB | ~3.120 |
 
+Los de los edificios (53: muebles, puertas, ventanas, escalera, ascensor, portal, escaparate y rótulos; de 3 a 41 KB y menos de 2.000 triángulos cada uno) salen de `tools/blender/crear_interiores.py`, que usa las utilidades de `crear_props.py`. Sus huellas deben coincidir con `FURNITURE` en `buildingPlan.ts`.
+
 ```powershell
 & "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python tools/blender/crear_props.py
 # solo uno:  ... -- banco | fachada | interior | fuente | arbol | farola | sol | luna | luna_nueva | luna_creciente | luna_llena | luna_menguante
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python tools/blender/crear_interiores.py
+# solo algunos:  ... -- sofa cama_doble escalera
 ```
 
 Convenciones (la lee `props.ts`; las comprueba `tests/mundo-modelos.test.ts`):
@@ -136,7 +154,8 @@ Navegador de escritorio con WebGL 2 y Web Audio (Chrome, Edge, Firefox o Safari 
 
 ## Qué falta
 - Controles táctiles; reasignar teclas.
-- El resto de edificios sin interior (solo el café se puede visitar); el interior no tiene vecinos.
+- Los vecinos no entran en los edificios ni viven en los pisos; el café sigue siendo una sala aparte (con fundido).
+- Desde fuera, las ventanas de los pisos están pintadas: no se ve el interior a través de ellas.
 - Vehículos, ciclo de día y noche, música, y todo lo que da sentido al juego: historia, misiones, diálogos del juego, dificultad.
 - Los 160 PNJ a la vez: harían falta modelos más sencillos para los lejanos.
 - Probar con mandos reales: las pruebas usan un mando simulado (ver [pruebas.md](pruebas.md)); la validación con un mando de Xbox y uno de PlayStation en los navegadores de destino, y las mediciones de rendimiento, las tiene que hacer quien tenga el equipo.

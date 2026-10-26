@@ -1,8 +1,9 @@
 import * as THREE from 'three'
+import { EXTERIOR_WALL, FLOOR_HEIGHT, GROUND_FLOOR_Y, PORTAL_OPENING, SHOP_OPENING, casetonBox, levelY, patioBoxes, roofY, subtractBoxes } from './buildingPlan'
 import { createGroundMaterials, flatColor, type GroundMaterials } from './ground'
 import {
   BLOCK_CENTERS, BLOCK_HALF, BLOCK_PITCH, CROSSING_HALF_WIDTH, LAWN_HEIGHT, PATH_HALF_WIDTH, PATH_HEIGHT, RING_OUTER, RING_WALK, ROAD_WIDTH, SIDEWALK_HEIGHT,
-  STREET_CENTERS, WORLD_HALF, type CityLayout,
+  STREET_CENTERS, WORLD_HALF, type Building, type CityLayout,
 } from './layout'
 
 /** Acumula cajas y cuadriláteros con color por vértice para fusionarlos en una sola malla (una sola llamada de dibujo). */
@@ -13,6 +14,12 @@ class GeometryBuilder {
   private readonly colors: number[] = []
   private readonly indices: number[] = []
   private readonly color = new THREE.Color()
+
+  /** Cuadrilátero suelto (las esquinas en sentido antihorario visto desde donde apunta la normal). */
+  quad(corners: number[][], normal: number[], hex: number, uv: number[][] = [[0, 0], [0, 0], [0, 0], [0, 0]]) {
+    this.color.set(hex)
+    this.push(corners, normal, this.color, uv)
+  }
 
   private push(corners: number[][], normal: number[], rgb: THREE.Color, uv: number[][]) {
     const start = this.positions.length / 3
@@ -57,7 +64,7 @@ class GeometryBuilder {
   box(minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number, hex: number, windows = false) {
     this.color.set(hex)
     const tileW = 3
-    const tileH = 3.2
+    const tileH = FLOOR_HEIGHT
     const faces: { corners: number[][]; normal: number[]; wall: boolean; u: (c: number[]) => number }[] = [
       { corners: [[minX, minY, maxZ], [maxX, minY, maxZ], [maxX, maxY, maxZ], [minX, maxY, maxZ]], normal: [0, 0, 1], wall: true, u: (c) => c[0] },
       { corners: [[maxX, minY, minZ], [minX, minY, minZ], [minX, maxY, minZ], [maxX, maxY, minZ]], normal: [0, 0, -1], wall: true, u: (c) => -c[0] },
@@ -112,24 +119,156 @@ function makeFacadeTexture(): THREE.CanvasTexture {
   if (ctx) {
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, 128, 128)
-    // marco, cristal y un reflejo
+    // Una planta de 3 m por 3 m de fachada: la ventana (1,2 m de ancho, de 0,9 a 2,3 m sobre el suelo de la planta) cae
+    // donde están las de verdad por dentro (ver WINDOW en buildingPlan.ts). La imagen va de arriba abajo.
     ctx.fillStyle = '#d9d4cb'
-    ctx.fillRect(30, 22, 68, 80)
+    ctx.fillRect(35, 26, 58, 68) // marco
     ctx.fillStyle = '#55707f'
-    ctx.fillRect(35, 27, 58, 70)
+    ctx.fillRect(39, 30, 50, 60) // cristal
     ctx.fillStyle = '#7d9bab'
-    ctx.fillRect(35, 27, 58, 24)
+    ctx.fillRect(39, 30, 50, 20) // reflejo
     ctx.fillStyle = '#d9d4cb'
-    ctx.fillRect(62, 27, 4, 70)
-    // alféizar
+    ctx.fillRect(62, 30, 4, 60) // parteluz
+    ctx.fillStyle = '#4a4e52'
+    ctx.fillRect(37, 22, 54, 5) // caja de la persiana
     ctx.fillStyle = '#bdb7ac'
-    ctx.fillRect(26, 102, 76, 6)
+    ctx.fillRect(32, 92, 64, 5) // alféizar
   }
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping
   texture.anisotropy = 4
   return texture
+}
+
+/** Huecos de las puertas en la fachada de un edificio: en qué cara están, dónde a lo largo de ella y hasta qué altura. */
+export function facadeOpenings(building: Building): { face: 'minX' | 'maxX' | 'minZ' | 'maxZ'; from: number; to: number; top: number }[] {
+  const { box } = building
+  const openings = [{ spot: building.portal, size: PORTAL_OPENING }]
+  if (building.shop.kind !== 'cafe') openings.push({ spot: building.shop.door, size: SHOP_OPENING })
+  return openings.map(({ spot, size }) => {
+    const near = (a: number, b: number) => Math.abs(a - b) < 1e-6
+    const onZ = near(spot.z, box.minZ) || near(spot.z, box.maxZ)
+    const face = onZ ? (near(spot.z, box.minZ) ? 'minZ' : 'maxZ') : near(spot.x, box.minX) ? 'minX' : 'maxX'
+    const along = onZ ? spot.x : spot.z
+    return { face, from: along - size.width / 2, to: along + size.width / 2, top: size.height }
+  })
+}
+
+/**
+ * La carcasa de un edificio vista desde fuera: cuatro fachadas (con la planta baja lisa y un zócalo, y ventanas pintadas
+ * en las de arriba), huecos de verdad para el portal y el local, azotea con antepecho, cornisa y el casetón de la escalera.
+ * Desde dentro no se ve (las caras miran hacia fuera), así que no estorba al interior.
+ */
+function buildingShell(walls: GeometryBuilder, props: GeometryBuilder, building: Building) {
+  const { box, height, color } = building
+  const top = roofY(building.floors)
+  const firstFloor = GROUND_FLOOR_Y + FLOOR_HEIGHT
+  const plinth = new THREE.Color(color).multiplyScalar(0.72).getHex()
+  const openings = facadeOpenings(building)
+  // cada cara: dónde está, la normal, el sentido en que se recorre (antihorario visto desde fuera) y la textura a lo largo
+  const faces = [
+    { key: 'maxZ', normal: [0, 0, 1], alongX: true, fixed: box.maxZ, start: box.minX, end: box.maxX, u: (a: number) => a },
+    { key: 'minZ', normal: [0, 0, -1], alongX: true, fixed: box.minZ, start: box.maxX, end: box.minX, u: (a: number) => -a },
+    { key: 'maxX', normal: [1, 0, 0], alongX: false, fixed: box.maxX, start: box.maxZ, end: box.minZ, u: (a: number) => -a },
+    { key: 'minX', normal: [-1, 0, 0], alongX: false, fixed: box.minX, start: box.minZ, end: box.maxZ, u: (a: number) => a },
+  ] as const
+  type Piece = { s0: number; s1: number; y0: number; y1: number }
+  for (const face of faces) {
+    const outward = face.alongX ? face.normal[2] : face.normal[0]
+    const point = (s: number, y: number, out = 0) => (face.alongX ? [s, y, face.fixed + outward * out] : [face.fixed + outward * out, y, s])
+    const dir = Math.sign(face.end - face.start)
+    // trozos de la fachada (s0 → s1 en el sentido de recorrido) alrededor de los huecos
+    const holes = openings
+      .filter((o) => o.face === face.key)
+      .map((o) => (dir > 0 ? { s0: o.from, s1: o.to, top: o.top } : { s0: o.to, s1: o.from, top: o.top }))
+      .sort((a, b) => (a.s0 - b.s0) * dir)
+    const pieces: Piece[] = []
+    let s = face.start
+    for (const hole of holes) {
+      pieces.push({ s0: s, s1: hole.s0, y0: 0, y1: height })
+      pieces.push({ s0: hole.s0, s1: hole.s1, y0: GROUND_FLOOR_Y + hole.top, y1: height })
+      s = hole.s1
+    }
+    pieces.push({ s0: s, s1: face.end, y0: 0, y1: height })
+    const quad = (r: Piece, hex: number, textured: boolean, out = 0) => {
+      if (Math.abs(r.s1 - r.s0) < 1e-4 || r.y1 - r.y0 < 1e-4) return
+      const corners = [point(r.s0, r.y0, out), point(r.s1, r.y0, out), point(r.s1, r.y1, out), point(r.s0, r.y1, out)]
+      const uv = corners.map((c) => (textured ? [face.u(face.alongX ? c[0] : c[2]) / 3, (c[1] - GROUND_FLOOR_Y) / FLOOR_HEIGHT] : [0, 0]))
+      walls.quad(corners, [...face.normal], hex, uv)
+    }
+    for (const r of pieces) {
+      // la planta baja, lisa (los locales tienen su escaparate); de la primera planta para arriba, ventanas
+      if (r.y0 < firstFloor) quad({ ...r, y1: Math.min(r.y1, firstFloor) }, color, false)
+      if (r.y1 > firstFloor) quad({ ...r, y0: Math.max(r.y0, firstFloor) }, color, true)
+      // zócalo, un poco por fuera
+      if (r.y0 === 0) quad({ ...r, y1: 0.6 }, plinth, false, 0.012)
+    }
+    // cara de dentro del antepecho (se ve desde otras azoteas): mira hacia dentro, así que se recorre al revés
+    const innerFixed = face.fixed - outward * EXTERIOR_WALL
+    const a = face.start + dir * EXTERIOR_WALL
+    const b = face.end - dir * EXTERIOR_WALL
+    const inner = (sv: number, y: number) => (face.alongX ? [sv, y, innerFixed] : [innerFixed, y, sv])
+    walls.quad([inner(b, top - 0.02), inner(a, top - 0.02), inner(a, height), inner(b, height)], face.normal.map((n) => -n), color)
+  }
+  // azotea (un poco por debajo de su altura: el suelo de verdad de la azotea, cuando se está dentro, la tapa), sin el patio
+  const T = EXTERIOR_WALL
+  const y = top - 0.02
+  const patio = patioBoxes(building.frame, building.floors)
+  for (const r of subtractBoxes({ minX: box.minX + T, maxX: box.maxX - T, minZ: box.minZ + T, maxZ: box.maxZ - T }, patio)) {
+    walls.quad([[r.minX, y, r.maxZ], [r.maxX, y, r.maxZ], [r.maxX, y, r.minZ], [r.minX, y, r.minZ]], [0, 1, 0], 0x8f8277)
+  }
+  patioShaft(walls, patio, levelY(1), y, color)
+  // cornisa alrededor, sobre el antepecho
+  const k = 0x8d877d
+  const h0 = height
+  const h1 = height + 0.12
+  props.box(box.minX - 0.08, h0, box.minZ - 0.08, box.maxX + 0.08, h1, box.minZ + T, k)
+  props.box(box.minX - 0.08, h0, box.maxZ - T, box.maxX + 0.08, h1, box.maxZ + 0.08, k)
+  props.box(box.minX - 0.08, h0, box.minZ + T, box.minX + T, h1, box.maxZ - T, k)
+  props.box(box.maxX - T, h0, box.minZ + T, box.maxX + 0.08, h1, box.maxZ - T, k)
+  // casetón de la escalera (algo más pequeño que el de dentro, para que no se pisen cuando se está en la azotea)
+  const c = casetonBox(building.frame, building.floors)
+  walls.box(c.minX + 0.02, y, c.minZ + 0.02, c.maxX - 0.02, top + FLOOR_HEIGHT - 0.02, c.maxZ - 0.02, new THREE.Color(color).multiplyScalar(1.06).getHex())
+}
+
+/**
+ * El patio de luces visto desde arriba: sus paredes (mirando hacia dentro) y su fondo, de la primera planta a la azotea.
+ * Van 3 cm por detrás de los del interior, que los tapan cuando el edificio está montado.
+ */
+function patioShaft(walls: GeometryBuilder, boxes: readonly { minX: number; maxX: number; minZ: number; maxZ: number }[], bottom: number, top: number, hex: number) {
+  const inside = (x: number, z: number) => boxes.some((b) => x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ)
+  const gap = 0.03
+  const wallColor = new THREE.Color(hex).multiplyScalar(0.85).getHex()
+  for (const b of boxes) {
+    walls.quad([[b.minX, bottom - gap, b.maxZ], [b.maxX, bottom - gap, b.maxZ], [b.maxX, bottom - gap, b.minZ], [b.minX, bottom - gap, b.minZ]], [0, 1, 0], 0x7f7a72)
+    // cada lado, menos los trozos que dan a la otra parte del patio
+    const sides = [
+      { alongX: true, at: b.minZ, out: -1, from: b.minX, to: b.maxX },
+      { alongX: true, at: b.maxZ, out: 1, from: b.minX, to: b.maxX },
+      { alongX: false, at: b.minX, out: -1, from: b.minZ, to: b.maxZ },
+      { alongX: false, at: b.maxX, out: 1, from: b.minZ, to: b.maxZ },
+    ]
+    for (const side of sides) {
+      const cuts = new Set([side.from, side.to])
+      for (const o of boxes) for (const c of side.alongX ? [o.minX, o.maxX] : [o.minZ, o.maxZ]) if (c > side.from && c < side.to) cuts.add(c)
+      const marks = [...cuts].sort((m, n) => m - n)
+      for (let i = 0; i < marks.length - 1; i++) {
+        const mid = (marks[i] + marks[i + 1]) / 2
+        const probe = side.at + side.out * 0.05
+        if (side.alongX ? inside(mid, probe) : inside(probe, mid)) continue
+        const t = side.at + side.out * gap
+        const p = (a: number, yy: number) => (side.alongX ? [a, yy, t] : [t, yy, a])
+        const normal = side.alongX ? [0, 0, -side.out] : [-side.out, 0, 0]
+        const corners = [p(marks[i], bottom - gap), p(marks[i + 1], bottom - gap), p(marks[i + 1], top), p(marks[i], top)]
+        // el sentido: antihorario visto desde dentro del patio
+        const a = new THREE.Vector3(...(corners[1] as [number, number, number])).sub(new THREE.Vector3(...(corners[0] as [number, number, number])))
+        const c = new THREE.Vector3(...(corners[3] as [number, number, number])).sub(new THREE.Vector3(...(corners[0] as [number, number, number])))
+        const facing = a.cross(c).dot(new THREE.Vector3(normal[0], normal[1], normal[2]))
+        walls.quad(facing >= 0 ? corners : [corners[0], corners[3], corners[2], corners[1]], normal, wallColor)
+      }
+    }
+  }
 }
 
 export interface CityMeshes {
@@ -260,13 +399,8 @@ export function buildCityMeshes(layout: CityLayout): CityMeshes {
   fountain.floor(-1.45, -1.45, 1.45, 1.45, 0.38, 0x5fa3c4)
   fountain.box(-0.2, 0, -0.2, 0.2, 1.3, 0.2, 0x8c8c88)
 
-  // edificios: paredes con ventanas y azotea
-  for (const building of layout.buildings) {
-    const { box, height, color } = building
-    walls.box(box.minX, 0, box.minZ, box.maxX, height, box.maxZ, color, true)
-    // cornisa sencilla
-    props.box(box.minX - 0.1, height, box.minZ - 0.1, box.maxX + 0.1, height + 0.35, box.maxZ + 0.1, 0x8d877d)
-  }
+  // edificios: fachadas con ventanas y los huecos de portal y local, azotea con antepecho y casetón
+  for (const building of layout.buildings) buildingShell(walls, props, building)
 
   // bancos de relleno (los de verdad son un modelo de Blender: public/models/mundo/banco.glb)
   for (const bench of layout.benches) {

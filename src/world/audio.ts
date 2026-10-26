@@ -2,9 +2,10 @@ import { groundAt } from './layout'
 
 /* ---------- partes puras (se prueban sin navegador) ---------- */
 
-export type Surface = 'acera' | 'calzada' | 'hierba' | 'baldosa'
-export type Environment = 'calle' | 'interior'
-export type SoundEvent = 'puerta' | 'sentarse' | 'levantarse'
+export type Surface = 'acera' | 'calzada' | 'hierba' | 'baldosa' | 'madera'
+/** La calle, el café (con su murmullo) o dentro de un edificio (la calle se oye amortiguada). */
+export type Environment = 'calle' | 'interior' | 'edificio'
+export type SoundEvent = 'puerta' | 'sentarse' | 'levantarse' | 'ascensor' | 'llegada'
 
 /** Sobre qué se pisa en un punto de la calle (o 'baldosa' dentro de un edificio). */
 export function surfaceAt(x: number, z: number, inside: boolean): Surface {
@@ -144,7 +145,8 @@ export class AudioEngine {
     const { ctx } = this
     if (!ctx || !this.streetGain || !this.interiorGain) return
     const inside = this.environment === 'interior'
-    this.streetGain.gain.setTargetAtTime(inside ? 0 : 0.5, ctx.currentTime, 0.3)
+    const street = this.environment === 'calle' ? 0.5 : this.environment === 'edificio' ? 0.12 : 0
+    this.streetGain.gain.setTargetAtTime(street, ctx.currentTime, 0.3)
     this.interiorGain.gain.setTargetAtTime(inside ? 0.5 : 0, ctx.currentTime, 0.3)
   }
 
@@ -244,7 +246,7 @@ export class AudioEngine {
       const delay = rand(3500, 9000)
       this.accentTimer = setTimeout(() => {
         this.accentTimer = null
-        if (this.state === 'running') (this.environment === 'calle' ? this.chirp() : this.clink())
+        if (this.state === 'running' && this.environment !== 'edificio') (this.environment === 'calle' ? this.chirp() : this.clink())
         next()
       }, delay)
     }
@@ -328,6 +330,10 @@ export class AudioEngine {
       case 'baldosa':
         this.burst('bandpass', 2700, 1.4, length * 0.9, 0.5 * volume, pan)
         break
+      case 'madera':
+        // parqué: un golpe más hueco y grave que la baldosa
+        this.burst('bandpass', 1100, 1.1, length * 1.1, 0.45 * volume, pan)
+        break
     }
     // el peso del pie
     this.tone('sine', running ? 110 : 85, 45, 0.08, 0.16 * volume, 0, this.effectsBus)
@@ -350,6 +356,16 @@ export class AudioEngine {
         break
       case 'levantarse':
         this.burst('lowpass', 500, 0.7, 0.14, 0.35)
+        break
+      case 'ascensor':
+        // el motor arranca: un zumbido grave que sube
+        this.tone('sawtooth', 55, 75, 1.4, 0.05, 0, this.effectsBus)
+        this.burst('lowpass', 300, 0.8, 1.2, 0.12)
+        break
+      case 'llegada':
+        // el aviso de llegada: dos notas
+        this.tone('sine', 880, 878, 0.35, 0.09, 0, this.effectsBus)
+        this.tone('sine', 660, 659, 0.5, 0.09, 0.22, this.effectsBus)
         break
     }
   }

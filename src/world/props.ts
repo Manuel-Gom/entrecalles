@@ -8,7 +8,8 @@ import type { Box } from './collision'
  *   COL_*   caja de colisión (la escala del vacío es la mitad del tamaño)
  *   SEAT_*  una plaza: mira hacia donde apunta el vacío
  *   LUZ_*   sitio de un punto de luz
- *   y marcadores sueltos (ENTRADA, SALIDA, PUERTA_CENTRO) y la hoja de una puerta (PUERTA_HOJA, con la bisagra como origen).
+ *   y marcadores sueltos (ENTRADA, SALIDA, PUERTA_CENTRO) y las hojas de las puertas: PUERTA_HOJA* (giran sobre su origen,
+ *   que es la bisagra) y PUERTA_CORREDERA_I* / _D* (se deslizan hacia la izquierda o la derecha).
  */
 
 /** Un marcador: dónde está y cómo está orientado respecto al origen del modelo. */
@@ -29,6 +30,8 @@ export interface Prop {
   markers: Map<string, Marker>
   /** hoja de la puerta, si el modelo tiene (su origen es la bisagra) */
   door: THREE.Object3D | null
+  /** todas las hojas (que giran o se deslizan), en el orden del modelo */
+  doors: THREE.Object3D[]
 }
 
 export function markerFromMatrix(name: string, matrix: THREE.Matrix4): Marker {
@@ -80,9 +83,11 @@ export function extractProp(root: THREE.Group): Prop {
   const markers = new Map<string, Marker>()
   const dataNodes: THREE.Object3D[] = []
   let door: THREE.Object3D | null = null
+  const doors: THREE.Object3D[] = []
   root.traverse((node) => {
     const mesh = node as THREE.Mesh
-    if (/^PUERTA_HOJA/.test(node.name)) door = node
+    if (/^PUERTA_HOJA/.test(node.name)) door ??= node
+    if (/^PUERTA_(HOJA|CORREDERA)/.test(node.name)) doors.push(node)
     if (mesh.isMesh) return
     const marker = () => markerFromMatrix(node.name, node.matrixWorld)
     if (/^COL_/.test(node.name)) colliders.push(marker())
@@ -93,7 +98,7 @@ export function extractProp(root: THREE.Group): Prop {
     dataNodes.push(node)
   })
   for (const node of dataNodes) node.removeFromParent()
-  return { root, colliders, seats, lights, markers, door }
+  return { root, colliders, seats, lights, markers, door, doors }
 }
 
 const loader = new GLTFLoader()

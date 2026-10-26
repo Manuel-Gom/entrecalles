@@ -54,7 +54,8 @@ export class FollowCamera {
 
     camera.position.set(
       this.focus.x + dirX * this.current,
-      Math.max(0.35, this.focus.y + dirY * this.current),
+      // nunca por debajo del suelo que pisa el personaje (en un piso, el de su planta)
+      Math.max(target.y + 0.35, this.focus.y + dirY * this.current),
       this.focus.z + dirZ * this.current,
     )
     camera.lookAt(this.focus)

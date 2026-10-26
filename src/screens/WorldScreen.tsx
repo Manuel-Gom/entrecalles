@@ -27,7 +27,10 @@ function readQuality(): Quality {
   return 'media'
 }
 
-const PROMPT_TEXT = { sentarse: 'sentarte', levantarse: 'levantarte', entrar: 'entrar al café', salir: 'salir a la calle' } as const
+const PROMPT_TEXT = { sentarse: 'sentarte', levantarse: 'levantarte', entrar: 'entrar al café', salir: 'salir a la calle', ascensor: 'usar el ascensor' } as const
+
+/** Nombre de una planta en el panel del ascensor. */
+const floorName = (level: number) => (level === 0 ? 'Bajo' : `${level}.º`)
 
 const messages: Partial<Record<WorldStatus['state'], string>> = {
   cargando: 'Cargando el barrio…',
@@ -47,7 +50,7 @@ export function WorldScreen() {
   const qualityByPointer = useRef(false)
   const resumeToGame = useRef(false)
   const [npcs, setNpcs] = useState<Npc[] | null>(null)
-  const [status, setStatus] = useState<WorldStatus>({ state: 'cargando', npcsLoaded: 0, npcsTotal: 0, fps: 0, device: 'teclado', gamepad: null, prompt: null, subtitle: null, audio: 'none', gameTime: '--:--', diagnostics: '' })
+  const [status, setStatus] = useState<WorldStatus>({ state: 'cargando', npcsLoaded: 0, npcsTotal: 0, fps: 0, device: 'teclado', gamepad: null, prompt: null, subtitle: null, audio: 'none', gameTime: '--:--', elevator: null, diagnostics: '' })
   const [quality, setQuality] = useState<Quality>(readQuality)
   const [paused, setPaused] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
@@ -248,6 +251,22 @@ export function WorldScreen() {
         <p className="world-prompt" role="status">
           Pulsa <kbd>{usingPad ? labels.interact : arrows ? 'Intro' : 'E'}</kbd> para {PROMPT_TEXT[status.prompt]}
         </p>
+      )}
+      {status.elevator && (
+        <section className="world-elevator" aria-label="Ascensor" aria-live="polite">
+          <ol>
+            {Array.from({ length: status.elevator.stops }, (_, i) => status.elevator!.stops - 1 - i).map((level) => (
+              <li key={level} aria-current={level === status.elevator!.selected ? 'true' : undefined} className={level === status.elevator!.current ? 'here' : undefined}>
+                {floorName(level)}
+              </li>
+            ))}
+          </ol>
+          <p>
+            {usingPad ? labels.move : arrows ? '↑ ↓' : 'W S'} elegir planta · <kbd>{usingPad ? labels.interact : arrows ? 'Intro' : 'E'}</kbd> ir
+            {' · '}{usingPad ? 'a los lados' : arrows ? '← →' : 'A D'} salir
+          </p>
+          <p className="sr-only">Planta elegida: {floorName(status.elevator.selected)}. Estás en: {floorName(status.elevator.current)}.</p>
+        </section>
       )}
       {pad && !pad.standard && (
         <p className="world-toast" role="status">Este mando no usa el mapeo estándar: puede que algunos botones no coincidan.</p>
