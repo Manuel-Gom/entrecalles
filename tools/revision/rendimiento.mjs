@@ -6,12 +6,17 @@
 //   --sin-limite         sin sincronía vertical ni tope de FPS: mide lo que da la tarjeta, no la frecuencia del monitor
 //                        (los FPS medios valen; los tirones no: Chromium encola fotogramas y da uno lento cada ~150 ms)
 //   --hora=HH:MM         fija el reloj del barrio (por ejemplo 13:00 de día, 23:30 de noche); sin ella usa la del ordenador
-//   --sitios=centro,borde  dónde corre el protagonista (por defecto centro: la plaza junto al parque)
+//   --sitios=centro,borde  dónde corre el protagonista (por defecto centro: la plaza junto al parque). También: portal
+//                        (en la acera, delante del portal del edificio más cercano a la plaza, con su interior montado),
+//                        edificio (dentro de ese portal, en la planta baja) y planta (encima, en la primera planta)
 //   --calidades=media,alta qué calidades se miden (por defecto las tres)
 //   --resolucion=1920x1080 tamaño de la ventana (por defecto 1280x720)
 //   --anochecer          además, mide el peor fotograma al anochecer y al amanecer (cuando se encienden y se apagan las
 //                        farolas), en frío, como quien empezó a jugar con la otra luz; mídelo sin --sin-limite
 //   --etiqueta=nombre    guarda el resultado como rendimiento-nombre.json (para comparar antes y después)
+//   --dist=carpeta       sirve otra compilación en vez de dist/ (por ejemplo la de un commit anterior, para comparar)
+//   --perfil             graba un perfil de CPU (.cpuprofile, se abre en las DevTools de Chromium) de cada medida e imprime
+//                        las funciones que más tiempo gastan; el perfilador resta FPS: no mezcles estas medidas con las otras
 // Imprime una tabla y guarda docs/previews/web/rendimiento[-etiqueta].json. Con el 3D por software los números solo sirven
 // para comprobar que la herramienta funciona: el dato que importa es el de tu equipo, con --ventana.
 import { spawn, spawnSync } from 'node:child_process'
@@ -29,11 +34,13 @@ const SIN_LIMITE = process.argv.includes('--sin-limite')
 const ANOCHECER = process.argv.includes('--anochecer')
 const HORA = valor('hora')
 const ETIQUETA = valor('etiqueta')
+const DIST = valor('dist')
+const PERFIL = process.argv.includes('--perfil')
 const CALIDADES = lista('calidades', 'baja,media,alta')
 const [ANCHO, ALTO] = (valor('resolucion') ?? '1280x720').split('x').map(Number)
 // la plaza junto al parque (donde más se ve) y la acera exterior de una manzana del borde (media vista es cielo y niebla)
 // (las coordenadas salen del barrio cargado, ver más abajo)
-const SITIOS = { centro: null, borde: null }
+const SITIOS = { centro: null, borde: null, portal: null, edificio: null, planta: null }
 const sitios = lista('sitios', 'centro')
 for (const sitio of sitios) if (!(sitio in SITIOS)) throw new Error(`Sitio desconocido: ${sitio} (usa ${Object.keys(SITIOS).join(', ')})`)
 if (HORA && !/^\d\d:\d\d$/.test(HORA)) throw new Error('--hora debe ser HH:MM')
@@ -44,7 +51,7 @@ const PORT = 4200 + Math.floor(Math.random() * 700)
 const OUT = path.join(process.cwd(), 'docs/previews/web')
 fs.mkdirSync(OUT, { recursive: true })
 
-const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { shell: true, stdio: 'pipe' })
+const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort', ...(DIST ? ['--outDir', `"${path.resolve(DIST)}"`] : [])], { shell: true, stdio: 'pipe' })
 await new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error('El servidor no arrancó')), 20000)
   server.stdout.on('data', (data) => {
@@ -76,31 +83,63 @@ await page.waitForFunction(() => window.__world?.()?.stats().state === 'listo', 
 await page.waitForFunction((n) => { const s = window.__world().stats(); return s.npcs.loaded >= n && s.scenery.lamps }, PNJ, { timeout: 480000 })
 // se deja que las calles se animen un poco antes de medir
 await page.evaluate(() => window.__world().advance(30))
+// cada sitio: [x, z, orientación, altura del suelo (solo dentro de los edificios)]
 Object.assign(SITIOS, await page.evaluate(() => {
-  const { spawn, nav } = window.__world().layout
-  return { centro: [spawn.x, spawn.z], borde: [Math.max(...nav.filter((n) => Math.abs(n.z) < 1e-9).map((n) => n.x)), 0] }
+  const { spawn, nav, buildings } = window.__world().layout
+  const sitios = { centro: [spawn.x, spawn.z, 0], borde: [Math.max(...nav.filter((n) => Math.abs(n.z) < 1e-9).map((n) => n.x)), 0, 0] }
+  // las compilaciones anteriores a los edificios explorables no tienen portales
+  const portales = buildings.filter((b) => b.portal).map((b) => b.portal)
+  if (portales.length) {
+    const p = portales.sort((a, b) => Math.hypot(a.x - spawn.x, a.z - spawn.z) - Math.hypot(b.x - spawn.x, b.z - spawn.z))[0]
+    // el portal mira a la calle: delante es +(sin, cos) y dentro, al revés
+    const fuera = (d) => [p.x + Math.sin(p.yaw) * d, p.z + Math.cos(p.yaw) * d]
+    sitios.portal = [...fuera(4), p.yaw + Math.PI]
+    sitios.edificio = [...fuera(-2.5), p.yaw + Math.PI, 0.05]
+    sitios.planta = [...fuera(-2.5), p.yaw + Math.PI, 3.05]
+  }
+  return sitios
 }))
+for (const sitio of sitios) if (!SITIOS[sitio]) throw new Error(`Esta compilación no tiene el sitio ${sitio}`)
+const cdp = PERFIL ? await page.context().newCDPSession(page) : null
+if (cdp) {
+  await cdp.send('Profiler.enable')
+  await cdp.send('Profiler.setSamplingInterval', { interval: 200 })
+}
+// tiempo propio de cada función (sin el de las que llama), de mayor a menor
+const resumenPerfil = (perfil) => {
+  const total = perfil.samples.length
+  const cuenta = new Map()
+  for (const nodo of perfil.nodes) {
+    const { functionName, url, lineNumber } = nodo.callFrame
+    if (functionName === '(idle)' || !nodo.hitCount) continue
+    const clave = `${functionName || '(anónima)'} ${url.split('/').pop()}:${lineNumber + 1}`
+    cuenta.set(clave, (cuenta.get(clave) ?? 0) + nodo.hitCount)
+  }
+  return [...cuenta].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([funcion, n]) => ({ funcion, porcentaje: (100 * n) / total }))
+}
+const perfiles = []
 
 const filas = []
 for (const sitio of sitios) {
   for (const calidad of CALIDADES) {
-    await page.evaluate(([q, [x, z], hora]) => {
+    await page.evaluate(([q, [x, z, yaw, y], hora]) => {
       const w = window.__world()
       w.setQuality(q)
       if (hora) w.setClockOverride(hora)
       // el protagonista corre en círculos, con la cámara girando: el mismo recorrido en cada calidad
-      w.teleport(x, z, 0)
+      w.teleport(x, z, yaw, y)
       w.inputOverride = { moveX: 1, moveZ: 0.3, run: true }
     }, [calidad, SITIOS[sitio], HORA ? fecha(HORA) : null])
     await page.waitForTimeout(2500) // deja asentarse el cambio (y compilar los materiales si cambian las luces)
     await page.evaluate(() => window.__world().resetDiagnostics())
+    if (cdp) await cdp.send('Profiler.start')
     const inicio = Date.now()
     while (Date.now() - inicio < SEGUNDOS * 1000) {
-      await page.evaluate(([x, z]) => {
+      await page.evaluate(([x, z, yaw, y]) => {
         const w = window.__world()
         const s = w.stats()
-        // si se aleja del sitio, vuelve
-        if (Math.hypot(s.player.x - x, s.player.z - z) > 14) w.teleport(x, z, 0)
+        // si se aleja del sitio (o, dentro de un edificio, de la entrada), vuelve
+        if (Math.hypot(s.player.x - x, s.player.z - z) > (y === undefined ? 14 : 5)) w.teleport(x, z, yaw, y)
         w.orbitCamera(s.cameraYaw + 0.2, 0.3, 4.6)
       }, SITIOS[sitio])
       await page.waitForTimeout(500)
@@ -111,6 +150,14 @@ for (const sitio of sitios) {
       return { ...w.performance(), night: s.clock.night, gameTime: s.gameTime, lights: s.streetLights.active }
     })
     filas.push({ ...fila, sitio })
+    if (cdp) {
+      const { profile } = await cdp.send('Profiler.stop')
+      const nombre = `perfil${ETIQUETA ? `-${ETIQUETA}` : ''}-${sitio}-${calidad}${fila.night ? '-noche' : ''}.cpuprofile`
+      fs.writeFileSync(path.join(OUT, nombre), JSON.stringify(profile))
+      const resumen = resumenPerfil(profile)
+      perfiles.push({ sitio, calidad, noche: fila.night, archivo: nombre, resumen })
+      console.log(resumen.slice(0, 8).map((r) => `    ${r.porcentaje.toFixed(1).padStart(5)} %  ${r.funcion}`).join('\n'))
+    }
     console.log(`medido: ${sitio} · ${calidad} · ${fila.night ? 'noche' : 'día'} · ${fila.fps.toFixed(0)} FPS`)
   }
 }
@@ -136,11 +183,11 @@ if (ANOCHECER) {
   for (const { nombre, momento, noche } of momentos) {
     if (!momento) throw new Error(`No se encontró el ${nombre}`)
     for (const calidad of CALIDADES) {
-      await page.evaluate(([q, [x, z], antes]) => {
+      await page.evaluate(([q, [x, z, yaw, y], antes]) => {
         const w = window.__world()
         w.setQuality(q)
         w.setClockOverride(antes)
-        w.teleport(x, z, 0)
+        w.teleport(x, z, yaw, y)
         w.inputOverride = { moveX: 1, moveZ: 0.3, run: true }
         // en frío: fuera los programas compilados; el siguiente fotograma solo compila los de este momento
         w.scene.traverse((object) => {
@@ -179,7 +226,7 @@ const tablaAnochecer = anochecer
   : ''
 // sin tope, Chromium encola fotogramas y cada ~150 ms da uno de ~100 ms aunque no pase nada: los FPS medios valen, los tirones no
 const aviso = SIN_LIMITE ? '\nAviso: con --sin-limite los FPS medios son fiables, pero el 1 % más lento y el peor no (mide los tirones sin esa opción).' : ''
-console.log(`\nVecinos: ${filas[0].npcs} · ${SEGUNDOS} s por medida · ${VENTANA ? 'tarjeta gráfica real' : 'dibujado por software (SwiftShader)'}${SIN_LIMITE ? ' · sin tope de FPS' : ''}\nTarjeta: ${filas[0].gpu}${aviso}\n\n${tabla}${tablaAnochecer}\n`)
+console.log(`\nCompilación: ${DIST ?? 'dist'}\nVecinos: ${filas[0].npcs} · ${SEGUNDOS} s por medida · ${VENTANA ? 'tarjeta gráfica real' : 'dibujado por software (SwiftShader)'}${SIN_LIMITE ? ' · sin tope de FPS' : ''}\nTarjeta: ${filas[0].gpu}${aviso}\n\n${tabla}${tablaAnochecer}\n`)
 const archivo = `rendimiento${ETIQUETA ? `-${ETIQUETA}` : ''}.json`
-fs.writeFileSync(path.join(OUT, archivo), JSON.stringify({ fecha: new Date().toISOString(), ventana: VENTANA, sinLimite: SIN_LIMITE, hora: HORA ?? null, filas, anochecer }, null, 2))
+fs.writeFileSync(path.join(OUT, archivo), JSON.stringify({ fecha: new Date().toISOString(), dist: DIST ?? 'dist', ventana: VENTANA, sinLimite: SIN_LIMITE, hora: HORA ?? null, filas, anochecer, ...(PERFIL ? { perfiles } : {}) }, null, 2))
 process.exit(0)

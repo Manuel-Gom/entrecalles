@@ -6,7 +6,7 @@ Hay tres capas, de la más rápida a la más completa. `npm run verificar` las e
 |---|---|---|---|---|
 | Unitarias | Vitest | `src/**/*.test.ts(x)` | Lógica pura: reglas del aspecto (`normalizeSpec`, `visiblePieces`, tintes), validación y migración de lo guardado, router, componentes accesibles (diálogo, grupos de opciones, interruptores); del barrio, `src/world/`: colisiones (con paredes y con personas), ciudad y red de aceras, zancada y sus transiciones, jugador, cámara, comportamiento y evitación de los PNJ, asientos, entrada con mando, diálogos y las partes puras del sonido | < 10 s |
 | Catálogo | Vitest | `tests/catalogo.test.ts`, `tests/npcs.test.ts`, `tests/reparto.test.ts`, `tests/mundo-modelos.test.ts` | Los modelos generados con Blender: nada falta ni sobra, tamaños, esqueleto, miniaturas, atuendos por defecto, licencias; los 160 PNJ y su generador; los modelos de Blender del barrio (peso, triángulos, sin texturas, escala y orientación, y que sus plazas, colisiones y puntos cuadren con el código) | < 10 s |
-| Extremo a extremo | Playwright Test | `e2e/*.spec.ts` | La aplicación real en Chromium: flujos, teclado, accesibilidad (axe), persistencia, 3D y memoria | ~6 min |
+| Extremo a extremo | Playwright Test | `e2e/*.spec.ts` | La aplicación real en Chromium: flujos, teclado, accesibilidad (axe), persistencia, 3D y memoria | ~6 min por software (bastante menos con la tarjeta gráfica, ver abajo) |
 
 ## Comandos
 
@@ -16,6 +16,8 @@ npm run test:unit:watch    # modo vigilancia mientras se programa
 npm run test:cobertura     # con cobertura (umbral: 90 % líneas y 80 % ramas en catalog.ts, save.ts, router.ts y la lógica pura de src/world/)
 npm run test:catalogo      # solo catálogo y PNJ
 npm run test:e2e           # extremo a extremo (arranca solo el servidor: compila y sirve dist/)
+npm run test:e2e -- e2e/mundo.spec.ts          # solo un archivo (lo que va tras «--» se le pasa a Playwright)
+E2E_SOFTWARE=1 npm run test:e2e                # con el 3D por software, como en la integración continua
 npm run test:e2e:ui        # visor interactivo de Playwright (depurar paso a paso)
 npx playwright test -g "dificultad"            # solo las pruebas cuyo nombre contenga "dificultad"
 npx playwright test --project=movil            # solo el móvil (390 px)
@@ -33,7 +35,9 @@ La primera vez: `npx playwright install chromium`.
   - `sembrar(estado)`: guarda un estado en `localStorage` solo la primera vez que se abre la pestaña (recargar no lo pisa);
   - `visor`: espera a que el 3D esté listo y detecta cuándo cambian el cuerpo o las piezas mostradas (usa `window.__avatarStudio().stats()`);
   - vigilancia automática de la consola: cualquier error o aviso hace fallar la prueba, salvo los que se declaren con `ignorarConsola(/patrón/)`.
-- El 3D se dibuja por software en el Chromium de las pruebas: sirve para comprobar que funciona y que no hay fugas, **no** para medir rendimiento. Los fotogramas por segundo reales se miran en el equipo del usuario.
+- **Sin saturar el equipo.** En local, Chromium dibuja el 3D con la tarjeta gráfica (`--enable-gpu`, aunque sea integrada y sin ventana), corren 2 navegadores a la vez y `test:e2e` y `test:cobertura` pasan por `tools/pruebas-suaves.mjs`, que los lanza con prioridad baja (en Windows la heredan el build, vite y Chromium): lo que estés usando va antes. Con `e2e/mundo.spec.ts` en un Ryzen 7 5700G (gráfica Radeon integrada) se pasó de 296 s con la CPU al 79 % de media (39 % del tiempo por encima del 90 %) a 52 s con el 32 % de media y un máximo del 64 %.
+- En la integración continua (o con `E2E_SOFTWARE=1`) no hay tarjeta gráfica y el 3D se dibuja por software (SwiftShader), que ocupa varios núcleos por navegador. GitHub Actions pasa la batería completa en cada push a `main`: en local basta con las unitarias y el archivo de extremo a extremo del área que se toca.
+- Ni con la tarjeta ni por software sirven estas pruebas para medir rendimiento (el navegador va cargado con varias pruebas a la vez): para eso está `tools/revision/rendimiento.mjs`.
 
 ### Ganchos de prueba en el código de la aplicación
 - `window.__avatarStudio()` (`src/avatar/studio.ts`): `stats()` devuelve estado, cuerpo, piezas montadas, tintes aplicados y memoria; `setAvatar()` muestra un aspecto.
