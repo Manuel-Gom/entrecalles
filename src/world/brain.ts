@@ -1,8 +1,9 @@
 import { resolveCircle, type Box, type Circle, type Vec2 } from './collision'
 import { findPath, makeRng, nearestNode, type CityLayout, type Rng, type Spot } from './layout'
 import { nearestAngle } from './player'
+import { inSpan, isShopOpen, streetDoor, type HourSpan, type StreetDoorSpot } from './schedule'
 
-export type Activity = 'pasear' | 'correr' | 'sentarse' | 'charlar' | 'esperar' | 'escaparate'
+export type Activity = 'pasear' | 'correr' | 'sentarse' | 'charlar' | 'esperar' | 'escaparate' | 'compras' | 'trabajar' | 'casa'
 
 export const ACTIVITY_LABELS: Record<Activity, string> = {
   pasear: 'Pasea',
@@ -11,7 +12,25 @@ export const ACTIVITY_LABELS: Record<Activity, string> = {
   charlar: 'Charla',
   esperar: 'Espera en la esquina',
   escaparate: 'Mira un escaparate',
+  compras: 'Está en un local',
+  trabajar: 'Trabaja en un local',
+  casa: 'Está en casa',
 }
+
+/** Lo que el barrio cuenta a los PNJ: la hora del día (0-24), que todos comparten. */
+export interface CityLife {
+  hour: number
+}
+
+/** Un punto del trayecto; `indoor`: hasta él se va por dentro de un edificio (sin chocar con su caja: cruzando su puerta). */
+interface RoutePoint extends Vec2 {
+  indoor?: boolean
+}
+
+/** Dónde se queda quien entra por una puerta: a esto del hueco, hacia dentro (ya no se ve desde la calle). */
+const INSIDE_DEPTH = 1.4
+/** Dónde se espera delante de una puerta para cruzarla (hacia la calle). */
+const OUTSIDE_DEPTH = 0.9
 
 const JOG_SPEED = 3.4
 const STROLL_SPEED = 1.25
@@ -130,6 +149,14 @@ export interface BrainOptions {
   pairIndex?: number
   /** sitios (esquinas y escaparates) ya ocupados por alguien: nadie más se pone encima */
   occupied?: Set<Spot>
+  /** la hora del barrio; sin ella, el PNJ está siempre en la calle (como antes) */
+  life?: CityLife
+  /** cuándo está en la calle (fuera de este tramo, en casa) */
+  span?: HourSpan
+  /** su edificio (entra y sale por el portal) */
+  home?: number
+  /** si trabaja: en qué edificio (su local) y dónde atiende, con el camino desde la puerta */
+  work?: { building: number; spot: Spot; path: Vec2[] }
 }
 
 /** Qué hace un PNJ: elige un sitio, va por las aceras, hace su actividad un rato y vuelve a empezar. */
@@ -145,7 +172,13 @@ export class NpcBrain {
   /** cuántas actividades ha terminado (para las pruebas) */
   completed = 0
 
-  private route: Vec2[] = []
+  private route: RoutePoint[] = []
+  /** al acabar el trayecto en curso termina la actividad (está saliendo de un edificio) */
+  private exiting = false
+  /** la puerta por la que ha entrado y el camino que ha hecho por dentro (para salir por el mismo sitio) */
+  private door: { spot: StreetDoorSpot; path: Vec2[] } | null = null
+  /** el local en el que está de compras (-1 ninguno) */
+  private shop = -1
   private moveSpeed = STROLL_SPEED
   private goalYaw: number | null = null
   private timer = 0
@@ -175,7 +208,54 @@ export class NpcBrain {
     this.yaw = this.rng() * Math.PI * 2
     this.primary = options.primary
     this.activity = options.primary === 'charlar' ? 'charlar' : 'pasear'
-    this.chooseGoal()
+    this.chooseGoal(true)
+  }
+
+  /** ¿Está en casa (no se ve)? */
+  get hidden(): boolean {
+    return this.activity === 'casa' && this.phase === 'haciendo'
+  }
+
+  /** El edificio en el que está metido (en su local o su portal), o -1 si está en la calle o cruzando la puerta. */
+  get indoorBuilding(): number {
+    if (!this.door || this.exiting || this.phase === 'camino') return -1
+    if (this.activity === 'trabajar') return this.options.work?.building ?? -1
+    return this.activity === 'casa' ? (this.options.home ?? -1) : this.shop
+  }
+
+  /** ¿Le toca estar en la calle a esta hora? */
+  private awake(): boolean {
+    const { life, span } = this.options
+    return !life || !span || inSpan(span, life.hour)
+  }
+
+  private workOpen(): boolean {
+    const { life, work } = this.options
+    return Boolean(life && work && isShopOpen(this.layout.buildings[work.building].shop.kind, life.hour))
+  }
+
+  /** Va hasta una puerta de la calle, la cruza y sigue por dentro (`path`); se queda allí haciendo su actividad. */
+  private enter(spot: StreetDoorSpot, path: Vec2[]) {
+    this.door = { spot, path }
+    this.routeTo({ x: spot.x + spot.nx * OUTSIDE_DEPTH, z: spot.z + spot.nz * OUTSIDE_DEPTH })
+    for (const point of path) this.route.push({ ...point, indoor: true })
+  }
+
+  /** Sale por la puerta por la que entró (deshaciendo el camino de dentro) y, ya en la acera, termina la actividad. */
+  private leave() {
+    const door = this.door
+    if (!door) return this.finishActivity()
+    const { spot, path } = door
+    const back = path.slice(0, -1).reverse().map((point) => ({ ...point, indoor: true }))
+    this.route = [...back, { x: spot.x + spot.nx * OUTSIDE_DEPTH, z: spot.z + spot.nz * OUTSIDE_DEPTH, indoor: true }]
+    this.phase = 'camino'
+    this.exiting = true
+    this.moveSpeed = STROLL_SPEED
+  }
+
+  /** Un punto dentro de una puerta: a `INSIDE_DEPTH` del hueco (y algo de lado). */
+  private inside(spot: StreetDoorSpot, lateral = 0): Vec2 {
+    return { x: spot.x - spot.nx * INSIDE_DEPTH + spot.nz * lateral, z: spot.z - spot.nz * INSIDE_DEPTH - spot.nx * lateral }
   }
 
   /** Altura del asiento en el que está (o va a sentarse). */
@@ -199,9 +279,13 @@ export class NpcBrain {
     if (final) this.route.push(final)
   }
 
-  private chooseGoal() {
+  /** `initial`: al aparecer, quien debería estar en casa o trabajando ya está allí (no va andando). */
+  private chooseGoal(initial = false) {
     const { layout } = this
     this.releaseReservations()
+    this.door = null
+    this.exiting = false
+    this.shop = -1
     this.phase = 'camino'
     this.goalYaw = null
     this.duration = 0
@@ -211,6 +295,35 @@ export class NpcBrain {
     this.moveSpeed = activity === 'correr' ? JOG_SPEED : STROLL_SPEED + this.rng() * 0.3
 
     switch (activity) {
+      case 'casa': {
+        const spot = streetDoor(layout.buildings[this.options.home ?? 0], 'portal')
+        const path = [this.inside(spot, (this.rng() - 0.5) * 0.6)]
+        this.duration = Infinity
+        if (initial) return this.settleInside(spot, path)
+        this.enter(spot, path)
+        break
+      }
+      case 'trabajar': {
+        const work = this.options.work
+        if (!work) return this.fallbackStroll()
+        const spot = streetDoor(layout.buildings[work.building], 'local')
+        const path = [this.inside(spot, 0), ...work.path]
+        this.goalYaw = work.spot.yaw
+        this.duration = Infinity
+        if (initial) return this.settleInside(spot, path)
+        this.enter(spot, path)
+        break
+      }
+      case 'compras': {
+        const shop = this.openShop()
+        if (shop < 0) return this.fallbackStroll()
+        const spot = streetDoor(layout.buildings[shop], 'local')
+        this.enter(spot, [this.inside(spot, 0.4 + this.rng() * 0.8)])
+        this.shop = shop
+        this.goalYaw = Math.atan2(-spot.nx, -spot.nz) + (this.rng() - 0.5) * 1.6
+        this.duration = 15 + this.rng() * 30
+        break
+      }
       case 'sentarse': {
         const free = this.options.seats.filter((seat) => !seat.taken)
         const seat = free[Math.floor(this.rng() * free.length)]
@@ -250,6 +363,29 @@ export class NpcBrain {
       default:
         this.fallbackStroll(activity === 'correr')
     }
+  }
+
+  /** Ya está dentro (al aparecer): en el último punto del camino, haciendo su actividad. */
+  private settleInside(spot: StreetDoorSpot, path: Vec2[]) {
+    const last = path[path.length - 1]
+    this.door = { spot, path }
+    this.x = last.x
+    this.z = last.z
+    if (this.goalYaw !== null) this.yaw = this.goalYaw
+    this.route = []
+    this.phase = 'haciendo'
+  }
+
+  /** Un local abierto cerca (uno de los 4 más cercanos, al azar), o -1. */
+  private openShop(): number {
+    const hour = this.options.life?.hour
+    if (hour === undefined) return -1
+    const open = this.layout.buildings
+      .filter((b) => b.shop.kind !== 'cafe' && isShopOpen(b.shop.kind, hour))
+      .map((b) => ({ index: b.index, distance: Math.hypot(b.shop.door.x - this.x, b.shop.door.z - this.z) }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 4)
+    return open.length ? open[Math.floor(this.rng() * open.length)].index : -1
   }
 
   /** Elige al azar un sitio de la lista que nadie tenga y lo reserva. */
@@ -293,6 +429,16 @@ export class NpcBrain {
 
   private nextActivity(): Activity {
     const primary = this.primary
+    // con horario: fuera de su tramo se va a casa; quien trabaja, al local mientras está abierto
+    if (this.options.life) {
+      if (this.options.work) return this.workOpen() ? 'trabajar' : 'casa'
+      if (!this.awake()) return 'casa'
+      // de vez en cuando entra en un local abierto (en vez del paseo entre actividades)
+      if (primary !== 'charlar' && primary !== 'correr' && !this.wantPrimary && this.rng() < 0.45) {
+        this.wantPrimary = true
+        return 'compras'
+      }
+    }
     if (primary === 'pasear' || primary === 'correr') return primary
     if (primary === 'charlar') return 'charlar'
     // alterna su actividad con un paseo
@@ -338,12 +484,18 @@ export class NpcBrain {
       } else if (this.activity === 'charlar') {
         const pair = options.pair
         this.talk = Math.min(1, this.talk + dt * 2)
-        if (pair && pair.version !== this.lastPairVersion) {
+        if ((pair && pair.version !== this.lastPairVersion) || !this.awake()) {
           this.talk = 0
           this.finishActivity()
         }
+      } else if (this.activity === 'casa') {
+        // quien trabaja sale cuando abre su local; los demás, cuando empieza su tramo en la calle
+        if (this.options.work ? this.workOpen() : this.awake()) this.leave()
+      } else if (this.activity === 'trabajar') {
+        if (!this.workOpen()) this.leave()
       } else if (this.timer >= this.duration) {
-        this.finishActivity()
+        if (this.door) this.leave()
+        else this.finishActivity()
       }
       return
     }
@@ -382,6 +534,10 @@ export class NpcBrain {
   private follow(dt: number, neighbors: readonly Circle[]) {
     const next = this.route[0]
     if (!next) {
+      if (this.exiting) {
+        this.finishActivity()
+        return
+      }
       if (this.activity === 'correr') {
         // el corredor no se detiene: enlaza un trayecto con el siguiente
         this.completed++
@@ -450,9 +606,12 @@ export class NpcBrain {
     this.x += dirX * step + pushX * Math.min(1, dt * 6)
     this.z += dirZ * step + pushZ * Math.min(1, dt * 6)
     // las aceras están libres, pero esquivar puede sacarlo de ellas: las paredes y el mobiliario lo devuelven
-    const clear = resolveCircle({ x: this.x, z: this.z }, NPC_RADIUS, this.layout.obstacles)
-    this.x = clear.x
-    this.z = clear.z
+    // por dentro de un edificio (cruzando su puerta) no se choca con su caja
+    if (!next.indoor) {
+      const clear = resolveCircle({ x: this.x, z: this.z }, NPC_RADIUS, this.layout.obstacles)
+      this.x = clear.x
+      this.z = clear.z
+    }
     const moved = Math.hypot(this.x - fromX, this.z - fromZ)
     if (moved > 1e-4 && step > 1e-4) this.turnTo(Math.atan2(this.x - fromX, this.z - fromZ), dt, 9)
 
@@ -461,7 +620,7 @@ export class NpcBrain {
     // atascado (alguien parado en medio, una pared...): se busca otro destino
     if (distance > 0.3 && moved < 0.15 * this.moveSpeed * dt) this.blockedFor += dt
     else this.blockedFor = Math.max(0, this.blockedFor - dt)
-    if (this.blockedFor > STUCK_SECONDS) {
+    if (this.blockedFor > STUCK_SECONDS && !next.indoor) {
       this.blockedFor = 0
       this.replans++
       this.chooseGoal()

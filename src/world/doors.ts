@@ -93,13 +93,17 @@ export class DoorOpener {
     return this.open === 0 && this.push === 0 && this.reaching < 0 && this.hold <= 0
   }
 
-  /** Avanza la puerta; devuelve true si empieza a abrirse (para el sonido). */
-  update(dt: number, frame: DoorFrame, walkers: readonly Walker[], reach: number): boolean {
+  /**
+   * Avanza la puerta; devuelve true si empieza a abrirse (para el sonido). `locked`: cerrada con llave por delante (un
+   * local cerrado): desde fuera no se abre, desde dentro sí.
+   */
+  update(dt: number, frame: DoorFrame, walkers: readonly Walker[], reach: number, locked = false): boolean {
     let pusherSide = 0
     for (let i = 0; i < walkers.length; i++) {
       const a = approach(frame, walkers[i], reach)
       if (i === this.pusher) pusherSide = a.across * this.side
       if (!a.doorway && !a.coming) continue
+      if (locked && a.across > 0 && this.open === 0) continue
       this.hold = HOLD_SECONDS
       if (this.reaching >= 0 || this.open > 0) continue
       // empieza a empujarla: gira lejos de quien llega, con la mano del lado del tirador (el canto sin bisagra)

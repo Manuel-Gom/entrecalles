@@ -7,6 +7,7 @@
 //   ciclo:  vistas del parque de día y de noche con el reloj fijado, y la iluminación cerca, en una calle, a lo lejos
 //           y desde arriba, con el brillo medio de cada vista (--etiqueta=antes añade un sufijo a las capturas)
 //   puertas: el portal de un edificio (pasar por delante, llegar andando y corriendo, salir) y llamar al ascensor; deja mundo-puertas.json
+//   horario: cuánta gente hay en la calle a varias horas y un dependiente en su local; deja mundo-horario.json
 //   pnj:    un PNJ de cada actividad (sentado, charlando, mirando un escaparate, esperando...)
 // Las imágenes salen en docs/previews/web/mundo-*.png
 import { spawn, spawnSync } from 'node:child_process'
@@ -193,6 +194,41 @@ if (scenario === 'marcha') {
   console.log('ascensor', JSON.stringify(ascensor))
   await shot('puertas-ascensor')
   fs.writeFileSync(path.join(OUT, 'mundo-puertas.json'), JSON.stringify(registro, null, 1))
+} else if (scenario === 'horario') {
+  // cuánta gente hay en la calle a lo largo del día, qué hace, y un dependiente en su local
+  await page.waitForFunction(() => window.__world().stats().npcs.loaded >= window.__world().stats().npcs.total && window.__world().stats().building.ready, null, { timeout: 120000 })
+  const resumen = {}
+  for (const hora of ['03:00', '07:30', '10:00', '13:00', '18:00', '21:00', '23:30']) {
+    resumen[hora] = await page.evaluate((hora) => {
+      const w = window.__world()
+      w.setClockOverride(`2025-06-21T${hora}:00+02:00`)
+      for (let i = 0; i < 90; i++) w.advance(1)
+      const list = w.stats().npcs.list
+      const count = {}
+      for (const npc of list) count[npc.activity] = (count[npc.activity] ?? 0) + 1
+      return { calle: list.filter((n) => !n.hidden && n.building < 0).length, casa: list.filter((n) => n.hidden).length, dentro: list.filter((n) => n.building >= 0 && !n.hidden).length, actividades: count }
+    }, hora)
+    console.log(hora, JSON.stringify(resumen[hora]))
+  }
+  // a media mañana, al lado de un dependiente: se monta su edificio y se le ve dentro
+  const dependiente = await page.evaluate(() => {
+    const w = window.__world()
+    w.setClockOverride('2025-06-21T11:00:00+02:00')
+    for (let i = 0; i < 60; i++) w.advance(1)
+    const npc = w.stats().npcs.list.find((n) => n.activity === 'trabajar' && n.building >= 0)
+    if (!npc) return null
+    const b = w.layout.buildings[npc.building]
+    const d = b.shop.door
+    // el protagonista a un lado, para no tapar el local
+    w.teleport(d.x + Math.sin(d.yaw) * 2.5 - Math.cos(d.yaw) * 3, d.z + Math.cos(d.yaw) * 2.5 + Math.sin(d.yaw) * 3, d.yaw + Math.PI)
+    w.orbitCamera(d.yaw - 0.5, 0.2, 5)
+    w.advance(1.5)
+    const st = w.stats()
+    return { ...npc, visible: st.npcs.list.find((n) => n.id === npc.id).visible, kind: b.shop.kind, door: d, activo: st.building.active, jugador: [st.player.x, st.player.z] }
+  })
+  console.log('dependiente', JSON.stringify(dependiente))
+  await shot('horario-dependiente')
+  fs.writeFileSync(path.join(OUT, 'mundo-horario.json'), JSON.stringify({ resumen, dependiente }, null, 1))
 } else if (scenario === 'tienda') {
   // la fachada del café con la puerta cerrada, abriéndose y los bancos de Blender
   await page.evaluate(() => {

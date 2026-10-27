@@ -429,11 +429,14 @@ export interface DoorPush {
 
 const pushPoint = new THREE.Vector3()
 
-/** El empujón más claro de quien está en `walker` (índice 0) entre estas puertas, o el que ya había si es mayor. */
-export function strongestPush(best: DoorPush | null, opener: DoorOpener, prop: InstancedProp, index: number): DoorPush | null {
-  if (opener.pusher !== 0 || opener.push <= 0 || (best && best.weight >= opener.push)) return best
+/** Apunta en `pushes` (por quién empuja) el empujón de esta puerta, si es el más claro de esa persona. */
+export function collectPush(pushes: (DoorPush | undefined)[], opener: DoorOpener, prop: InstancedProp, index: number) {
+  const who = opener.pusher
+  if (who < 0 || opener.push <= 0) return
+  const best = pushes[who]
+  if (best && best.weight >= opener.push) return
   prop.pushPoint(index, pushPoint)
-  return { x: pushPoint.x, y: pushPoint.y, z: pushPoint.z, hand: opener.hand, weight: opener.push }
+  pushes[who] = { x: pushPoint.x, y: pushPoint.y, z: pushPoint.z, hand: opener.hand, weight: opener.push }
 }
 
 interface Level {
@@ -688,17 +691,17 @@ export class BuildingInterior {
   update(dt: number, walker: Walker, y: number, sound: (s: BuildingSound) => void) {
     const level = this.levelAt(y)
     const walkers = [walker]
-    let push: DoorPush | null = null
+    const pushes: (DoorPush | undefined)[] = []
     for (const [i, data] of this.levels.entries()) {
       for (const slot of data.doors) {
         const { opener } = slot
         if (i !== level && opener.idle) continue
         if (opener.update(dt, slot.frame, i === level ? walkers : [], DOOR_REACH) && slot.door.announce) sound('puerta')
         slot.prop.setOpen(slot.index, opener.open, opener.side)
-        push = strongestPush(push, opener, slot.prop, slot.index)
+        collectPush(pushes, opener, slot.prop, slot.index)
       }
     }
-    this.push = push
+    this.push = pushes[0] ?? null
     if (this.elevator) {
       this.elevator.update(dt, walker, y, sound)
       if (this.elevator.cabin) this.elevator.cabin.visible = this.elevator.y <= levelY(this.view.inside ? this.view.level : 0) + 1

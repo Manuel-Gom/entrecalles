@@ -9,7 +9,9 @@ import type { BuildingSound } from './buildingInterior'
 import type { PlanLight } from './buildingPlan'
 import { normalizeSpec, type AvatarSpec, type Catalog } from '../avatar/catalog'
 import type { Npc } from '../avatar/npcs'
-import { NPC_RADIUS, NpcBrain, TalkPair, seatsFor, ACTIVITY_LABELS, type Activity, type Seat } from './brain'
+import { NPC_RADIUS, NpcBrain, TalkPair, seatsFor, ACTIVITY_LABELS, type Activity, type CityLife, type Seat } from './brain'
+import { SHOP_HOURS, hourOf, routineFor, staffPost } from './schedule'
+import type { Walker } from './doors'
 import type { Box, Circle } from './collision'
 import type { Spot } from './layout'
 import { chooseCast } from './cast'
@@ -258,6 +260,10 @@ export class World {
   /** todos los actores como círculos en el suelo: el del jugador primero, luego los PNJ en su orden */
   private readonly circles: Circle[] = [{ id: PLAYER_ID, x: 0, z: 0, r: PLAYER_RADIUS }]
   private readonly occupiedSpots = new Set<Spot>()
+  /** la hora del barrio, que leen los PNJ (cuándo salen, cuándo vuelven a casa, qué locales abren) */
+  private readonly life: CityLife = { hour: 12 }
+  /** dónde está y hacia dónde va cada vecino, para que empujen las puertas */
+  private readonly npcWalkers: Walker[] = []
   private readonly npcActors: NpcActor[] = []
   private npcsTotal = 0
   private time = 0
@@ -698,6 +704,17 @@ export class World {
     const pairs = new Map<number, { pair: TalkPair; members: number }>()
     const queue = cast.map((member, index) => ({ member, index }))
     const spawn = this.layout.spawn
+    this.life.hour = hourOf(this.gameClock)
+    // quien trabaja, en los locales más cercanos al principio (uno de cada tipo antes de repetir)
+    const shops = this.layout.buildings
+      .filter((b) => b.shop.kind !== 'cafe')
+      .sort((a, b) => Math.hypot(a.shop.door.x - spawn.x, a.shop.door.z - spawn.z) - Math.hypot(b.shop.door.x - spawn.x, b.shop.door.z - spawn.z))
+    const seen = new Set<string>()
+    const posts = [...shops.filter((b) => !seen.has(b.shop.kind) && seen.add(b.shop.kind)), ...shops]
+    const workplaces = new Map<number, number>()
+    cast.forEach((member, index) => {
+      if (member.activity === 'trabajar') workplaces.set(index, posts[workplaces.size % posts.length].index)
+    })
 
     const worker = async () => {
       for (let job = queue.shift(); job; job = queue.shift()) {
@@ -723,7 +740,18 @@ export class World {
             pair = entry.pair
             pairIndex = entry.members++
           }
+          const workplace = workplaces.get(index)
+          const post = workplace !== undefined ? staffPost(this.layout.buildings[workplace]) : null
+          const work = workplace !== undefined && post ? { building: workplace, ...post } : undefined
+          // los de una pareja comparten horario; quien trabaja sigue el de su local
+          const routine = routineFor(member.pair !== undefined ? 700 + member.pair : 3000 + index * 31, member.activity === 'correr')
+          const span = work ? SHOP_HOURS[this.layout.buildings[work.building].shop.kind] : routine.span
+          const home = Math.floor(makeRng(4000 + index)() * this.layout.buildings.length)
           const brain = new NpcBrain(this.layout, {
+            life: this.life,
+            span,
+            home,
+            work,
             id: index,
             occupied: this.occupiedSpots,
             seed: 1000 + index * 17,
@@ -803,7 +831,9 @@ export class World {
     const { player } = this
     this.advanceTransition(dt)
     this.storefront?.update(dt, player.x, player.z)
-    if (!this.inside) this.buildings.update(dt, player, this.playerY, this.buildingSound)
+    this.life.hour = hourOf(this.gameClock)
+    this.buildings.hour = this.life.hour
+    if (!this.inside) this.buildings.update(dt, player, this.playerY, this.buildingSound, this.updateNpcWalkers())
     this.updateInteraction(dt)
     const riding = this.elevatorPanel !== null || (this.buildings.elevator?.moving === true && this.buildings.elevator.contains(player.x, player.z, this.playerY))
     // con la pose forzada (revisión visual), sentado, cruzando una puerta o en el ascensor, el protagonista no se mueve por su cuenta
@@ -848,12 +878,15 @@ export class World {
 
     for (const [i, npc] of this.npcActors.entries()) {
       npc.brain.update(dt, this.time, this.circles)
-      this.circles[i + 1].x = npc.brain.x
-      this.circles[i + 1].z = npc.brain.z
+      // en casa no estorba a nadie; dentro de un local solo se ve si ese edificio está montado (desde la calle, no)
+      const hidden = npc.brain.hidden
+      this.circles[i + 1].x = hidden ? 1e6 : npc.brain.x
+      this.circles[i + 1].z = hidden ? 1e6 : npc.brain.z
       const distance = Math.hypot(npc.brain.x - player.x, npc.brain.z - player.z)
-      npc.group.visible = !this.inside && distance < NPC_HIDE_DISTANCE
+      const building = npc.brain.indoorBuilding
+      npc.group.visible = !this.inside && !hidden && distance < NPC_HIDE_DISTANCE && (building < 0 || building === this.buildings.activeIndex)
       this.placeActor(npc, npc.brain.x, npc.brain.z, npc.brain.yaw, dt)
-      if (distance < NPC_ANIMATE_DISTANCE) {
+      if (npc.group.visible && distance < NPC_ANIMATE_DISTANCE) {
         npc.locomotor.update(dt, {
           speed: npc.brain.speed,
           sit: npc.brain.sit,
@@ -862,6 +895,7 @@ export class World {
           talk: npc.pair && !npc.speaking ? npc.brain.talk * 0.3 : npc.brain.talk,
           time: this.time,
           turn: this.turnRate(npc, npc.brain.yaw, dt),
+          reach: this.inside ? null : (this.buildings.pushes[i + 1] ?? null),
         })
         if (npc.locomotor.strikes > 0 && !this.inside) {
           const dx = npc.brain.x - player.x
@@ -873,6 +907,22 @@ export class World {
         }
       }
     }
+  }
+
+  /** Dónde está y hacia dónde va cada vecino (los que están en casa, lejos), en el orden de los PNJ. */
+  private updateNpcWalkers(): readonly Walker[] {
+    const walkers = this.npcWalkers
+    walkers.length = this.npcActors.length
+    this.npcActors.forEach((npc, i) => {
+      const walker = (walkers[i] ??= { x: 0, z: 0, vx: 0, vz: 0 })
+      const { brain } = npc
+      const away = brain.hidden
+      walker.x = away ? 1e6 : brain.x
+      walker.z = away ? 1e6 : brain.z
+      walker.vx = Math.sin(brain.yaw) * brain.speed
+      walker.vz = Math.cos(brain.yaw) * brain.speed
+    })
+    return walkers
   }
 
   /** Sonidos de los edificios (puertas de la calle y de los pisos, ascensor). */
@@ -1533,6 +1583,9 @@ export class World {
           sit: npc.brain.sit,
           completed: npc.brain.completed,
           doing: npc.brain.doing,
+          hidden: npc.brain.hidden,
+          building: npc.brain.indoorBuilding,
+          visible: npc.group.visible,
         })),
       },
       geometries: info?.memory.geometries ?? 0,

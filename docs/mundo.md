@@ -182,7 +182,38 @@ Convenciones (la lee `props.ts`; las comprueba `tests/mundo-modelos.test.ts`):
 - **Medición**: `node tools/revision/mundo.mjs parque` (y `ciclo`, con `--etiqueta=` para comparar antes y después) y `tools/revision/rendimiento.mjs` (ver arriba).
 
 ### Vecinos y charlas
-`cast.ts` reparte 16 vecinos: 3 que se sientan (mejor si son mayores), 2 que hacen footing, 2 parejas que charlan, 2 que miran escaparates, 2 que esperan en una esquina y 3 que pasean. Se cargan de dos en dos; los que están a más de 48 m no se animan y a más de 80 m se ocultan.
+`cast.ts` reparte 20 vecinos:
+- 3 que se sientan (mejor si son mayores);
+- 2 que hacen footing;
+- 2 parejas que charlan;
+- 2 que miran escaparates;
+- 2 que esperan en una esquina;
+- 3 que pasean;
+- 4 que trabajan en un local.
+
+Se cargan de dos en dos. Los que están a más de 48 m no se animan y a más de 80 m se ocultan.
+
+**Vida según la hora** (`schedule.ts`, con la hora del reloj del juego):
+- **Horario de cada vecino.** Cada uno tiene su edificio (entra y sale por el portal, empujando la puerta) y su tramo en la calle:
+  - de día (62 %);
+  - madrugador (15 %);
+  - de tarde (16 %);
+  - trasnochador (7 %);
+  - quien hace footing, a primera hora o al caer la tarde;
+  - las parejas comparten horario.
+
+  Fuera de su tramo termina lo que hace y se va a casa, donde no se ve ni estorba. Medido con `mundo.mjs horario`: a las 3:00 quedan 3 en la calle, a mediodía unos 10 (más los que están dentro de locales) y a las 18:00, 15.
+- **Locales con horario.** `SHOP_HOURS`:
+  - panadería, 7–20:30;
+  - tienda, 9–21:30;
+  - farmacia, 9–22;
+  - peluquería, 10–20.
+
+  Cerrado, la puerta del local no se abre desde la calle: hay una caja que la tapa para el protagonista. Desde dentro sí se abre, para no quedarse encerrado.
+- **Dependientes.** Los 4 que trabajan van a los locales más cercanos al inicio, uno de cada tipo. Llegan al abrir, rodean el mostrador (o se ponen junto al sillón de la peluquería) y atienden detrás. Al cerrar, vuelven a casa.
+- **De compras.** Entre actividad y actividad, a veces un vecino entra en uno de los 4 locales abiertos más cercanos, se queda 15–45 s y sale por la misma puerta.
+- **Dentro de un edificio** solo se le ve si ese edificio está montado. Desde la calle, el fondo oscuro del hueco lo tapa.
+- **Sin probar todavía:** las e2e del mundo no fijan la hora. Si se pasan de noche, habrá poca gente en la calle; conviene fijarla a mediodía con `setClockOverride`.
 
 Las parejas caminan juntas, se paran y **hablan**: `dialogue.ts` tiene 16 conversaciones cortas, de 3 a 5 líneas (revisadas por una prueba: longitud, signos de apertura y cierre, sin líneas repetidas). Cada pareja las elige al azar con su propia semilla, **no repite** las últimas 6, se turna para empezar y deja un silencio entre conversaciones. Quien habla gesticula; quien escucha, menos. La charla más cercana a menos de 11 m se **subtitula** (con el nombre de quien habla) y suena como un murmullo con volumen y lado según dónde esté. Los subtítulos se activan en Ajustes (por defecto, sí): sin ellos, la charla sigue pero no se escribe.
 

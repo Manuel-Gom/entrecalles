@@ -16,6 +16,7 @@ const QUOTA: [Activity, number][] = [
   ['escaparate', 2],
   ['esperar', 2],
   ['pasear', 3],
+  ['trabajar', 4],
 ]
 
 export const CAST_SIZE = QUOTA.reduce((sum, [, count]) => sum + count, 0)
@@ -33,6 +34,8 @@ function fit(npc: Npc, activity: Activity): number {
       return npc.estilo === 'Elegante' || npc.estilo === 'Verano' || npc.estilo === 'Urbano' ? 2 : 0
     case 'esperar':
       return npc.estilo === 'Trabajo' || npc.estilo === 'Casual' ? 1 : 0
+    case 'trabajar':
+      return (npc.estilo === 'Trabajo' ? 2 : 0) + (npc.edad === 'adulto' ? 1 : 0)
     default:
       return 0
   }

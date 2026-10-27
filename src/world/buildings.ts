@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { Seat } from './brain'
-import { BuildingInterior, strongestPush, type BuildingSound, type DoorPush, type PropLibrary } from './buildingInterior'
+import { BuildingInterior, collectPush, type BuildingSound, type DoorPush, type PropLibrary } from './buildingInterior'
+import { isShopOpen } from './schedule'
 import { FURNITURE, GROUND_FLOOR_Y, PORTAL_OPENING, SHOP_OPENING, inBox, planBuilding, type PlanLight } from './buildingPlan'
 import type { Box } from './collision'
 import { DoorOpener, InstancedProp, type DoorFrame, type Walker } from './doors'
@@ -27,6 +28,17 @@ const SWITCH_MARGIN = 3
 /** A cuántos metros (de frente y andando despacio) se empieza a empujar una puerta de la calle; corriendo, antes. */
 const STREET_DOOR_REACH = 0.6
 const NOBODY: readonly Walker[] = []
+/** Un hueco en la lista de quien empuja: el protagonista cuando no cuenta (está en otra planta). */
+const FAR: Walker = { x: 1e6, z: 1e6, vx: 0, vz: 0 }
+
+/** La caja que tapa el hueco de una puerta cerrada con llave (las puertas van alineadas con los ejes). */
+function doorBox(frame: DoorFrame): Box {
+  const alongX = Math.abs(frame.nz) > Math.abs(frame.nx)
+  const half = frame.halfWidth + 0.05
+  return alongX
+    ? { minX: frame.x - half, maxX: frame.x + half, minZ: frame.z - 0.08, maxZ: frame.z + 0.08 }
+    : { minX: frame.x - 0.08, maxX: frame.x + 0.08, minZ: frame.z - half, maxZ: frame.z + half }
+}
 
 /** Una puerta de la calle: el portal o la del local de un edificio. */
 interface StreetDoor {
@@ -75,13 +87,17 @@ export class BuildingManager {
   private readonly shopSlot: number[] = []
   private backing: DoorBackings | null = null
   private readonly streetDoors: StreetDoor[] = []
-  /** la puerta que empuja ahora el protagonista (para el brazo), o null */
-  push: DoorPush | null = null
+  /** la puerta que empuja ahora cada uno (0 el protagonista, 1… los vecinos de `update`), para el brazo */
+  readonly pushes: (DoorPush | undefined)[] = []
+  /** la hora del día (0-24): los locales cerrados no abren desde la calle */
+  hour = 12
+  /** la hoja cerrada con llave del local del edificio montado, que no se puede atravesar desde fuera */
+  private lockBox: Box | null = null
   private active: Active | null = null
   /** el último interior soltado, guardado (oculto) por si se vuelve a él enseguida */
   private parked: { building: Building; interior: BuildingInterior } | null = null
   private view = { level: -1, inside: false }
-  private combinedObstacles: { source: readonly Box[]; list: Box[] } | null = null
+  private combinedObstacles: { source: readonly Box[]; lock: Box | null; list: Box[] } | null = null
   private combinedBlockers: { source: readonly Blocker[]; list: Blocker[] } | null = null
   private disposed = false
 
@@ -270,7 +286,9 @@ export class BuildingManager {
   }
 
   /** Avanza: elige el edificio montado, mueve las puertas que empuja quien anda (`walker`, a la altura `y`) y el ascensor. */
-  update(dt: number, walker: Walker, y: number, sound: (s: BuildingSound) => void) {
+  update(dt: number, walker: Walker, y: number, sound: (s: BuildingSound) => void, others: readonly Walker[] = NOBODY) {
+    this.pushes.length = 0
+    this.lockBox = null
     if (!this.ready) return
     const { x, z } = walker
     const inside = this.inside(x, z)
@@ -288,19 +306,41 @@ export class BuildingManager {
       }
       active.interior.update(dt, walker, y, sound)
     }
-    // las puertas de la calle del edificio montado las empuja quien va a pie de calle (por fuera o por dentro); las de
-    // los demás terminan de cerrarse y luego se quedan quietas
-    const walkers = y < GROUND_FLOOR_Y + 1 ? [walker] : NOBODY
-    let push = active?.interior.push ?? null
+    // las puertas de la calle: el protagonista empuja las del edificio montado si va a pie de calle (por fuera o por
+    // dentro), y los vecinos las de cualquiera; las demás terminan de cerrarse y luego se quedan quietas. El índice de
+    // cada uno en la lista es el de `pushes` (0 el protagonista, 1… los vecinos)
+    const street = y < GROUND_FLOOR_Y + 1
+    const withPlayer = [street ? walker : FAR, ...others]
+    const withoutPlayer = [FAR, ...others]
+    if (active) this.interiorPush(active.interior.push)
     for (const door of this.streetDoors) {
       const mine = door.building === active?.building.index
-      if (!mine && door.opener.idle) continue
-      if (door.opener.update(dt, door.frame, mine ? walkers : NOBODY, STREET_DOOR_REACH)) sound('puerta')
+      const near = others.some((other) => Math.abs(other.x - door.frame.x) < 3 && Math.abs(other.z - door.frame.z) < 3)
+      if (!mine && !near && door.opener.idle) continue
+      // un local cerrado no se abre desde la calle (sí desde dentro, para no quedarse encerrado)
+      const locked = door.backing % 2 === 1 && !isShopOpen(this.layout.buildings[door.building].shop.kind, this.hour)
+      const started = door.opener.update(dt, door.frame, mine ? withPlayer : withoutPlayer, STREET_DOOR_REACH, locked)
+      // los vecinos solo se oyen cerca
+      if (started && (door.opener.pusher === 0 || Math.hypot(walker.x - door.frame.x, walker.z - door.frame.z) < 12)) sound('puerta')
       door.prop.setOpen(door.slot, door.opener.open, door.opener.side)
-      push = strongestPush(push, door.opener, door.prop, door.slot)
+      collectPush(this.pushes, door.opener, door.prop, door.slot)
       if (!mine && door.opener.idle) this.backing?.show(door.backing, true)
+      if (mine && locked && door.opener.open === 0 && !inside) this.lockBox = doorBox(door.frame)
     }
-    this.push = push
+  }
+
+  /** La puerta que empuja ahora el protagonista (para el brazo), o null. */
+  get push(): DoorPush | null {
+    return this.pushes[0] ?? null
+  }
+
+  /** El edificio montado (−1 ninguno). */
+  get activeIndex(): number {
+    return this.active?.building.index ?? -1
+  }
+
+  private interiorPush(push: DoorPush | null) {
+    if (push) this.pushes[0] = push
   }
 
   /** Colisiones para quien está en (x, z) a la altura `y`. */
@@ -308,7 +348,10 @@ export class BuildingManager {
     const active = this.active
     if (!active) return city
     const source = active.interior.obstaclesFor(y)
-    if (this.combinedObstacles?.source !== source) this.combinedObstacles = { source, list: [...active.cityObstacles, ...source] }
+    const lock = this.lockBox
+    if (this.combinedObstacles?.source !== source || this.combinedObstacles.lock !== lock) {
+      this.combinedObstacles = { source, lock, list: [...active.cityObstacles, ...source, ...(lock ? [lock] : [])] }
+    }
     return this.combinedObstacles.list
   }
 
