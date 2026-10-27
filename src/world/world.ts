@@ -108,6 +108,9 @@ interface NpcActor extends Actor {
   pair?: TalkPair
   pairIndex: number
   speaking: boolean
+  /** fotogramas que lleva sin animarse y el tiempo acumulado mientras (ver NPC_HALF_RATE_DISTANCE) */
+  animSkip: number
+  animDt: number
 }
 
 /** Una pareja que charla: sus dos vecinos y lo que se dicen. */
@@ -120,8 +123,14 @@ interface Chat {
 const CHAT_RANGE = 11
 
 const GROUND = 0.025
+/**
+ * Los vecinos se animan en cada fotograma hasta NPC_ANIMATE_DISTANCE, uno de cada dos hasta NPC_HALF_RATE_DISTANCE y
+ * uno de cada cuatro más allá (de lejos no se nota, y siguen moviendo los pies en vez de deslizarse quietos). Se ocultan
+ * ya metidos en la niebla (que empieza a 80 m y lo cubre todo a 190), así que no desaparecen de golpe.
+ */
 const NPC_ANIMATE_DISTANCE = 48
-const NPC_HIDE_DISTANCE = 80
+const NPC_HALF_RATE_DISTANCE = 100
+const NPC_HIDE_DISTANCE = 175
 const MOTION_URL = `${import.meta.env.BASE_URL}models/animaciones/mixamo.glb`
 const SKY = 0xbcd2e4
 const MOON_MODELS: Record<MoonPhase, string> = {
@@ -763,7 +772,7 @@ export class World {
           })
           const actor = this.addActor(assembly, index * 0.713 + 1, this.exterior)
           this.placeActor(actor, brain.x, brain.z, brain.yaw)
-          const npcActor: NpcActor = { ...actor, id: member.npc.id, name: member.npc.nombre, brain, pair, pairIndex, speaking: false }
+          const npcActor: NpcActor = { ...actor, id: member.npc.id, name: member.npc.nombre, brain, pair, pairIndex, speaking: false, animSkip: index % 4, animDt: 0 }
           this.npcActors.push(npcActor)
           if (pair) {
             const chat = this.chats.get(pair) ?? { dialogue: new PairDialogue(5000 + (member.pair ?? 0) * 31), members: [] }
@@ -886,18 +895,24 @@ export class World {
       const building = npc.brain.indoorBuilding
       npc.group.visible = !this.inside && !hidden && distance < NPC_HIDE_DISTANCE && (building < 0 || building === this.buildings.activeIndex)
       this.placeActor(npc, npc.brain.x, npc.brain.z, npc.brain.yaw, dt)
-      if (npc.group.visible && distance < NPC_ANIMATE_DISTANCE) {
-        npc.locomotor.update(dt, {
+      // de lejos se anima menos a menudo, con el tiempo acumulado (cada uno en su fotograma, para repartir el trabajo)
+      npc.animDt += dt
+      const every = distance < NPC_ANIMATE_DISTANCE ? 1 : distance < NPC_HALF_RATE_DISTANCE ? 2 : 4
+      if (npc.group.visible && ++npc.animSkip >= every) {
+        const step = npc.animDt
+        npc.animSkip = 0
+        npc.animDt = 0
+        npc.locomotor.update(step, {
           speed: npc.brain.speed,
           sit: npc.brain.sit,
           seatHeight: npc.brain.seatHeight,
           // en una charla, quien escucha gesticula menos que quien habla
           talk: npc.pair && !npc.speaking ? npc.brain.talk * 0.3 : npc.brain.talk,
           time: this.time,
-          turn: this.turnRate(npc, npc.brain.yaw, dt),
+          turn: this.turnRate(npc, npc.brain.yaw, step),
           reach: this.inside ? null : (this.buildings.pushes[i + 1] ?? null),
         })
-        if (npc.locomotor.strikes > 0 && !this.inside) {
+        if (npc.locomotor.strikes > 0 && !this.inside && distance < NPC_ANIMATE_DISTANCE) {
           const dx = npc.brain.x - player.x
           const dz = npc.brain.z - player.z
           const volume = attenuation(Math.hypot(dx, dz)) * stepVolume(npc.brain.speed) * 0.8

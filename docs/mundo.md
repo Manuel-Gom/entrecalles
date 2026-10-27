@@ -119,7 +119,15 @@ Los 32 edificios se visitan enteros, de la planta baja a la azotea, y la altura 
 - **Azotea**: casetón de la escalera, barandilla alrededor del patio, depósito, antenas, tendedero y máquinas de aire.
 - **Muebles**: cada estancia se amuebla con reglas (contra las paredes, sin tapar puertas ni ventanas, con paso libre delante de cada puerta). Se puede sentar en sofás, sillones, sillas y en el borde de la cama.
 
-Cómo funciona: solo hay un edificio montado a la vez, el de la puerta más cercana (a menos de 14 m) o en el que se está. Las colisiones, plazas y luces de todas sus plantas se calculan al montarlo; las mallas, solo de la planta actual y las de al lado. Los muros, suelos y techos se generan por código y los muebles de una planta se **fusionan por material** (unas pocas decenas de llamadas de dibujo por planta). Se entra andando, sin fundido: la fachada tiene huecos de verdad para el portal y el local, y por las ventanas se ve la calle (la carcasa de fuera no se ve desde dentro). Dentro se ven la planta actual y la de abajo, y nada por encima (como un corte), así que la cámara puede mirar desde arriba; los muros de fachada no la dejan salir. Las luces de dentro (0, 2 o 4 según la calidad) se compilan al acercarse a una puerta, con el mismo mecanismo que las farolas, para que entrar no dé un tirón.
+Cómo funciona: solo hay un edificio montado a la vez, el de la puerta más cercana (a menos de 20 m) o en el que se está. Las colisiones, plazas y luces de todas sus plantas se calculan al montarlo; las mallas, solo de la planta actual y las de al lado. Los muros, suelos y techos se generan por código y los muebles de una planta se **fusionan por material** (unas pocas decenas de llamadas de dibujo por planta). Se entra andando, sin fundido: la fachada tiene huecos de verdad para el portal y el local, y por las ventanas se ve la calle (la carcasa de fuera no se ve desde dentro). Dentro se ven la planta actual y la de abajo, y nada por encima (como un corte), así que la cámara puede mirar desde arriba; los muros de fachada no la dejan salir. Las luces de dentro (0, 2 o 4 según la calidad) se compilan al acercarse a una puerta, con el mismo mecanismo que las farolas, para que entrar no dé un tirón.
+
+**De lejos** (`shopBackdrops.ts`): mientras un edificio no está montado, detrás del escaparate de su local se ve un **interior pintado** en un canvas, uno por tipo de local:
+- tienda con estanterías y mostrador;
+- farmacia con su cruz;
+- panadería con la vitrina;
+- peluquería con espejos y sillones.
+
+Se ilumina si el local está abierto (más de noche) y se apaga si está cerrado. Los portales siguen con fondo oscuro. Al acercarse a 20 m, el interior de verdad sustituye al pintado.
 
 **Puertas y ascensor** (`doors.ts`, `elevator.ts`):
 - Las puertas de hoja (portal, local, pisos y habitaciones) **se empujan con la mano** (`DoorOpener`).
@@ -191,7 +199,12 @@ Convenciones (la lee `props.ts`; las comprueba `tests/mundo-modelos.test.ts`):
 - 3 que pasean;
 - 4 que trabajan en un local.
 
-Se cargan de dos en dos. Los que están a más de 48 m no se animan y a más de 80 m se ocultan.
+Se cargan de dos en dos. La animación de los vecinos va por distancias:
+- hasta 48 m, en cada fotograma;
+- hasta 100 m, uno de cada dos;
+- más allá, uno de cada cuatro (con el tiempo acumulado).
+
+Así nunca se deslizan quietos. Se ocultan a 175 m, ya dentro de la niebla (de 80 a 190 m), así que no desaparecen de golpe. Captura: `mundo.mjs lejos`.
 
 **Vida según la hora** (`schedule.ts`, con la hora del reloj del juego):
 - **Horario de cada vecino.** Cada uno tiene su edificio (entra y sale por el portal, empujando la puerta) y su tramo en la calle:

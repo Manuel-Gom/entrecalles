@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { Seat } from './brain'
 import { BuildingInterior, collectPush, type BuildingSound, type DoorPush, type PropLibrary } from './buildingInterior'
 import { isShopOpen } from './schedule'
+import { lightShopBackdrop, shopBackdropMaterial, type ShopBackdropKind } from './shopBackdrops'
 import { FURNITURE, GROUND_FLOOR_Y, PORTAL_OPENING, SHOP_OPENING, inBox, planBuilding, type PlanLight } from './buildingPlan'
 import type { Box } from './collision'
 import { DoorOpener, InstancedProp, type DoorFrame, type Walker } from './doors'
@@ -18,8 +19,8 @@ const SIGNED: Exclude<ShopKind, 'cafe'>[] = ['tienda', 'farmacia', 'panaderia', 
 /** Los modelos que se dibujan instanciados por dentro (sus hojas se abren solas): su variante del shader es otra. */
 const INSTANCED_INSIDE = ['puerta_interior', 'puerta_piso', 'ascensor_puerta'] as const
 /** Un edificio se monta por dentro al acercarse a menos de esto de una de sus puertas, y se suelta al alejarse más de lo otro. */
-const ACTIVATE_DISTANCE = 14
-const RELEASE_DISTANCE = 20
+const ACTIVATE_DISTANCE = 20
+const RELEASE_DISTANCE = 26
 /**
  * Entre dos edificios vecinos, se cambia al otro solo si su puerta está esto más cerca que la del montado: sin margen, al
  * andar entre las dos puertas se montaba y se soltaba uno y otro una y otra vez.
@@ -194,14 +195,15 @@ export class BuildingManager {
       signs.traverse((object) => (object.castShadow = false))
       this.exterior.add(signs)
     }
-    // detrás de cada hueco, un fondo oscuro: mientras el edificio no está montado por dentro, no se ve a través
-    const openings: { spot: Spot; width: number; height: number }[] = []
+    // detrás de cada hueco, un fondo (oscuro en el portal, pintado en el local): mientras el edificio no está montado
+    // por dentro, no se ve a través
+    const openings: { spot: Spot; width: number; height: number; kind?: ShopBackdropKind }[] = []
     for (const b of buildings) {
       openings.push({ spot: b.portal, ...PORTAL_OPENING })
-      openings.push(b.shop.kind === 'cafe' ? { spot: b.portal, width: 0, height: 0 } : { spot: b.shop.door, ...SHOP_OPENING })
+      openings.push(b.shop.kind === 'cafe' ? { spot: b.portal, width: 0, height: 0 } : { spot: b.shop.door, ...SHOP_OPENING, kind: b.shop.kind })
     }
     this.backing = new DoorBackings(openings)
-    this.exterior.add(this.backing.mesh)
+    this.exterior.add(this.backing.group)
     for (const b of buildings) {
       const doors = [
         { prop: this.portals, slot: b.index, backing: b.index * 2 },
@@ -290,6 +292,7 @@ export class BuildingManager {
     this.pushes.length = 0
     this.lockBox = null
     if (!this.ready) return
+    this.backing?.light(this.hour)
     const { x, z } = walker
     const inside = this.inside(x, z)
     if (!inside) {
@@ -437,35 +440,70 @@ export class BuildingManager {
   }
 }
 
-/** Fondos oscuros detrás de los huecos de las puertas de la calle (una malla instanciada; cada uno se puede ocultar). */
+/**
+ * Fondos detrás de los huecos de las puertas de la calle, para que no se vea a través mientras el edificio no está
+ * montado: oscuro en los portales y un interior pintado en los locales (`shopBackdrops.ts`), que se ilumina si está
+ * abierto. Una malla instanciada por material; cada fondo se puede ocultar.
+ */
 class DoorBackings {
-  readonly mesh: THREE.InstancedMesh
+  readonly group = new THREE.Group()
   private readonly matrices: THREE.Matrix4[]
+  /** en qué malla y en qué copia está cada fondo */
+  private readonly slots: { mesh: THREE.InstancedMesh; instance: number }[] = []
+  private readonly shopMaterials = new Map<ShopBackdropKind, THREE.MeshStandardMaterial>()
+  private readonly geometry = new THREE.PlaneGeometry(1, 1)
+  private lit = ''
   private static readonly hidden = new THREE.Matrix4().makeScale(0, 0, 0)
 
-  constructor(openings: { spot: Spot; width: number; height: number }[]) {
-    const geometry = new THREE.PlaneGeometry(1, 1)
-    const material = new THREE.MeshStandardMaterial({ color: 0x1d1916, roughness: 1 })
-    this.mesh = new THREE.InstancedMesh(geometry, material, openings.length)
-    this.mesh.frustumCulled = false
+  constructor(openings: { spot: Spot; width: number; height: number; kind?: ShopBackdropKind }[]) {
     this.matrices = openings.map(({ spot, width, height }) => {
       if (width === 0) return DoorBackings.hidden.clone()
       // a 30 cm por dentro de la fachada, mirando a la calle
       return placementMatrix(spot.x, 0, spot.z, spot.yaw).multiply(new THREE.Matrix4().makeTranslation(0, GROUND_FLOOR_Y + height / 2, -0.3)).multiply(new THREE.Matrix4().makeScale(width, height, 1))
     })
-    this.matrices.forEach((matrix, i) => this.mesh.setMatrixAt(i, matrix))
-    this.mesh.instanceMatrix.needsUpdate = true
+    const groups = new Map<string, number[]>()
+    openings.forEach((opening, i) => groups.set(opening.kind ?? 'portal', [...(groups.get(opening.kind ?? 'portal') ?? []), i]))
+    for (const [key, indices] of groups) {
+      let material: THREE.MeshStandardMaterial
+      if (key === 'portal') material = new THREE.MeshStandardMaterial({ color: 0x1d1916, roughness: 1 })
+      else {
+        material = shopBackdropMaterial(key as ShopBackdropKind)
+        this.shopMaterials.set(key as ShopBackdropKind, material)
+      }
+      const mesh = new THREE.InstancedMesh(this.geometry, material, indices.length)
+      mesh.frustumCulled = false
+      indices.forEach((index, instance) => {
+        this.slots[index] = { mesh, instance }
+        mesh.setMatrixAt(instance, this.matrices[index])
+      })
+      mesh.instanceMatrix.needsUpdate = true
+      this.group.add(mesh)
+    }
   }
 
   show(index: number, shown: boolean) {
-    if (index >= this.matrices.length) return
-    this.mesh.setMatrixAt(index, shown ? this.matrices[index] : DoorBackings.hidden)
-    this.mesh.instanceMatrix.needsUpdate = true
+    const slot = this.slots[index]
+    if (!slot) return
+    slot.mesh.setMatrixAt(slot.instance, shown ? this.matrices[index] : DoorBackings.hidden)
+    slot.mesh.instanceMatrix.needsUpdate = true
+  }
+
+  /** Enciende o apaga los locales pintados según la hora (solo cambia algo al abrir, cerrar o anochecer). */
+  light(hour: number) {
+    const night = hour < 7.5 || hour >= 20.5
+    const key = [...this.shopMaterials.keys()].map((kind) => (isShopOpen(kind, hour) ? 1 : 0)).join('') + (night ? 'n' : 'd')
+    if (key === this.lit) return
+    this.lit = key
+    for (const [kind, material] of this.shopMaterials) lightShopBackdrop(material, isShopOpen(kind, hour), night)
   }
 
   dispose() {
-    this.mesh.geometry.dispose()
-    ;(this.mesh.material as THREE.Material).dispose()
-    this.mesh.dispose()
+    this.geometry.dispose()
+    for (const mesh of this.group.children as THREE.InstancedMesh[]) {
+      const material = mesh.material as THREE.MeshStandardMaterial
+      material.map?.dispose()
+      material.dispose()
+      mesh.dispose()
+    }
   }
 }

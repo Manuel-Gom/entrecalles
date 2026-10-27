@@ -8,6 +8,7 @@
 //           y desde arriba, con el brillo medio de cada vista (--etiqueta=antes añade un sufijo a las capturas)
 //   puertas: el portal de un edificio (pasar por delante, llegar andando y corriendo, salir) y llamar al ascensor; deja mundo-puertas.json
 //   horario: cuánta gente hay en la calle a varias horas y un dependiente en su local; deja mundo-horario.json
+//   lejos:  un local a 30 m (interior pintado) de día, de noche y cerrado, y a qué distancia se ven los vecinos
 //   pnj:    un PNJ de cada actividad (sentado, charlando, mirando un escaparate, esperando...)
 // Las imágenes salen en docs/previews/web/mundo-*.png
 import { spawn, spawnSync } from 'node:child_process'
@@ -229,6 +230,26 @@ if (scenario === 'marcha') {
   console.log('dependiente', JSON.stringify(dependiente))
   await shot('horario-dependiente')
   fs.writeFileSync(path.join(OUT, 'mundo-horario.json'), JSON.stringify({ resumen, dependiente }, null, 1))
+} else if (scenario === 'lejos') {
+  // los escaparates de un local a 30 m (sin montar su edificio: el interior pintado) de día y de noche, y los vecinos
+  // de lejos (cuántos se ven y a qué distancia)
+  await page.waitForFunction(() => window.__world().stats().building.ready && window.__world().stats().npcs.loaded >= window.__world().stats().npcs.total, null, { timeout: 120000 })
+  for (const [momento, hora] of [['dia', '13:00'], ['noche', '21:00'], ['cerrado', '23:30']]) {
+    const info = await page.evaluate((hora) => {
+      const w = window.__world()
+      w.setClockOverride(`2025-06-21T${hora}:00+02:00`)
+      const b = w.layout.buildings.find((x) => x.shop.kind === 'farmacia')
+      const d = b.shop.door
+      w.teleport(d.x + Math.sin(d.yaw) * 30, d.z + Math.cos(d.yaw) * 30, d.yaw + Math.PI)
+      w.orbitCamera(d.yaw, 0.08, 4)
+      for (let i = 0; i < 10; i++) w.advance(0.3)
+      const s = w.stats()
+      const lejos = s.npcs.list.filter((n) => n.visible).map((n) => Math.round(Math.hypot(n.x - s.player.x, n.z - s.player.z)))
+      return { activo: s.building.active, visibles: lejos.sort((a, b) => a - b) }
+    }, hora)
+    console.log(momento, JSON.stringify(info))
+    await shot(`lejos-${momento}`)
+  }
 } else if (scenario === 'tienda') {
   // la fachada del café con la puerta cerrada, abriéndose y los bancos de Blender
   await page.evaluate(() => {
