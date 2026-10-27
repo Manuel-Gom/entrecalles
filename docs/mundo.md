@@ -65,7 +65,7 @@ Todo vive en `src/world/`. Se carga bajo demanda (no pesa en el menú) y al sali
 | `buildingPlan.ts` | El plano de cada edificio, sin Three.js: núcleo de escalera y ascensor, portal, local, pisos con sus estancias, azotea, huecos de puertas y ventanas, colocación de muebles, y la altura en la escalera (`heightAt`). |
 | `buildingInterior.ts`, `buildings.ts` | El interior del edificio más cercano (mallas por planta, colisiones, plazas, puertas y ascensor) y el gestor que lo monta y lo suelta, con los portales y escaparates de todas las fachadas. |
 | `doors.ts`, `interiorMaterials.ts` | Modelos instanciados con hojas de puerta que se abren por separado; y los acabados de suelos y paredes (parqué, baldosa, terrazo, azulejo, pintura) dibujados por shader. |
-| `gait.ts`, `locomotor.ts` | La zancada: ángulos de cada articulación (`gait.ts`, sin Three.js) y su aplicación a los huesos (`locomotor.ts`). |
+| `gait.ts`, `locomotor.ts`, `../avatar/retarget.ts` | La zancada: las animaciones de andar y correr de Mixamo adaptadas a cada cuerpo (`retarget.ts`) y, debajo, la pose calculada (`gait.ts`, sin Three.js) para estar quieto, sentarse y hablar; `locomotor.ts` mezcla las dos sobre los huesos. |
 | `player.ts`, `followCamera.ts` | Movimiento del jugador (aceleración, giro, colisiones con paredes y personas) y cámara en tercera persona que se acerca si un edificio se interpone. |
 | `input.ts`, `inputController.ts` | Entrada: la lectura del mando (zona muerta, botones, tipo de mando) es pura y se prueba sin navegador; el controlador junta teclado, ratón y mando. |
 | `brain.ts`, `cast.ts` | Qué hace cada vecino, cómo esquiva a los demás y quiénes salen. |
@@ -75,7 +75,24 @@ Todo vive en `src/world/`. Se carga bajo demanda (no pesa en el menú) y al sali
 | `perf.ts` | Registro de tiempos de fotograma y texto de diagnóstico. |
 
 ### La zancada
-No hay animaciones guardadas: los modelos no traen ninguna. El paso se calcula:
+**Andar y correr usan animaciones de Mixamo** (subtarea #9, 27 oct 2026; mocap de mixamo.com, gratuitas, para uso personal): `anda-prisa` (*Male Hurried Walk*) y `corre` (*Standard Run*); hay también `anda` (*Male Standard Walk*) y `corre-media` (*Medium Run*) para comparar (`node tools/revision/mundo.mjs marcha --andar=anda --carrera=corre-media`). *Male Standard Walk* se descartó porque va echado hacia atrás con el pecho fuera («pecho palomo»: −2° frente a +3° la de prisa, medido en el original y en nuestro cuerpo igual); la de prisa además está grabada a 1,52 m/s, casi nuestra velocidad de andar (1,5 m/s), así que el paso sale a su ritmo natural, unos 140 pasos por minuto. Los FBX están en `tools/blender/animaciones/mixamo/` y `tools/blender/crear_animaciones.py` los junta en `public/models/animaciones/mixamo.glb` (180 KB, solo esqueleto y animaciones):
+
+```
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python tools/blender/crear_animaciones.py
+```
+
+Para añadir una: descargarla de Mixamo como **FBX Binary, Without Skin, 30 fps, Keyframe Reduction none** (los bucles mejor con *In Place*, aunque no hace falta), dejarla en esa carpeta con su nombre y volver a ejecutar el script.
+
+- **Adaptación a cada cuerpo** (`retargetMixamo`, al cargar, una vez por cuerpo): los 52 huesos de Mixamo tienen equivalente en los nuestros (nombres tipo UE4). El reposo de cada cuerpo (en A, distinto en cada uno) se endereza hasta la T de Mixamo hueso a hueso (hacia dónde apunta cada hueso y, en brazos, manos y dedos, también su giro: la línea de los nudillos; sin eso la palma quedaba girada 20–30° y los dedos se doblaban de lado), y en cada fotograma se aplica el giro de cada hueso de Mixamo respecto a su reposo, en el sistema del personaje. La cadera se mueve lo mismo, a escala de la altura de la pierna, y se sube o baja para que el pie apoyado pise a la altura del reposo. Resultado medido: la inclinación del tronco queda a ±1° de la original y los dedos no se hunden.
+- **Zancada**: si la animación avanza (descargada sin *In Place*), se le quita el avance y ese avance es la zancada (1,32 m por ciclo andando y 3,05 m corriendo en `marcos`); si no, se mide lo que retrocede el pie apoyado. La fase avanza con la distancia recorrida entre la zancada, así que **el pie apoyado no patina** a ninguna velocidad. Andando a 1,5 m/s salen unos 135 pasos por minuto; corriendo a 4,6 m/s, unos 180.
+- **Mezcla**: andar y correr se funden según la velocidad, sincronizados por el apoyo del pie izquierdo (fase 0,25, la misma que usan los sonidos de pasos). Encima van la inclinación hacia dentro de las curvas y la cabeza hacia donde gira. Parado, sentado o hablando manda la pose calculada; al arrancar o frenar se pasa de una a otra poco a poco.
+- Las pistas se leen **por tiempo**, no por número de fotograma: el exportador de Blender deja con solo dos claves las que no cambian (los dedos quietos al andar, los pulgares al correr), y leerlas por índice daba valores no válidos (NaN) que hacían **desaparecer trozos de las manos**. Si una animación adaptada saliera aun así con algún valor no válido, no se usa.
+- Primeros planos de las manos para revisarlas: `node tools/revision/mundo.mjs manos`.
+- Si el GLB no carga, todo sigue con la zancada calculada (abajo).
+
+*Medium Run* se descartó como carrera principal: aunque va más erguida (16° frente a 27°), su zancada es corta (2,5 m) y a 4,6 m/s saldrían 220 pasos por minuto.
+
+La zancada calculada (la de antes, que queda para estar quieto y de reserva):
 
 - la **fase** del ciclo avanza con la **distancia recorrida**, no con el tiempo, así que el pie de apoyo no resbala; hay una prueba que lo mide;
 - la amplitud y la cadencia dependen de la velocidad: unos 115 pasos por minuto andando (1,5 m/s) y 185 corriendo (4,6 m/s);

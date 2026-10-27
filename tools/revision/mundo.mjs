@@ -1,6 +1,7 @@
 // Capturas del barrio jugable para revisar a simple vista la zancada, la ciudad y lo que hacen los PNJ.
 // Uso: npm run build && node tools/revision/mundo.mjs <marcha|calle|parque|ciclo|pnj|sentado> [cuerpo]
-//   marcha: tira de fotogramas de un paso andando y corriendo (vista de perfil)
+//   marcha: tira de fotogramas de un paso andando y corriendo (vista de perfil); --carrera=corre-media y --andar=anda-prisa prueban otras animaciones
+//   manos:  primeros planos de las manos andando y corriendo, por los dos lados
 //   calle:  vista general del barrio tras unos minutos de simulación
 //   parque: fuente, árboles y farolas de Blender a escala de juego
 //   ciclo:  vistas del parque de día y de noche con el reloj fijado, y la iluminación cerca, en una calle, a lo lejos
@@ -17,6 +18,10 @@ const scenario = posicionales[0] ?? 'calle'
 const body = posicionales[1] ?? 'marcos'
 // --etiqueta=antes: las capturas de ciclo salen con ese sufijo, para comparar antes y después de un cambio
 const etiqueta = process.argv.find((a) => a.startsWith('--etiqueta='))?.split('=')[1]
+// --carrera=corre-media: otra animación de correr (las capturas de marcha llevan su nombre)
+const carrera = process.argv.find((a) => a.startsWith('--carrera='))?.split('=')[1]
+// --andar=anda-prisa: otra animación de andar (igual, con su nombre en las capturas)
+const andar = process.argv.find((a) => a.startsWith('--andar='))?.split('=')[1]
 const PORT = 4200 + Math.floor(Math.random() * 700)
 const OUT = path.join(process.cwd(), 'docs/previews/web')
 fs.mkdirSync(OUT, { recursive: true })
@@ -38,6 +43,8 @@ const page = await browser.newPage({ viewport: { width: 640, height: 640 } })
 page.on('console', (message) => ['error', 'warning'].includes(message.type()) && errors.push(`${message.type()}: ${message.text()}`))
 page.on('pageerror', (error) => errors.push(error.message))
 await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.fulfill({ status: 200, contentType: 'text/css', body: '' }))
+if (carrera) await page.addInitScript((value) => { window.__WORLD_RUN_CLIP__ = value }, carrera)
+if (andar) await page.addInitScript((value) => { window.__WORLD_WALK_CLIP__ = value }, andar)
 if (scenario === 'pnj-sentado') {
   await page.addInitScript(() => { window.__WORLD_NPC_LIMIT__ = 4 })
 }
@@ -74,6 +81,9 @@ const shot = async (name) => {
 }
 
 if (scenario === 'marcha') {
+  // las animaciones llegan después del personaje: sin ellas se vería la zancada calculada
+  await page.waitForFunction(() => window.__world().stats().player.motion !== null, null, { timeout: 60000 }).catch(() => console.log('Sin animaciones: zancada calculada'))
+  console.log('Animaciones:', JSON.stringify(await page.evaluate(() => window.__world().stats().player.motion)))
   for (const [name, run, step] of [['anda', false, 0.13], ['corre', true, 0.085]]) {
     await page.evaluate((r) => {
       const w = window.__world()
@@ -84,7 +94,25 @@ if (scenario === 'marcha') {
     }, run)
     for (let i = 0; i < 8; i++) {
       await page.evaluate((dt) => window.__world().advance(dt), step)
-      await shot(`marcha-${name}-${i}`)
+      await shot(`marcha-${name}${carrera && name === 'corre' ? '-' + carrera : ''}${andar && name === 'anda' ? '-' + andar : ''}-${i}`)
+    }
+  }
+} else if (scenario === 'manos') {
+  // primer plano de las manos andando y corriendo, por los dos lados (la mano cercana a la cámara se ve entera)
+  await page.waitForFunction(() => window.__world().stats().player.motion !== null, null, { timeout: 60000 }).catch(() => console.log('Sin animaciones: zancada calculada'))
+  for (const [name, run, step] of [['anda', false, 0.11], ['corre', true, 0.07]]) {
+    for (const [side, moveX] of [['der', 1], ['izq', -1]]) {
+      await page.evaluate(([r, m]) => {
+        const w = window.__world()
+        w.teleport(0, w.layout.spawn.z, 0)
+        w.orbitCamera(0, 0.5, 1.7)
+        w.inputOverride = { moveX: m, moveZ: 0, run: r }
+        w.advance(1.5)
+      }, [run, moveX])
+      for (let i = 0; i < 4; i++) {
+        await page.evaluate((dt) => window.__world().advance(dt), step)
+        await shot(`manos-${name}-${side}-${i}`)
+      }
     }
   }
 } else if (scenario === 'tienda') {

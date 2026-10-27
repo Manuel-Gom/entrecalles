@@ -73,6 +73,9 @@ const smooth = (a: number, b: number, value: number) => {
 /** Cuánto es correr (0 = andando, 1 = corriendo a tope). */
 export const runFactor = (speed: number) => smooth(WALK_SPEED * 1.15, RUN_SPEED * 0.9, speed)
 
+/** Cuánto está en marcha (0 = parado, 1 = andando o más rápido). */
+export const movingFactor = (speed: number) => smooth(0.05, 0.6, speed)
+
 /** Amplitud del paso (giro del muslo) según la velocidad, sin el recorte para velocidades bajas. */
 export function swingAmplitude(speed: number): number {
   const run = runFactor(speed)
@@ -125,7 +128,7 @@ function leg(phase: number, amplitude: number, kneeBend: number, armSwing: numbe
 export function computeGait(input: GaitInput, dims: GaitDims): GaitPose {
   const { speed, phase, time, seed } = input
   const run = runFactor(speed)
-  const moving = smooth(0.05, 0.6, speed)
+  const moving = movingFactor(speed)
   const amplitude = swingAmplitude(speed) * moving
   const kneeBend = lerp(0.95, 1.75, run) * moving
   const armSwing = lerp(0.2, 0.9, run) * (0.5 + 0.5 * moving) * moving

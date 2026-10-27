@@ -1,13 +1,32 @@
 import * as THREE from 'three'
 import type { AvatarAssembly } from '../avatar/assembler'
+import type { MotionClip } from '../avatar/retarget'
 import { strikeCount } from './audio'
-import { computeGait, cyclesPerMeter, type GaitDims, type GaitPose } from './gait'
+import { computeGait, cyclesPerMeter, movingFactor, runFactor, type GaitDims, type GaitPose } from './gait'
 
 const euler = new THREE.Euler()
 const rotation = new THREE.Quaternion()
 const parentChar = new THREE.Quaternion()
 const inverse = new THREE.Quaternion()
 const offset = new THREE.Vector3()
+const current = new THREE.Quaternion()
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+
+/** Las animaciones de andar y correr ya adaptadas a este cuerpo (ver `retargetMixamo`). */
+export interface MotionSet {
+  walk: MotionClip
+  run: MotionClip
+}
+
+interface Motion {
+  set: MotionSet
+  mixer: THREE.AnimationMixer
+  walk: THREE.AnimationAction
+  run: THREE.AnimationAction
+}
+
+/** En la fase del paso, el pie izquierdo apoya en 0,25 y el derecho en 0,75 (como en `computeGait` y `strikeCount`). */
+const LEFT_STRIKE = 0.25
 
 export interface LocomotorInput {
   /** velocidad actual en m/s */
@@ -39,6 +58,12 @@ export class Locomotor {
   strikes = 0
 
   private readonly assembly: AvatarAssembly
+  private motion: Motion | null = null
+  /** todos los huesos con su orientación de partida, y una copia de la pose procedural para mezclarla con la animación */
+  private readonly allBones: THREE.Bone[] = []
+  private readonly baseQuats: THREE.Quaternion[] = []
+  private readonly proceduralQuats: THREE.Quaternion[] = []
+  private readonly proceduralPelvis = new THREE.Vector3()
 
   constructor(assembly: AvatarAssembly, seed: number) {
     this.assembly = assembly
@@ -70,6 +95,30 @@ export class Locomotor {
       hipHeight: hip.y || 0.95,
     }
     this.sideL = world('upperarm_l').x >= world('upperarm_r').x ? 1 : -1
+    this.root.traverse((object) => {
+      if (!(object as THREE.Bone).isBone) return
+      this.allBones.push(object as THREE.Bone)
+      this.baseQuats.push(object.quaternion.clone())
+      this.proceduralQuats.push(new THREE.Quaternion())
+    })
+  }
+
+  /** Si anda y corre con animaciones (y la zancada de cada una, en metros por ciclo). */
+  get motionInfo() {
+    const set = this.motion?.set
+    return set ? { walkStride: set.walk.stride, runStride: set.run.stride, walkContact: set.walk.leftContact, runContact: set.run.leftContact } : null
+  }
+
+  /** Anda y corre con animaciones en vez de con la zancada calculada (null: vuelve a la calculada). */
+  useMotion(set: MotionSet | null) {
+    this.motion?.mixer.stopAllAction()
+    this.motion = null
+    if (!set) return
+    const mixer = new THREE.AnimationMixer(this.root)
+    const walk = mixer.clipAction(set.walk.clip)
+    const run = mixer.clipAction(set.run.clip)
+    for (const action of [walk, run]) action.play()
+    this.motion = { set, mixer, walk, run }
   }
 
   /** Rota el hueso `delta` (ángulos Euler en el sistema del personaje) sobre la orientación `base`. */
@@ -94,14 +143,55 @@ export class Locomotor {
   /** Avanza la zancada según lo recorrido y coloca los huesos. */
   update(dt: number, input: LocomotorInput) {
     const { speed } = input
+    const { motion } = this
     const before = this.phase
-    this.phase = (this.phase + speed * dt * cyclesPerMeter(speed, this.dims)) % 1
+    // con animaciones, cada ciclo avanza lo que mide la zancada de la animación: así el pie apoyado no patina
+    const perMeter = motion ? 1 / lerp(motion.set.walk.stride, motion.set.run.stride, runFactor(speed)) : cyclesPerMeter(speed, this.dims)
+    this.phase = (this.phase + speed * dt * perMeter) % 1
     this.strikes = speed > 0.3 ? strikeCount(before, this.phase) : 0
+    // la animación deja girados huesos que la pose calculada no toca (manos, dedos, puntas de los pies): se parte de cero
+    if (motion) this.allBones.forEach((bone, i) => bone.quaternion.copy(this.baseQuats[i]))
     // respiración y balanceo del reposo; quedan en spine_02/03, cuello, cabeza y clavículas
     this.assembly.pose.idle(input.time)
     const pose = computeGait({ phase: this.phase, speed, sit: input.sit, talk: input.talk, time: input.time, seed: this.seed, turn: input.turn, seatHeight: input.seatHeight }, this.dims)
     this.pose = pose
     this.apply(pose)
+    if (motion) this.applyMotion(motion, pose, input)
+    this.root.updateMatrixWorld(true)
+  }
+
+  /** Pone encima la animación de andar y correr, mezclada con la pose calculada según lo en marcha que vaya. */
+  private applyMotion(motion: Motion, pose: GaitPose, input: LocomotorInput) {
+    const weight = movingFactor(input.speed) * (1 - input.sit)
+    if (weight <= 0) return
+    const { allBones, proceduralQuats } = this
+    allBones.forEach((bone, i) => proceduralQuats[i].copy(bone.quaternion))
+    const pelvis = this.bones.pelvis
+    if (pelvis) this.proceduralPelvis.copy(pelvis.position)
+
+    const run = runFactor(input.speed)
+    for (const [action, clip, share] of [
+      [motion.walk, motion.set.walk, 1 - run],
+      [motion.run, motion.set.run, run],
+    ] as const) {
+      action.setEffectiveWeight(share)
+      action.time = (((this.phase - LEFT_STRIKE + clip.leftContact) % 1) + 1) % 1 * clip.clip.duration
+    }
+    motion.mixer.update(0)
+
+    if (weight < 1) {
+      allBones.forEach((bone, i) => bone.quaternion.slerpQuaternions(proceduralQuats[i], bone.quaternion, weight))
+      if (pelvis) pelvis.position.lerpVectors(this.proceduralPelvis, pelvis.position, weight)
+    }
+    // en las curvas el cuerpo se inclina hacia dentro y la cabeza mira hacia donde gira
+    const roll = pose.spineRoll * weight
+    for (const name of ['spine_01', 'spine_02', 'spine_03']) {
+      const bone = this.bones[name]
+      if (bone) this.turn(name, current.copy(bone.quaternion), 0, 0, roll / 3)
+    }
+    const head = this.bones.head
+    const look = Math.min(0.35, Math.max(-0.35, (input.turn ?? 0) * 0.18)) * weight
+    if (head && look !== 0) this.turn('head', current.copy(head.quaternion), 0, look)
   }
 
   private apply(pose: GaitPose) {
@@ -138,6 +228,5 @@ export class Locomotor {
       this.turn(`upperarm_${side}`, this.restOf(`upperarm_${side}`), left ? pose.armL : pose.armR, 0, outward * (left ? pose.armOutL : pose.armOutR))
       this.turn(`lowerarm_${side}`, this.restOf(`lowerarm_${side}`), -(left ? pose.elbowL : pose.elbowR))
     }
-    this.root.updateMatrixWorld(true)
   }
 }

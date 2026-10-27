@@ -93,6 +93,18 @@ function evictOldEntries(keepUrl: string) {
   }
 }
 
+/** Un GLB solo de animaciones (esqueleto sin malla y sus clips), para adaptarlas a cada cuerpo. */
+export function loadAnimationLibrary(url: string): Promise<{ scene: THREE.Group; animations: THREE.AnimationClip[] }> {
+  return new Promise((resolve, reject) => {
+    loader.load(
+      url,
+      (gltf) => resolve({ scene: gltf.scene, animations: gltf.animations }),
+      undefined,
+      (error) => reject(error instanceof Error ? error : new Error(`No se pudo cargar ${url}`)),
+    )
+  })
+}
+
 /** Devuelve una copia lista para montar en la escena. Los datos pesados se comparten con la caché. */
 export async function loadAvatarModel(url: string): Promise<THREE.Object3D> {
   let entry = cache.get(url)

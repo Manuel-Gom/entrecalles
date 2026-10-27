@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import type { AvatarAssembly } from '../avatar/assembler'
 import { buildAssembly } from '../avatar/build'
+import { loadAnimationLibrary } from '../avatar/loader'
+import { retargetMixamo } from '../avatar/retarget'
 import { BuildingManager } from './buildings'
 import type { BuildingSound } from './buildingInterior'
 import type { PlanLight } from './buildingPlan'
@@ -15,7 +17,7 @@ import { buildCityMeshes, type CityMeshes } from './cityMesh'
 import { FollowCamera } from './followCamera'
 import { InputController, type Controls, type GamepadInfo, type InputDevice } from './inputController'
 import { footHeight, generateCity, groundTop, makeRng, type CityLayout } from './layout'
-import { Locomotor } from './locomotor'
+import { Locomotor, type MotionSet } from './locomotor'
 import { FrameStats, formatDiagnostics } from './perf'
 import { AudioEngine, attenuation, panFor, stepVolume, surfaceAt, type AudioState, type Volumes } from './audio'
 import { PairDialogue } from './dialogue'
@@ -118,6 +120,7 @@ const CHAT_RANGE = 11
 const GROUND = 0.025
 const NPC_ANIMATE_DISTANCE = 48
 const NPC_HIDE_DISTANCE = 80
+const MOTION_URL = `${import.meta.env.BASE_URL}models/animaciones/mixamo.glb`
 const SKY = 0xbcd2e4
 const MOON_MODELS: Record<MoonPhase, string> = {
   nueva: 'luna_nueva',
@@ -247,6 +250,10 @@ export class World {
 
   private readonly player: PlayerState
   private playerActor: Actor | null = null
+  /** animaciones de andar y correr (Mixamo); null si no cargan: entonces la zancada es la calculada */
+  private motionLibrary: ReturnType<typeof loadAnimationLibrary> | null = null
+  /** las animaciones ya adaptadas a cada cuerpo */
+  private readonly motionSets = new Map<string, MotionSet | null>()
   private animSpeed = 0
   /** todos los actores como círculos en el suelo: el del jugador primero, luego los PNJ en su orden */
   private readonly circles: Circle[] = [{ id: PLAYER_ID, x: 0, z: 0, r: PLAYER_RADIUS }]
@@ -630,7 +637,35 @@ export class World {
       }
       mesh.frustumCulled = true
     })
-    return { assembly, locomotor: new Locomotor(assembly, seed), group, prevYaw: 0, turn: 0 }
+    const actor = { assembly, locomotor: new Locomotor(assembly, seed), group, prevYaw: 0, turn: 0 }
+    this.attachMotion(actor)
+    return actor
+  }
+
+  /** En cuanto están las animaciones, el actor anda y corre con ellas (adaptadas a su cuerpo una sola vez). */
+  private attachMotion(actor: Actor) {
+    this.motionLibrary ??= loadAnimationLibrary(MOTION_URL)
+    this.motionLibrary.then(
+      (library) => {
+        if (this.disposed) return
+        const key = actor.assembly.cuerpo
+        if (!this.motionSets.has(key)) {
+          try {
+            const clip = (name: string) => {
+              const source = library.animations.find((animation) => animation.name === name)
+              if (!source) throw new Error(`falta la animación "${name}"`)
+              return retargetMixamo(library.scene, source, actor.assembly.root)
+            }
+            this.motionSets.set(key, { walk: clip(window.__WORLD_WALK_CLIP__ ?? 'anda-prisa'), run: clip(window.__WORLD_RUN_CLIP__ ?? 'corre') })
+          } catch (error) {
+            console.error(`No se pudieron adaptar las animaciones a ${key}; se queda la zancada calculada.`, error)
+            this.motionSets.set(key, null)
+          }
+        }
+        actor.locomotor.useMotion(this.motionSets.get(key) ?? null)
+      },
+      (error: unknown) => console.error('No se pudieron cargar las animaciones; se queda la zancada calculada.', error),
+    )
   }
 
   /** Coloca al actor sobre el suelo que pisa (o a `floor`); con `dt` el cambio de altura (un bordillo, un peldaño) se suaviza. */
@@ -1449,7 +1484,7 @@ export class World {
       device: this.input?.device ?? 'teclado',
       gamepad: this.input?.gamepad ?? null,
       building: { ...this.buildings.stats(), indoors: this.buildings.inside(this.player.x, this.player.z), elevatorLevel: this.buildings.elevator?.level ?? null },
-      player: { x: this.player.x, z: this.player.z, y: this.playerY, yaw: this.player.yaw, speed: this.player.speed, animation, seated: this.seating?.phase === 'sentado', dims: this.playerActor?.locomotor.dims ?? null },
+      player: { x: this.player.x, z: this.player.z, y: this.playerY, yaw: this.player.yaw, speed: this.player.speed, animation, seated: this.seating?.phase === 'sentado', dims: this.playerActor?.locomotor.dims ?? null, motion: this.playerActor?.locomotor.motionInfo ?? null },
       prompt: this.prompt,
       subtitle: this.subtitle,
       audio: {
@@ -1582,5 +1617,8 @@ declare global {
   interface Window {
     __world?: () => World | null
     __WORLD_NPC_LIMIT__?: number
+    /** animaciones de andar y de correr (revisión visual), por nombre de archivo: "anda", "corre", "corre-media"... */
+    __WORLD_WALK_CLIP__?: string
+    __WORLD_RUN_CLIP__?: string
   }
 }
