@@ -158,6 +158,10 @@ if (scenario === 'marcha') {
   await pasada('anda', { desde: 3.5, moveX: 1, frames: 16, step: 0.15, camara: lado })
   await pasada('corre', { desde: 7, moveX: 1, run: true, frames: 16, step: 0.1, camara: lado })
   await pasada('sale', { desde: -3, moveX: 1, frames: 16, step: 0.15, camara: [-Math.PI / 2, 0.12, 3.6] })
+  // primeros planos de la mano: entrando (derecha) y saliendo (izquierda), sin que los muros aparten la cámara
+  await page.evaluate(() => { window.__world().cameraClip = false })
+  await pasada('mano', { desde: 1.5, moveX: 0.9, moveZ: -0.435, frames: 12, step: 0.08, camara: [Math.PI / 2 + 0.45, 0.15, 1.7] })
+  await pasada('mano-sale', { desde: -1.5, moveX: 0.9, moveZ: 0.435, frames: 12, step: 0.08, camara: [-Math.PI / 2 - 0.45, 0.15, 1.7] })
   // el ascensor: al rellano de la segunda planta, delante de su puerta
   const ascensor = await page.evaluate((b) => {
     const w = window.__world()

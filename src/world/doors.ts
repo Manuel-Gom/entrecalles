@@ -11,7 +11,7 @@ const HOLD_SECONDS = 0.8
 const CLOSE_SECONDS = 0.9
 /** Lo que tarda el brazo en alargarse y en recogerse (s). */
 const PUSH_IN_SECONDS = 0.22
-const PUSH_OUT_SECONDS = 0.3
+const PUSH_OUT_SECONDS = 0.2
 
 /** Lleva `current` (0-1) hacia `target` a ritmo de puerta. */
 export function swingTowards(current: number, target: number, dt: number, seconds = DOOR_SECONDS): number {
@@ -86,6 +86,8 @@ export class DoorOpener {
   push = 0
   private hold = 0
   private reaching = -1
+  /** ya ha empujado en esta apertura (el brazo no vuelve a alargarse hasta que la puerta se cierre) */
+  private pushed = false
   private seconds = DOOR_SECONDS
 
   /** ¿Está quieta y cerrada (no hace falta avanzarla)? */
@@ -121,12 +123,15 @@ export class DoorOpener {
     const before = this.open
     this.open = swingTowards(this.open, want ? 1 : 0, dt, want ? this.seconds : CLOSE_SECONDS)
     this.hold = Math.max(0, this.hold - dt)
-    // el brazo se alarga mientras empuja: hasta que la hoja está casi abierta o ya ha pasado al otro lado
-    const pushing = this.pusher >= 0 && this.reaching >= 0 && this.open < 0.85 && pusherSide > 0.05
+    // el brazo se alarga mientras empuja, una sola vez por apertura: hasta que la hoja está casi abierta o quien empuja
+    // llega a ella (más cerca, la mano se quedaría detrás del cuerpo); al cerrarse no vuelve a alargarse
+    if (this.open >= 0.85 || pusherSide < 0.3) this.pushed = this.reaching >= 0
+    const pushing = this.pusher >= 0 && this.reaching >= 0 && !this.pushed && want
     this.push = swingTowards(this.push, pushing ? 1 : 0, dt, pushing ? PUSH_IN_SECONDS : PUSH_OUT_SECONDS)
     if (this.open === 0 && this.hold <= 0) {
       this.reaching = -1
       this.pusher = -1
+      this.pushed = false
     }
     return before === 0 && this.open > 0
   }
@@ -252,15 +257,21 @@ export class InstancedProp {
     return { x: center.x, z: center.z, nx: normal.x, nz: normal.z, halfWidth: (box.max.x - box.min.x) / 2 }
   }
 
-  /** Dónde apoya la mano quien empuja la hoja de la copia `index`: cerca del canto sin bisagra, en su cara. */
-  pushPoint(index: number, out: THREE.Vector3): THREE.Vector3 {
+  /**
+   * Dónde va la muñeca de quien empuja la hoja de la copia `index`: con la palma apoyada cerca del canto sin bisagra, a
+   * la altura del tirador y con los dedos hacia arriba (la muñeca queda algo más baja y separada de la cara de la hoja,
+   * para que la mano no se meta dentro). En `palm`, hacia dónde mira la palma (hacia la hoja).
+   */
+  pushPoint(index: number, out: THREE.Vector3, palm?: THREE.Vector3): THREE.Vector3 {
     const hinge = this.hinge
     if (!hinge) return out.set(0, 0, 0).applyMatrix4(this.placements[index])
     const { box } = hinge
     const side = this.sides[index]
-    out.set(box.min.x + (box.max.x - box.min.x) * 0.82, box.min.y + 1.05, side > 0 ? box.max.z + 0.02 : box.min.z - 0.02)
+    out.set(box.min.x + (box.max.x - box.min.x) * 0.8, box.min.y + 0.97, side > 0 ? box.max.z + 0.035 : box.min.z - 0.035)
     this.motion.makeRotationY(DOOR_OPEN_ANGLE * easeDoor(this.open[index]) * side)
-    return out.applyMatrix4(this.matrix.multiplyMatrices(this.placements[index], hinge.pre).multiply(this.motion))
+    this.matrix.multiplyMatrices(this.placements[index], hinge.pre).multiply(this.motion)
+    palm?.set(0, 0, -side).transformDirection(this.matrix)
+    return out.applyMatrix4(this.matrix)
   }
 
   /** Oculta o enseña una copia entera (por ejemplo, el fondo oscuro de la puerta de un edificio en el que se puede entrar). */

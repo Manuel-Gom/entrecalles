@@ -44,13 +44,18 @@ export interface LocomotorInput {
   reach?: Reach | null
 }
 
-/** Una mano que se alarga hasta (x, y, z), en el mundo, con un peso de 0 (nada) a 1 (llega). */
+/**
+ * Una mano que se alarga hasta (x, y, z), en el mundo (donde va la muñeca), con un peso de 0 (nada) a 1 (llega). Solo
+ * alcanza lo que tiene delante: si el punto se queda al lado o detrás, el brazo se recoge. `palm`: hacia dónde mira la
+ * palma (si no, hacia el punto); los dedos, hacia arriba.
+ */
 export interface Reach {
   hand: 'l' | 'r'
   x: number
   y: number
   z: number
   weight: number
+  palm?: { x: number; y: number; z: number }
 }
 
 const shoulder = new THREE.Vector3()
@@ -219,6 +224,14 @@ export class Locomotor {
     const arm = this.arms[reach.hand]
     if (!arm) return
     const [chest, upper, lower, hand] = arm.bones
+    // solo lo que tiene delante: con el punto al lado o detrás (ya ha cruzado la puerta), el brazo se recoge
+    this.root.getWorldQuaternion(worldQuat)
+    to.set(0, 0, 1).applyQuaternion(worldQuat).setY(0).normalize()
+    chest.getWorldPosition(from)
+    dir.set(reach.x - from.x, 0, reach.z - from.z).normalize()
+    const ahead = dir.dot(to)
+    const weight = reach.weight * Math.min(1, Math.max(0, (ahead - 0.15) / 0.35))
+    if (weight <= 0.001) return
     arm.bones.forEach((bone, i) => arm.saved[i].copy(bone.quaternion))
     const middle = this.assembly.bone(`middle_01_${reach.hand}`) as THREE.Bone
     const index = this.assembly.bone(`index_01_${reach.hand}`) as THREE.Bone
@@ -251,13 +264,14 @@ export class Locomotor {
     hand.getWorldPosition(wrist)
     aimWorld(lower, from.subVectors(wrist, elbow), to.copy(shoulder).addScaledVector(dir, d).sub(elbow))
 
-    // la mano: dedos hacia arriba (algo hacia delante) y la palma hacia el punto
+    // la mano: dedos hacia arriba (pegados a la hoja, sin meterse en ella) y la palma hacia ella
     hand.getWorldPosition(wrist)
     const push = to.copy(dir).setY(0)
+    if (reach.palm) push.set(reach.palm.x, reach.palm.y, reach.palm.z)
     if (push.lengthSq() < 1e-8) push.copy(dir)
     push.normalize()
     middle.getWorldPosition(from).sub(wrist)
-    aimWorld(hand, from, palm.copy(UP).multiplyScalar(0.85).addScaledVector(push, 0.45))
+    aimWorld(hand, from, palm.copy(UP).addScaledVector(push, -push.dot(UP)))
     middle.getWorldPosition(from).sub(wrist).normalize()
     index.getWorldPosition(knuckles)
     pinky.getWorldPosition(palm)
@@ -268,7 +282,7 @@ export class Locomotor {
     push.addScaledVector(from, -push.dot(from))
     aimWorld(hand, palm, push)
 
-    if (reach.weight < 1) arm.bones.forEach((bone, i) => bone.quaternion.slerpQuaternions(arm.saved[i], bone.quaternion, reach.weight))
+    if (weight < 1) arm.bones.forEach((bone, i) => bone.quaternion.slerpQuaternions(arm.saved[i], bone.quaternion, weight))
     chest.updateMatrixWorld(true)
   }
 

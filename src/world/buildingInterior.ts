@@ -6,6 +6,7 @@ import {
 import type { Box } from './collision'
 import { DoorOpener, InstancedProp, approach, swingTowards, type DoorFrame, type Walker } from './doors'
 import { travelDuration, travelOffset } from './elevator'
+import type { Reach } from './locomotor'
 import { CHAIR_APPROACH } from './interior'
 import { FLOOR_COLORS, type InteriorMaterials, type InteriorSurface } from './interiorMaterials'
 import type { Blocker } from './layout'
@@ -418,16 +419,11 @@ interface DoorSlot {
   opener: DoorOpener
 }
 
-/** La puerta que está empujando alguien: dónde apoya la mano, con cuál y cuánto alarga el brazo (0-1). */
-export interface DoorPush {
-  x: number
-  y: number
-  z: number
-  hand: 'l' | 'r'
-  weight: number
-}
+/** La puerta que está empujando alguien: dónde va la muñeca, hacia dónde la palma, con qué mano y cuánto alarga el brazo (0-1). */
+export type DoorPush = Reach
 
 const pushPoint = new THREE.Vector3()
+const pushPalm = new THREE.Vector3()
 
 /** Apunta en `pushes` (por quién empuja) el empujón de esta puerta, si es el más claro de esa persona. */
 export function collectPush(pushes: (DoorPush | undefined)[], opener: DoorOpener, prop: InstancedProp, index: number) {
@@ -435,8 +431,8 @@ export function collectPush(pushes: (DoorPush | undefined)[], opener: DoorOpener
   if (who < 0 || opener.push <= 0) return
   const best = pushes[who]
   if (best && best.weight >= opener.push) return
-  prop.pushPoint(index, pushPoint)
-  pushes[who] = { x: pushPoint.x, y: pushPoint.y, z: pushPoint.z, hand: opener.hand, weight: opener.push }
+  prop.pushPoint(index, pushPoint, pushPalm)
+  pushes[who] = { x: pushPoint.x, y: pushPoint.y, z: pushPoint.z, hand: opener.hand, weight: opener.push, palm: { x: pushPalm.x, y: pushPalm.y, z: pushPalm.z } }
 }
 
 interface Level {
