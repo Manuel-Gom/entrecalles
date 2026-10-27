@@ -4,7 +4,8 @@ import {
   SLAB, WALL_HEIGHT, heightAt as planHeight, inBox, levelOf, levelY, roofY, type BuildingPlan, type ElevatorPlan, type PlanDoor, type PlanLight, type PlanRoom, type PlanWall,
 } from './buildingPlan'
 import type { Box } from './collision'
-import { InstancedProp, swingTowards } from './doors'
+import { DoorOpener, InstancedProp, approach, swingTowards, type DoorFrame, type Walker } from './doors'
+import { travelDuration, travelOffset } from './elevator'
 import { CHAIR_APPROACH } from './interior'
 import { FLOOR_COLORS, type InteriorMaterials, type InteriorSurface } from './interiorMaterials'
 import type { Blocker } from './layout'
@@ -16,10 +17,14 @@ export type PropLibrary = ReadonlyMap<string, Prop>
 /** Lo que hace sonar un edificio. */
 export type BuildingSound = 'puerta' | 'ascensor' | 'llegada'
 
-/** A cuántos metros se abre sola una puerta. */
-const DOOR_REACH = 1.6
-/** Cuánto tarda la cabina en recorrer una planta (s). */
-const ELEVATOR_SECONDS_PER_FLOOR = 1.3
+/** A cuántos metros (de frente y andando despacio) se empieza a empujar una puerta de dentro; corriendo, antes. */
+const DOOR_REACH = 0.6
+/** Medio ancho del hueco del ascensor y a cuántos metros (de frente) se abren sus puertas. */
+const ELEVATOR_DOOR_HALF = 0.4
+const ELEVATOR_DOOR_REACH = 1.2
+/** Hasta dónde se puede llamar al ascensor desde el rellano (m), y lo que siguen abiertas sus puertas al llegar (s). */
+const ELEVATOR_CALL_REACH = 1.6
+const ARRIVAL_HOLD_SECONDS = 3
 const COMMON_PAINT = 0xe6dccb
 const CEILING = 0xf3f1ec
 const WALL_TOP = 0xd8d2c8
@@ -270,19 +275,31 @@ function addWall(out: SurfaceBuilders, wall: PlanWall, rooms: readonly PlanRoom[
 
 type ElevatorState = 'parado' | 'cerrando' | 'moviendo'
 
-/** La cabina y las puertas de cada planta. Se llama sola al acercarse a la puerta de otra planta. */
+/**
+ * La cabina y las puertas de cada planta. Se llama con la tecla de interactuar desde el rellano (`call`) y se manda a una
+ * planta desde dentro (`go`). Las puertas se abren para quien viene de frente o está en el umbral, y no se cierran con
+ * alguien en él.
+ */
 class Elevator {
   readonly plan: ElevatorPlan
   level = 0
   y: number
-  private target = 0
-  private state: ElevatorState = 'parado'
+  target = 0
+  state: ElevatorState = 'parado'
+  /** planta desde la que se ha llamado (-1 ninguna) */
+  called = -1
   readonly doors: InstancedProp | null
   readonly cabin: THREE.Object3D | null
+  private readonly frame: DoorFrame
+  /** el viaje en curso: desde dónde y cuánto tiempo lleva */
+  private travel = { from: 0, t: 0 }
+  /** lo que siguen abiertas las puertas al llegar (s) */
+  private hold = 0
 
   constructor(plan: ElevatorPlan, props: PropLibrary) {
     this.plan = plan
     this.y = levelY(0)
+    this.frame = { x: plan.door.x, z: plan.door.z, nx: Math.sin(plan.door.yaw), nz: Math.cos(plan.door.yaw), halfWidth: ELEVATOR_DOOR_HALF }
     const doorProp = props.get('ascensor_puerta')
     this.doors = doorProp
       ? new InstancedProp(doorProp, Array.from({ length: plan.stops }, (_, i) => placementMatrix(plan.door.x, levelY(i), plan.door.z, plan.door.yaw)), false)
@@ -306,9 +323,33 @@ class Elevator {
     return inBox(this.plan.cabin, x, z) && Math.abs(y - this.y) < 0.8
   }
 
-  /** ¿Se puede pasar ahora por la puerta de la planta `level`? */
+  /**
+   * ¿Se puede pasar ahora por la puerta de la planta `level`? Mientras quede una rendija abierta, sí: la huella de la
+   * puerta (que tapa el hueco) solo se pone con la puerta cerrada del todo, y no se cierra con nadie en el umbral.
+   */
   passable(level: number) {
-    return this.state === 'parado' && this.level === level && (this.doors?.openness(level) ?? 1) > 0.7
+    return this.level === level && (this.doors ? this.doors.openness(level) > 0 : this.state === 'parado')
+  }
+
+  /** La planta desde la que se puede llamar al ascensor quien está en (x, z, y), o -1 (lejos o la cabina ya está ahí). */
+  callableFrom(x: number, z: number, y: number): number {
+    const level = Math.round((y - levelY(0)) / 3)
+    if (level < 0 || level >= this.plan.stops || Math.abs(y - levelY(level)) > 0.6) return -1
+    if (Math.hypot(x - this.plan.door.x, z - this.plan.door.z) > ELEVATOR_CALL_REACH || this.contains(x, z, y)) return -1
+    if (this.called === level || (this.state === 'parado' && this.level === level)) return -1
+    return level
+  }
+
+  /** Llama a la cabina desde el rellano de `level`: viene (si no está ya) y abre al llegar. */
+  call(level: number) {
+    if (level < 0 || level >= this.plan.stops) return false
+    if (this.state === 'parado' && this.level === level) {
+      this.hold = ARRIVAL_HOLD_SECONDS
+      return true
+    }
+    if (this.state !== 'parado') return false
+    this.called = level
+    return this.go(level)
   }
 
   /** Manda la cabina a una planta (con quien vaya dentro). */
@@ -316,39 +357,49 @@ class Elevator {
     if (this.state !== 'parado' || level === this.level || level < 0 || level >= this.plan.stops) return false
     this.target = level
     this.state = 'cerrando'
+    this.hold = 0
     return true
   }
 
-  update(dt: number, x: number, z: number, y: number, sound: (s: BuildingSound) => void) {
-    const inside = this.contains(x, z, y)
-    const playerLevel = Math.round((y - levelY(0)) / 3)
-    const near = (level: number) => Math.abs(y - levelY(level)) < 0.6 && Math.hypot(x - this.plan.door.x, z - this.plan.door.z) < DOOR_REACH
-    // se llama sola: alguien espera en otra planta y la cabina está vacía
-    if (this.state === 'parado' && !inside && playerLevel !== this.level && playerLevel < this.plan.stops && near(playerLevel)) {
-      this.target = playerLevel
-      this.state = 'cerrando'
-    }
+  update(dt: number, walker: Walker, y: number, sound: (s: BuildingSound) => void) {
+    const inside = this.contains(walker.x, walker.z, y)
+    const here = (level: number) => Math.abs(y - levelY(level)) < 0.6
+    const door = here(this.level) ? approach(this.frame, walker, ELEVATOR_DOOR_REACH) : null
+    // alguien en el umbral: no se cierra (y si se estaba cerrando, se vuelve a abrir y espera)
+    const blocked = door !== null && door.doorway
+    this.hold = Math.max(0, this.hold - dt)
     for (let i = 0; i < this.plan.stops; i++) {
-      const want = this.state === 'parado' && i === this.level && (inside || near(i)) ? 1 : 0
+      const open = i === this.level && (this.state === 'parado' || (this.state === 'cerrando' && blocked))
+      const want = open && (inside || blocked || this.hold > 0 || (door !== null && door.coming)) ? 1 : 0
       const now = this.doors?.openness(i) ?? want
       this.doors?.setOpen(i, swingTowards(now, want, dt, 0.8))
     }
-    if (this.state === 'cerrando' && (this.doors?.openness(this.level) ?? 0) <= 0.001) {
+    if (this.state === 'cerrando' && !blocked && (this.doors?.openness(this.level) ?? 0) <= 0.001) {
       this.state = 'moviendo'
+      this.travel = { from: this.y, t: 0 }
       if (inside) sound('ascensor')
     }
     if (this.state === 'moviendo') {
-      const goal = levelY(this.target)
-      const step = (3 / ELEVATOR_SECONDS_PER_FLOOR) * dt
-      this.y += Math.max(-step, Math.min(step, goal - this.y))
-      if (Math.abs(goal - this.y) < 1e-4) {
-        this.y = goal
+      const distance = levelY(this.target) - this.travel.from
+      this.travel.t += dt
+      this.y = this.travel.from + travelOffset(distance, this.travel.t)
+      if (this.travel.t >= travelDuration(distance)) {
+        this.y = levelY(this.target)
         this.level = this.target
         this.state = 'parado'
-        if (inside) sound('llegada')
+        // abre al llegar: a quien va dentro y a quien lo ha llamado
+        this.hold = ARRIVAL_HOLD_SECONDS
+        if (inside || this.called === this.level) sound('llegada')
+        if (this.called === this.level) this.called = -1
       }
       this.place()
     }
+  }
+
+  /** Datos para las pruebas y el diagnóstico. */
+  stats() {
+    const { door, stops } = this.plan
+    return { state: this.state, level: this.level, target: this.target, y: this.y, called: this.called, doors: this.doors?.openness(this.level) ?? null, door, stops }
   }
 
   dispose() {
@@ -363,7 +414,26 @@ interface DoorSlot {
   door: PlanDoor
   prop: InstancedProp
   index: number
-  open: number
+  frame: DoorFrame
+  opener: DoorOpener
+}
+
+/** La puerta que está empujando alguien: dónde apoya la mano, con cuál y cuánto alarga el brazo (0-1). */
+export interface DoorPush {
+  x: number
+  y: number
+  z: number
+  hand: 'l' | 'r'
+  weight: number
+}
+
+const pushPoint = new THREE.Vector3()
+
+/** El empujón más claro de quien está en `walker` (índice 0) entre estas puertas, o el que ya había si es mayor. */
+export function strongestPush(best: DoorPush | null, opener: DoorOpener, prop: InstancedProp, index: number): DoorPush | null {
+  if (opener.pusher !== 0 || opener.push <= 0 || (best && best.weight >= opener.push)) return best
+  prop.pushPoint(index, pushPoint)
+  return { x: pushPoint.x, y: pushPoint.y, z: pushPoint.z, hand: opener.hand, weight: opener.push }
 }
 
 interface Level {
@@ -391,6 +461,8 @@ export class BuildingInterior {
   readonly plan: BuildingPlan
   readonly group = new THREE.Group()
   readonly elevator: Elevator | null
+  /** la puerta que empuja ahora quien anda por dentro (para el brazo), o null */
+  push: DoorPush | null = null
   private readonly levels: Level[] = []
   private readonly props: PropLibrary
   private readonly materials: InteriorMaterials
@@ -515,7 +587,10 @@ export class BuildingInterior {
       const instanced = new InstancedProp(prop, doors.map((d) => placementMatrix(d.x, d.y, d.z, d.yaw)), false)
       data.doorProps.push(instanced)
       data.furniture.add(instanced.group)
-      doors.forEach((door, index) => data.doors.push({ door, prop: instanced, index, open: 0 }))
+      doors.forEach((door, index) => {
+        const frame = instanced.doorFrame(index)
+        if (frame) data.doors.push({ door, prop: instanced, index, frame, opener: new DoorOpener() })
+      })
     }
     this.group.add(data.furniture)
   }
@@ -609,20 +684,23 @@ export class BuildingInterior {
     return room.floor === 'cubierta' ? 'acera' : 'baldosa'
   }
 
-  /** Abre las puertas cerca de quien anda por la planta y mueve el ascensor. */
-  update(dt: number, x: number, z: number, y: number, sound: (s: BuildingSound) => void) {
+  /** Abre las puertas que empuja quien anda por la planta y mueve el ascensor. */
+  update(dt: number, walker: Walker, y: number, sound: (s: BuildingSound) => void) {
     const level = this.levelAt(y)
+    const walkers = [walker]
+    let push: DoorPush | null = null
     for (const [i, data] of this.levels.entries()) {
       for (const slot of data.doors) {
-        const near = i === level && Math.hypot(x - slot.door.x, z - slot.door.z) < DOOR_REACH
-        const next = swingTowards(slot.open, near ? 1 : 0, dt)
-        if (slot.open === 0 && next > 0 && slot.door.announce) sound('puerta')
-        slot.open = next
-        slot.prop.setOpen(slot.index, next)
+        const { opener } = slot
+        if (i !== level && opener.idle) continue
+        if (opener.update(dt, slot.frame, i === level ? walkers : [], DOOR_REACH) && slot.door.announce) sound('puerta')
+        slot.prop.setOpen(slot.index, opener.open, opener.side)
+        push = strongestPush(push, opener, slot.prop, slot.index)
       }
     }
+    this.push = push
     if (this.elevator) {
-      this.elevator.update(dt, x, z, y, sound)
+      this.elevator.update(dt, walker, y, sound)
       if (this.elevator.cabin) this.elevator.cabin.visible = this.elevator.y <= levelY(this.view.inside ? this.view.level : 0) + 1
     }
   }

@@ -119,7 +119,21 @@ Los 32 edificios se visitan enteros, de la planta baja a la azotea, y la altura 
 - **Azotea**: casetón de la escalera, barandilla alrededor del patio, depósito, antenas, tendedero y máquinas de aire.
 - **Muebles**: cada estancia se amuebla con reglas (contra las paredes, sin tapar puertas ni ventanas, con paso libre delante de cada puerta). Se puede sentar en sofás, sillones, sillas y en el borde de la cama.
 
-Cómo funciona: solo hay un edificio montado a la vez, el de la puerta más cercana (a menos de 14 m) o en el que se está. Las colisiones, plazas y luces de todas sus plantas se calculan al montarlo; las mallas, solo de la planta actual y las de al lado. Los muros, suelos y techos se generan por código y los muebles de una planta se **fusionan por material** (unas pocas decenas de llamadas de dibujo por planta). Se entra andando, sin fundido: la fachada tiene huecos de verdad para el portal y el local, y por las ventanas se ve la calle (la carcasa de fuera no se ve desde dentro). Dentro se ven la planta actual y la de abajo, y nada por encima (como un corte), así que la cámara puede mirar desde arriba; los muros de fachada no la dejan salir. Las luces de dentro (0, 2 o 4 según la calidad) se compilan al acercarse a una puerta, con el mismo mecanismo que las farolas, para que entrar no dé un tirón. Las puertas se abren solas al acercarse.
+Cómo funciona: solo hay un edificio montado a la vez, el de la puerta más cercana (a menos de 14 m) o en el que se está. Las colisiones, plazas y luces de todas sus plantas se calculan al montarlo; las mallas, solo de la planta actual y las de al lado. Los muros, suelos y techos se generan por código y los muebles de una planta se **fusionan por material** (unas pocas decenas de llamadas de dibujo por planta). Se entra andando, sin fundido: la fachada tiene huecos de verdad para el portal y el local, y por las ventanas se ve la calle (la carcasa de fuera no se ve desde dentro). Dentro se ven la planta actual y la de abajo, y nada por encima (como un corte), así que la cámara puede mirar desde arriba; los muros de fachada no la dejan salir. Las luces de dentro (0, 2 o 4 según la calidad) se compilan al acercarse a una puerta, con el mismo mecanismo que las farolas, para que entrar no dé un tirón.
+
+**Puertas y ascensor** (`doors.ts`, `elevator.ts`):
+- Las puertas de hoja (portal, local, pisos y habitaciones) **se empujan con la mano** (`DoorOpener`).
+  - Solo abren para quien está en el umbral o viene de frente hacia el hueco. No abren para quien pasa por la acera, está quieto delante o se aleja.
+  - El alcance crece con la velocidad, así que corriendo se empieza antes.
+  - Quien llega alarga el brazo y la hoja no se mueve hasta que la mano la toca (0,22 s). Entonces gira **hacia el lado contrario** al de quien llega, así que nunca le barre. Corriendo se abre más deprisa.
+  - Sigue abierta mientras alguien esté en el umbral y 0,8 s más. Luego se cierra despacio y arranca y frena suave.
+  - Al cambiar de edificio montado, las puertas del anterior terminan de cerrarse antes de volver a poner el fondo oscuro.
+- El brazo es una capa del `Locomotor` (`reach`): IK de dos huesos sobre la pose de andar o correr, con la palma hacia la hoja y el pecho algo girado. Sirve para cualquier personaje y, más adelante, para coger cosas.
+- **Ascensor:**
+  - Se llama desde el rellano con la tecla de interactuar («llamar al ascensor»). Ya no viene solo al pasar.
+  - Al llegar abre 3 s, y no se cierra con nadie en el umbral. La huella de la puerta solo tapa el hueco con la puerta cerrada del todo, así que ya no empuja al personaje.
+  - La cabina acelera y frena: rampa de 0,6 s y 2,5 m/s de crucero. Una planta tarda 1,8 s.
+- Captura de revisión: `node tools/revision/mundo.mjs puertas`. Deja las aperturas y el peso del brazo en `mundo-puertas.json`.
 
 ### Modelos de Blender
 `tools/blender/crear_props.py` genera, por código y sin nada de terceros (CC0), los modelos de `public/models/mundo/`:

@@ -40,6 +40,42 @@ export interface LocomotorInput {
   turn?: number
   /** altura del asiento (m) si está sentado */
   seatHeight?: number
+  /** alargar una mano hasta un punto del mundo (empujar una puerta y, más adelante, coger cosas) */
+  reach?: Reach | null
+}
+
+/** Una mano que se alarga hasta (x, y, z), en el mundo, con un peso de 0 (nada) a 1 (llega). */
+export interface Reach {
+  hand: 'l' | 'r'
+  x: number
+  y: number
+  z: number
+  weight: number
+}
+
+const shoulder = new THREE.Vector3()
+const elbow = new THREE.Vector3()
+const wrist = new THREE.Vector3()
+const goal = new THREE.Vector3()
+const bend = new THREE.Vector3()
+const dir = new THREE.Vector3()
+const from = new THREE.Vector3()
+const to = new THREE.Vector3()
+const palm = new THREE.Vector3()
+const knuckles = new THREE.Vector3()
+const worldQuat = new THREE.Quaternion()
+const parentQuat = new THREE.Quaternion()
+const delta = new THREE.Quaternion()
+const UP = new THREE.Vector3(0, 1, 0)
+
+/** Gira el hueso en el mundo para que la dirección `a` pase a ser `b` (las dos en el mundo). */
+function aimWorld(bone: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3) {
+  if (a.lengthSq() < 1e-10 || b.lengthSq() < 1e-10) return
+  delta.setFromUnitVectors(a.normalize(), b.normalize())
+  bone.getWorldQuaternion(worldQuat)
+  bone.parent?.getWorldQuaternion(parentQuat)
+  bone.quaternion.copy(parentQuat.invert()).multiply(delta).multiply(worldQuat)
+  bone.updateMatrixWorld(true)
 }
 
 /** Lleva un `GaitPose` (ángulos) a los huesos del personaje, con independencia de cómo esté orientado cada hueso. */
@@ -64,6 +100,8 @@ export class Locomotor {
   private readonly baseQuats: THREE.Quaternion[] = []
   private readonly proceduralQuats: THREE.Quaternion[] = []
   private readonly proceduralPelvis = new THREE.Vector3()
+  /** la cadena de cada brazo para alargar la mano, la orientación de antes (para mezclar) y hacia dónde mira la palma */
+  private readonly arms: Record<'l' | 'r', { bones: THREE.Bone[]; saved: THREE.Quaternion[]; palmSign: number } | null>
 
   constructor(assembly: AvatarAssembly, seed: number) {
     this.assembly = assembly
@@ -95,6 +133,17 @@ export class Locomotor {
       hipHeight: hip.y || 0.95,
     }
     this.sideL = world('upperarm_l').x >= world('upperarm_r').x ? 1 : -1
+    const arm = (side: 'l' | 'r') => {
+      const bones = ['spine_03', `upperarm_${side}`, `lowerarm_${side}`, `hand_${side}`, `middle_01_${side}`, `index_01_${side}`, `pinky_01_${side}`].map((name) => assembly.bone(name))
+      if (bones.some((bone) => !bone)) return null
+      const chain = bones as THREE.Bone[]
+      // con los brazos caídos la palma mira al muslo: así se sabe hacia qué lado del dorso queda la palma de esta mano
+      const [, , , hand, middle, index, pinky] = chain.map((bone) => bone.getWorldPosition(new THREE.Vector3()))
+      const side3 = new THREE.Vector3().subVectors(this.bones.pelvis?.getWorldPosition(new THREE.Vector3()) ?? new THREE.Vector3(), hand).setY(0)
+      const normal = new THREE.Vector3().subVectors(middle, hand).cross(new THREE.Vector3().subVectors(index, pinky))
+      return { bones: chain.slice(0, 4), saved: chain.slice(0, 4).map(() => new THREE.Quaternion()), palmSign: normal.dot(side3) >= 0 ? 1 : -1 }
+    }
+    this.arms = { l: arm('l'), r: arm('r') }
     this.root.traverse((object) => {
       if (!(object as THREE.Bone).isBone) return
       this.allBones.push(object as THREE.Bone)
@@ -158,6 +207,69 @@ export class Locomotor {
     this.apply(pose)
     if (motion) this.applyMotion(motion, pose, input)
     this.root.updateMatrixWorld(true)
+    if (input.reach && input.reach.weight > 0.001) this.applyReach(input.reach)
+  }
+
+  /**
+   * Alarga una mano hasta un punto (IK de dos huesos sobre la pose que ya hay): el pecho gira un poco hacia ese lado, el
+   * codo se dobla hacia donde ya estaba doblado (y algo hacia abajo), y la mano va abierta, con los dedos hacia arriba y
+   * la palma hacia el punto. Se mezcla con la pose de antes según el peso.
+   */
+  private applyReach(reach: Reach) {
+    const arm = this.arms[reach.hand]
+    if (!arm) return
+    const [chest, upper, lower, hand] = arm.bones
+    arm.bones.forEach((bone, i) => arm.saved[i].copy(bone.quaternion))
+    const middle = this.assembly.bone(`middle_01_${reach.hand}`) as THREE.Bone
+    const index = this.assembly.bone(`index_01_${reach.hand}`) as THREE.Bone
+    const pinky = this.assembly.bone(`pinky_01_${reach.hand}`) as THREE.Bone
+
+    // el hombro de esa mano, un poco hacia delante
+    const forward = (reach.hand === 'l' ? -1 : 1) * this.sideL
+    this.turn('spine_03', current.copy(chest.quaternion), 0, forward * 0.16)
+    chest.updateMatrixWorld(true)
+
+    upper.getWorldPosition(shoulder)
+    lower.getWorldPosition(elbow)
+    hand.getWorldPosition(wrist)
+    const a = shoulder.distanceTo(elbow)
+    const b = elbow.distanceTo(wrist)
+    goal.set(reach.x, reach.y, reach.z)
+    dir.subVectors(goal, shoulder)
+    const d = Math.min(a + b - 0.005, Math.max(Math.abs(a - b) + 0.01, dir.length()))
+    dir.normalize()
+    // hacia dónde se dobla el codo: hacia donde ya estaba, algo hacia abajo, siempre de lado respecto al brazo
+    bend.subVectors(elbow, shoulder).addScaledVector(UP, -0.5 * a)
+    bend.addScaledVector(dir, -bend.dot(dir))
+    if (bend.lengthSq() < 1e-8) bend.set(0, -1, 0).addScaledVector(dir, -dir.y)
+    bend.normalize()
+    const along = (a * a - b * b + d * d) / (2 * d)
+    const height = Math.sqrt(Math.max(0, a * a - along * along))
+    to.copy(shoulder).addScaledVector(dir, along).addScaledVector(bend, height).sub(shoulder)
+    aimWorld(upper, from.subVectors(elbow, shoulder), to)
+    lower.getWorldPosition(elbow)
+    hand.getWorldPosition(wrist)
+    aimWorld(lower, from.subVectors(wrist, elbow), to.copy(shoulder).addScaledVector(dir, d).sub(elbow))
+
+    // la mano: dedos hacia arriba (algo hacia delante) y la palma hacia el punto
+    hand.getWorldPosition(wrist)
+    const push = to.copy(dir).setY(0)
+    if (push.lengthSq() < 1e-8) push.copy(dir)
+    push.normalize()
+    middle.getWorldPosition(from).sub(wrist)
+    aimWorld(hand, from, palm.copy(UP).multiplyScalar(0.85).addScaledVector(push, 0.45))
+    middle.getWorldPosition(from).sub(wrist).normalize()
+    index.getWorldPosition(knuckles)
+    pinky.getWorldPosition(palm)
+    knuckles.sub(palm)
+    // la normal de la palma, y la que se quiere (hacia el punto), las dos de lado respecto a los dedos
+    palm.copy(from).cross(knuckles).multiplyScalar(arm.palmSign)
+    palm.addScaledVector(from, -palm.dot(from))
+    push.addScaledVector(from, -push.dot(from))
+    aimWorld(hand, palm, push)
+
+    if (reach.weight < 1) arm.bones.forEach((bone, i) => bone.quaternion.slerpQuaternions(arm.saved[i], bone.quaternion, reach.weight))
+    chest.updateMatrixWorld(true)
   }
 
   /** Pone encima la animación de andar y correr, mezclada con la pose calculada según lo en marcha que vaya. */

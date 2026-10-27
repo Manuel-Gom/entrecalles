@@ -6,6 +6,7 @@
 //   parque: fuente, árboles y farolas de Blender a escala de juego
 //   ciclo:  vistas del parque de día y de noche con el reloj fijado, y la iluminación cerca, en una calle, a lo lejos
 //           y desde arriba, con el brillo medio de cada vista (--etiqueta=antes añade un sufijo a las capturas)
+//   puertas: el portal de un edificio (pasar por delante, llegar andando y corriendo, salir) y llamar al ascensor; deja mundo-puertas.json
 //   pnj:    un PNJ de cada actividad (sentado, charlando, mirando un escaparate, esperando...)
 // Las imágenes salen en docs/previews/web/mundo-*.png
 import { spawn, spawnSync } from 'node:child_process'
@@ -115,6 +116,83 @@ if (scenario === 'marcha') {
       }
     }
   }
+} else if (scenario === 'puertas') {
+  // el portal de un edificio: pasar por delante (no se abre), llegar andando y corriendo (se empuja con la mano) y salir
+  // por dentro; luego llamar al ascensor desde un rellano, quedarse en el umbral y subir. Deja un JSON con lo medido.
+  await page.waitForFunction(() => window.__world().stats().building.ready, null, { timeout: 60000 })
+  const registro = {}
+  const pasada = async (nombre, { desde, por = 0, moveX = 0, moveZ = 0, run = false, frames, step, camara, fotos = true }) => {
+    await page.evaluate(([b, desde, por, camara]) => {
+      const w = window.__world()
+      const p = w.layout.buildings[b].portal
+      const nx = Math.sin(p.yaw), nz = Math.cos(p.yaw)
+      w.teleport(p.x + nx * desde + nz * por, p.z + nz * desde - nx * por, p.yaw)
+      w.orbitCamera(p.yaw + camara[0], camara[1], camara[2])
+      w.inputOverride = { moveX: 0, moveZ: 0, run: false }
+      w.advance(2.5)
+    }, [edificio, desde, por, camara])
+    const datos = []
+    for (let i = 0; i < frames; i++) {
+      datos.push(await page.evaluate(([b, step, mx, mz, run]) => {
+        const w = window.__world()
+        w.inputOverride = { moveX: mx, moveZ: mz, run }
+        w.advance(step)
+        const s = w.stats()
+        const p = w.layout.buildings[b].portal
+        const across = (s.player.x - p.x) * Math.sin(p.yaw) + (s.player.z - p.z) * Math.cos(p.yaw)
+        const door = s.building.doors.find((d) => d.building === b && Math.hypot(d.x - p.x, d.z - p.z) < 1.5)
+        return { across: +across.toFixed(2), speed: +s.player.speed.toFixed(2), open: door ? +door.open.toFixed(2) : 0, side: door?.side ?? 0, push: s.building.push ? +s.building.push.weight.toFixed(2) : 0, hand: s.building.push?.hand ?? null }
+      }, [edificio, step, moveX, moveZ, run]))
+      if (fotos) await shot(`puertas-${nombre}-${i}`)
+    }
+    registro[nombre] = datos
+    console.log(nombre, JSON.stringify(datos.map((d) => [d.across, d.open, d.push, d.hand])))
+  }
+  // un edificio con ascensor, para usar el mismo en todo
+  const edificio = await page.evaluate(() => window.__world().layout.buildings.findIndex((b) => b.floors >= 5 && b.shop.kind !== 'cafe'))
+  // de lado, mirando la fachada: moveX = 1 va hacia la puerta
+  const lado = [Math.PI / 2, 0.12, 3.6]
+  await pasada('acera', { desde: 1.1, por: 5, moveZ: 1, frames: 8, step: 0.9, camara: [Math.PI / 2, 0.35, 7], fotos: false })
+  await pasada('anda', { desde: 3.5, moveX: 1, frames: 16, step: 0.15, camara: lado })
+  await pasada('corre', { desde: 7, moveX: 1, run: true, frames: 16, step: 0.1, camara: lado })
+  await pasada('sale', { desde: -3, moveX: 1, frames: 16, step: 0.15, camara: [-Math.PI / 2, 0.12, 3.6] })
+  // el ascensor: al rellano de la segunda planta, delante de su puerta
+  const ascensor = await page.evaluate((b) => {
+    const w = window.__world()
+    const p = w.layout.buildings[b].portal
+    w.teleport(p.x - Math.sin(p.yaw) * 2, p.z - Math.cos(p.yaw) * 2, p.yaw)
+    w.advance(0.5)
+    const e = w.stats().building.elevator
+    if (!e) return null
+    const { door } = e
+    const y = 0.05 + 2 * 3
+    w.teleport(door.x + Math.sin(door.yaw) * 1.1, door.z + Math.cos(door.yaw) * 1.1, door.yaw, y)
+    w.orbitCamera(door.yaw + 0.7, 0.25, 3.2)
+    w.advance(0.5)
+    const pasos = [{ fase: 'rellano', prompt: w.stats().prompt ?? null, ...w.stats().building.elevator }]
+    w.interact()
+    for (let i = 0; i < 8; i++) {
+      w.advance(0.5)
+      const { state, level, y: cabina, doors, called } = w.stats().building.elevator
+      pasos.push({ fase: 'llamado', state, level, cabina: +cabina.toFixed(2), doors, called })
+    }
+    // al umbral: la puerta no se cierra aunque pase el tiempo
+    w.teleport(door.x - Math.sin(door.yaw) * 0.05, door.z - Math.cos(door.yaw) * 0.05, door.yaw + Math.PI, y)
+    for (let i = 0; i < 6; i++) {
+      w.advance(1)
+      const { state, doors } = w.stats().building.elevator
+      pasos.push({ fase: 'umbral', state, doors })
+    }
+    // y al salir del umbral, se cierra
+    w.teleport(door.x + Math.sin(door.yaw) * 1.5, door.z + Math.cos(door.yaw) * 1.5, door.yaw, y)
+    w.advance(5)
+    pasos.push({ fase: 'fuera', ...w.stats().building.elevator })
+    return pasos
+  }, edificio)
+  registro.ascensor = ascensor
+  console.log('ascensor', JSON.stringify(ascensor))
+  await shot('puertas-ascensor')
+  fs.writeFileSync(path.join(OUT, 'mundo-puertas.json'), JSON.stringify(registro, null, 1))
 } else if (scenario === 'tienda') {
   // la fachada del café con la puerta cerrada, abriéndose y los bancos de Blender
   await page.evaluate(() => {

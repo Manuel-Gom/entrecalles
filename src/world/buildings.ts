@@ -1,9 +1,9 @@
 import * as THREE from 'three'
 import type { Seat } from './brain'
-import { BuildingInterior, type BuildingSound, type PropLibrary } from './buildingInterior'
+import { BuildingInterior, strongestPush, type BuildingSound, type DoorPush, type PropLibrary } from './buildingInterior'
 import { FURNITURE, GROUND_FLOOR_Y, PORTAL_OPENING, SHOP_OPENING, inBox, planBuilding, type PlanLight } from './buildingPlan'
 import type { Box } from './collision'
-import { InstancedProp, swingTowards } from './doors'
+import { DoorOpener, InstancedProp, type DoorFrame, type Walker } from './doors'
 import { createInteriorMaterials } from './interiorMaterials'
 import type { Blocker, Building, CityLayout, ShopKind, Spot } from './layout'
 import { disposeProp, instanceProp, loadProp, placementMatrix, type Prop } from './props'
@@ -24,8 +24,20 @@ const RELEASE_DISTANCE = 20
  * andar entre las dos puertas se montaba y se soltaba uno y otro una y otra vez.
  */
 const SWITCH_MARGIN = 3
-/** A cuántos metros se abren solas las puertas de la calle. */
-const STREET_DOOR_REACH = 2.2
+/** A cuántos metros (de frente y andando despacio) se empieza a empujar una puerta de la calle; corriendo, antes. */
+const STREET_DOOR_REACH = 0.6
+const NOBODY: readonly Walker[] = []
+
+/** Una puerta de la calle: el portal o la del local de un edificio. */
+interface StreetDoor {
+  building: number
+  prop: InstancedProp
+  slot: number
+  frame: DoorFrame
+  opener: DoorOpener
+  /** su fondo oscuro (ver DoorBackings) */
+  backing: number
+}
 
 interface Active {
   building: Building
@@ -62,6 +74,9 @@ export class BuildingManager {
   /** índice de la copia del escaparate de cada edificio (−1 si no tiene: el del café) */
   private readonly shopSlot: number[] = []
   private backing: DoorBackings | null = null
+  private readonly streetDoors: StreetDoor[] = []
+  /** la puerta que empuja ahora el protagonista (para el brazo), o null */
+  push: DoorPush | null = null
   private active: Active | null = null
   /** el último interior soltado, guardado (oculto) por si se vuelve a él enseguida */
   private parked: { building: Building; interior: BuildingInterior } | null = null
@@ -171,6 +186,16 @@ export class BuildingManager {
     }
     this.backing = new DoorBackings(openings)
     this.exterior.add(this.backing.mesh)
+    for (const b of buildings) {
+      const doors = [
+        { prop: this.portals, slot: b.index, backing: b.index * 2 },
+        { prop: this.shops, slot: this.shopSlot[b.index], backing: b.index * 2 + 1 },
+      ]
+      for (const { prop, slot, backing } of doors) {
+        const frame = prop && slot >= 0 ? prop.doorFrame(slot) : null
+        if (prop && frame) this.streetDoors.push({ building: b.index, prop, slot, frame, opener: new DoorOpener(), backing })
+      }
+    }
   }
 
   /** El edificio que debería estar montado: en el que se está, o el de la puerta más cercana. */
@@ -230,11 +255,8 @@ export class BuildingManager {
   private deactivate() {
     const active = this.active
     if (!active) return
-    const i = active.building.index
-    this.portals?.setOpen(i, 0)
-    if (this.shopSlot[i] >= 0) this.shops?.setOpen(this.shopSlot[i], 0)
-    this.backing?.show(i * 2, true)
-    this.backing?.show(i * 2 + 1, true)
+    // sus puertas de la calle terminan de cerrarse solas (ver update); el fondo oscuro vuelve con cada una ya cerrada
+    for (const door of this.streetDoors) if (door.building === active.building.index && door.opener.idle) this.backing?.show(door.backing, true)
     // se guarda oculto (y se suelta el que estuviera guardado): volver a él enseguida no cuesta nada
     this.parked?.interior.dispose()
     active.interior.group.visible = false
@@ -247,9 +269,10 @@ export class BuildingManager {
     return this.active !== null && inBox(this.active.building.box, x, z)
   }
 
-  /** Avanza: elige el edificio montado, abre sus puertas y mueve el ascensor. */
-  update(dt: number, x: number, z: number, y: number, sound: (s: BuildingSound) => void) {
+  /** Avanza: elige el edificio montado, mueve las puertas que empuja quien anda (`walker`, a la altura `y`) y el ascensor. */
+  update(dt: number, walker: Walker, y: number, sound: (s: BuildingSound) => void) {
     if (!this.ready) return
+    const { x, z } = walker
     const inside = this.inside(x, z)
     if (!inside) {
       const next = this.pick(x, z)
@@ -257,26 +280,27 @@ export class BuildingManager {
       else if (!next && this.active && this.doorDistance(this.active.building, x, z) > RELEASE_DISTANCE) this.deactivate()
     }
     const active = this.active
-    if (!active) return
-    const level = active.interior.levelAt(y)
-    if (level !== this.view.level || inside !== this.view.inside) {
-      this.view = { level, inside }
-      active.interior.setView(level, inside)
+    if (active) {
+      const level = active.interior.levelAt(y)
+      if (level !== this.view.level || inside !== this.view.inside) {
+        this.view = { level, inside }
+        active.interior.setView(level, inside)
+      }
+      active.interior.update(dt, walker, y, sound)
     }
-    active.interior.update(dt, x, z, y, sound)
-    // las puertas de la calle del edificio montado se abren al acercarse (a pie de calle)
-    const street = y < GROUND_FLOOR_Y + 1
-    const i = active.building.index
-    const swing = (prop: InstancedProp | null, slot: number, spot: Spot) => {
-      if (!prop || slot < 0) return
-      const near = street && Math.hypot(x - spot.x, z - spot.z) < STREET_DOOR_REACH
-      const now = prop.openness(slot)
-      const next = swingTowards(now, near ? 1 : 0, dt)
-      if (now === 0 && next > 0) sound('puerta')
-      prop.setOpen(slot, next)
+    // las puertas de la calle del edificio montado las empuja quien va a pie de calle (por fuera o por dentro); las de
+    // los demás terminan de cerrarse y luego se quedan quietas
+    const walkers = y < GROUND_FLOOR_Y + 1 ? [walker] : NOBODY
+    let push = active?.interior.push ?? null
+    for (const door of this.streetDoors) {
+      const mine = door.building === active?.building.index
+      if (!mine && door.opener.idle) continue
+      if (door.opener.update(dt, door.frame, mine ? walkers : NOBODY, STREET_DOOR_REACH)) sound('puerta')
+      door.prop.setOpen(door.slot, door.opener.open, door.opener.side)
+      push = strongestPush(push, door.opener, door.prop, door.slot)
+      if (!mine && door.opener.idle) this.backing?.show(door.backing, true)
     }
-    swing(this.portals, i, active.building.portal)
-    swing(this.shops, this.shopSlot[i], active.building.shop.door)
+    this.push = push
   }
 
   /** Colisiones para quien está en (x, z) a la altura `y`. */
@@ -337,7 +361,18 @@ export class BuildingManager {
       active: this.active ? { index: this.active.building.index, floors: this.active.building.floors, shop: this.active.building.shop.kind } : null,
       level: this.view.level,
       inside: this.view.inside,
+      /** las puertas de la calle que se están moviendo o abiertas: de qué edificio, cuánto, hacia dónde y el brazo */
+      doors: this.streetDoors
+        .filter((door) => !door.opener.idle)
+        .map((door) => ({ building: door.building, x: door.frame.x, z: door.frame.z, open: door.opener.open, side: door.opener.side, push: door.opener.push })),
+      push: this.push,
+      elevator: this.active?.interior.elevator?.stats() ?? null,
     }
+  }
+
+  /** Las puertas de la calle de un edificio (portal y local): dónde está el centro del hueco y hacia dónde mira. */
+  doorsOf(building: number): DoorFrame[] {
+    return this.streetDoors.filter((door) => door.building === building).map((door) => door.frame)
   }
 
   dispose() {

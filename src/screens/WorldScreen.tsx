@@ -27,7 +27,7 @@ function readQuality(): Quality {
   return 'media'
 }
 
-const PROMPT_TEXT = { sentarse: 'sentarte', levantarse: 'levantarte', entrar: 'entrar al café', salir: 'salir a la calle', ascensor: 'usar el ascensor' } as const
+const PROMPT_TEXT = { sentarse: 'sentarte', levantarse: 'levantarte', entrar: 'entrar al café', salir: 'salir a la calle', ascensor: 'usar el ascensor', llamar: 'llamar al ascensor' } as const
 
 /** Nombre de una planta en el panel del ascensor. */
 const floorName = (level: number) => (level === 0 ? 'Bajo' : `${level}.º`)

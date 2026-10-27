@@ -34,7 +34,7 @@ export type Quality = 'baja' | 'media' | 'alta'
 export type WorldState = 'cargando' | 'listo' | 'error' | 'sin-3d'
 export type { Controls, GamepadInfo, InputDevice }
 /** Lo que haría ahora la tecla de interactuar. */
-export type Prompt = 'sentarse' | 'levantarse' | 'entrar' | 'salir' | 'ascensor'
+export type Prompt = 'sentarse' | 'levantarse' | 'entrar' | 'salir' | 'ascensor' | 'llamar'
 
 /** El panel del ascensor abierto: cuántas paradas hay, en cuál está la cabina y cuál se ha elegido. */
 export interface ElevatorPanel {
@@ -803,7 +803,7 @@ export class World {
     const { player } = this
     this.advanceTransition(dt)
     this.storefront?.update(dt, player.x, player.z)
-    if (!this.inside) this.buildings.update(dt, player.x, player.z, this.playerY, this.buildingSound)
+    if (!this.inside) this.buildings.update(dt, player, this.playerY, this.buildingSound)
     this.updateInteraction(dt)
     const riding = this.elevatorPanel !== null || (this.buildings.elevator?.moving === true && this.buildings.elevator.contains(player.x, player.z, this.playerY))
     // con la pose forzada (revisión visual), sentado, cruzando una puerta o en el ascensor, el protagonista no se mueve por su cuenta
@@ -832,6 +832,8 @@ export class World {
         talk: this.playerPoseOverride?.talk ?? 0,
         time: this.time,
         turn: this.turnRate(actor, player.yaw, dt),
+        // empuja con la mano la puerta que está abriendo
+        reach: this.inside ? null : this.buildings.push,
       })
       if (actor.locomotor.strikes > 0 && !this.seating && !this.transition) {
         const running = this.animSpeed > 3
@@ -931,6 +933,7 @@ export class World {
     const { player } = this
     const elevator = this.buildings.elevator
     if (!this.inside && elevator && !elevator.moving && elevator.contains(player.x, player.z, this.playerY)) return 'ascensor'
+    if (!this.inside && elevator && elevator.callableFrom(player.x, player.z, this.playerY) >= 0) return 'llamar'
     if (this.inside) {
       if (this.interior?.canExit(player.x, player.z)) return 'salir'
     } else if (this.storefront?.canEnter(player.x, player.z)) {
@@ -963,6 +966,10 @@ export class World {
       const action = this.promptNow()
       if (action === 'entrar') this.startTransition('entrar')
       else if (action === 'salir') this.startTransition('salir')
+      else if (action === 'llamar' && this.buildings.elevator) {
+        const { elevator } = this.buildings
+        elevator.call(elevator.callableFrom(player.x, player.z, this.playerY))
+      }
       else if (action === 'ascensor' && this.buildings.elevator) {
         this.elevatorPanel = { selected: this.buildings.elevator.level, axis: 0, repeat: 0 }
         this.emit()
